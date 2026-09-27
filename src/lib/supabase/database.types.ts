@@ -66,6 +66,51 @@ export type Database = {
         }
         Relationships: []
       }
+      module_permissions: {
+        Row: {
+          created_at: string
+          created_by: string
+          household_id: string
+          level: Database["public"]["Enums"]["permission_level"]
+          module: Database["public"]["Enums"]["module_name"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          household_id: string
+          level?: Database["public"]["Enums"]["permission_level"]
+          module: Database["public"]["Enums"]["module_name"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          household_id?: string
+          level?: Database["public"]["Enums"]["permission_level"]
+          module?: Database["public"]["Enums"]["module_name"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "module_permissions_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "module_permissions_user_id_household_id_fkey"
+            columns: ["user_id", "household_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id", "household_id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -110,10 +155,31 @@ export type Database = {
     }
     Functions: {
       current_household_id: { Args: never; Returns: string }
+      has_module_access: {
+        Args: {
+          requested_module: Database["public"]["Enums"]["module_name"]
+          required_level: Database["public"]["Enums"]["permission_level"]
+        }
+        Returns: boolean
+      }
       is_admin: { Args: never; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "member"
+      module_name:
+        | "dashboard"
+        | "accounts"
+        | "transactions"
+        | "budgets"
+        | "projections"
+        | "reports"
+        | "inventory"
+        | "shopping"
+        | "shopping_lists"
+        | "projects"
+        | "loans"
+        | "savings"
+      permission_level: "none" | "view" | "edit"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -245,6 +311,21 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "member"],
+      module_name: [
+        "dashboard",
+        "accounts",
+        "transactions",
+        "budgets",
+        "projections",
+        "reports",
+        "inventory",
+        "shopping",
+        "shopping_lists",
+        "projects",
+        "loans",
+        "savings",
+      ],
+      permission_level: ["none", "view", "edit"],
     },
   },
 } as const

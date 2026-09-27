@@ -21,15 +21,17 @@ export function AuthForm({
   fields,
   submitLabel,
   footer,
+  stayOpenOnSuccess = false,
 }: {
   action: (state: FormState, fd: FormData) => Promise<FormState>;
   fields: Field[];
   submitLabel: string;
   footer?: ReactNode;
+  stayOpenOnSuccess?: boolean;
 }) {
   const [state, formAction, pending] = useActionState(action, undefined);
 
-  if (state?.ok) {
+  if (state?.ok && !stayOpenOnSuccess) {
     return (
       <p className="text-muted-foreground text-sm" role="status">
         {state.ok}
@@ -40,7 +42,15 @@ export function AuthForm({
   return (
     <form action={formAction} className="grid gap-4" noValidate>
       {fields.map((f) => {
-        if (f.hidden) return <input key={f.name} type="hidden" name={f.name} value={f.defaultValue ?? ""} />;
+        if (f.hidden)
+          return (
+            <input
+              key={f.name}
+              type="hidden"
+              name={f.name}
+              value={f.defaultValue ?? ""}
+            />
+          );
         const err = state?.fieldErrors?.[f.name]?.[0];
         return (
           <div key={f.name} className="grid gap-1.5">
@@ -66,6 +76,11 @@ export function AuthForm({
       {state?.error && (
         <p className="text-destructive text-sm" role="alert">
           {state.error}
+        </p>
+      )}
+      {state?.ok && (
+        <p className="text-income text-sm" role="status">
+          {state.ok}
         </p>
       )}
       <Button type="submit" disabled={pending} className="mt-1 h-10">

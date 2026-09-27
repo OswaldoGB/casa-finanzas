@@ -21,8 +21,13 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { NAV, SETTINGS_ITEM, type NavItem } from "./nav";
+import { canAccess, type PermissionMap } from "@/features/permissions/modules";
 
-export type SessionUser = { fullName: string; role: "admin" | "member" };
+export type SessionUser = {
+  fullName: string;
+  role: "admin" | "member";
+  permissions: PermissionMap;
+};
 
 function Item({ item, active }: { item: NavItem; active: boolean }) {
   const { setOpenMobile } = useSidebar();
@@ -30,7 +35,11 @@ function Item({ item, active }: { item: NavItem; active: boolean }) {
   if (!item.ready) {
     return (
       <SidebarMenuItem>
-        <SidebarMenuButton disabled tooltip={`${item.label} (pronto)`} className="opacity-50">
+        <SidebarMenuButton
+          disabled
+          tooltip={`${item.label} (pronto)`}
+          className="opacity-50"
+        >
           <Icon aria-hidden />
           <span>{item.label}</span>
         </SidebarMenuButton>
@@ -52,7 +61,8 @@ function Item({ item, active }: { item: NavItem; active: boolean }) {
 
 export function AppSidebar({ user }: { user: SessionUser }) {
   const pathname = usePathname();
-  const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
+  const isActive = (href: string) =>
+    pathname === href || pathname.startsWith(`${href}/`);
   const initials = user.fullName
     .split(/\s+/)
     .map((w) => w[0])
@@ -73,20 +83,35 @@ export function AppSidebar({ user }: { user: SessionUser }) {
         </div>
       </SidebarHeader>
       <SidebarContent>
-        {NAV.map((group) => (
-          <SidebarGroup key={group.label}>
-            <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
-            <SidebarMenu>
-              {group.items.map((item) => (
-                <Item key={item.href} item={item} active={isActive(item.href)} />
-              ))}
-            </SidebarMenu>
-          </SidebarGroup>
-        ))}
+        {NAV.map((group) => {
+          const items = group.items.filter(
+            (item) =>
+              item.module !== "settings" &&
+              canAccess(user.role, user.permissions, item.module, "view"),
+          );
+          if (!items.length) return null;
+          return (
+            <SidebarGroup key={group.label}>
+              <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
+              <SidebarMenu>
+                {items.map((item) => (
+                  <Item
+                    key={item.href}
+                    item={item}
+                    active={isActive(item.href)}
+                  />
+                ))}
+              </SidebarMenu>
+            </SidebarGroup>
+          );
+        })}
         {user.role === "admin" && (
           <SidebarGroup className="mt-auto">
             <SidebarMenu>
-              <Item item={SETTINGS_ITEM} active={isActive(SETTINGS_ITEM.href)} />
+              <Item
+                item={SETTINGS_ITEM}
+                active={isActive(SETTINGS_ITEM.href)}
+              />
             </SidebarMenu>
           </SidebarGroup>
         )}
@@ -98,7 +123,9 @@ export function AppSidebar({ user }: { user: SessionUser }) {
           </Avatar>
           <div className="min-w-0 flex-1 group-data-[collapsible=icon]:hidden">
             <p className="truncate text-sm font-medium">{user.fullName}</p>
-            <p className="text-muted-foreground text-xs">{user.role === "admin" ? "Administrador" : "Miembro"}</p>
+            <p className="text-muted-foreground text-xs">
+              {user.role === "admin" ? "Administrador" : "Miembro"}
+            </p>
           </div>
           <ThemeToggle />
           <form action={signOut}>
