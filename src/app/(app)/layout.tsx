@@ -6,6 +6,7 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { getAccess } from "@/features/permissions/queries";
+import { processRecurringForHousehold } from "@/features/recurring/process-due";
 
 export default async function AppLayout({
   children,
@@ -13,6 +14,14 @@ export default async function AppLayout({
   children: React.ReactNode;
 }) {
   const { profile, permissions } = await getAccess();
+  try {
+    await processRecurringForHousehold(profile.household_id);
+  } catch (error) {
+    console.error(
+      "No se pudieron procesar los movimientos recurrentes.",
+      error,
+    );
+  }
 
   return (
     <SidebarProvider>

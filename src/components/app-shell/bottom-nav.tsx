@@ -11,7 +11,6 @@ import {
   Plus,
   type LucideIcon,
 } from "lucide-react";
-import { toast } from "sonner";
 import { useSidebar } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
 import { canAccess, type PermissionMap } from "@/features/permissions/modules";
@@ -64,24 +63,19 @@ export function BottomNav({
         <Tab href="/access-pending" label="Esperando" icon={LockKeyhole} />
       )}
       {hasTransactions ? (
-        <span className="text-muted-foreground/50 flex flex-col items-center gap-0.5 py-2 text-[11px]">
-          <ArrowLeftRight className="size-5" aria-hidden />
-          Movimientos
-        </span>
+        <Tab href="/transactions" label="Movimientos" icon={ArrowLeftRight} />
       ) : (
         <span />
       )}
       <div className="grid place-items-center">
-        {/* ponytail: el registro rápido llega en la Fase 2 */}
         {canRegister && (
-          <button
-            type="button"
+          <Link
+            href="/transactions/new"
             aria-label="Registrar movimiento"
-            onClick={() => toast("El registro rápido llega en la Fase 2")}
             className="bg-primary text-primary-foreground shadow-primary/25 focus-visible:ring-ring -mt-5 grid size-14 place-items-center rounded-full shadow-lg outline-none focus-visible:ring-2 focus-visible:ring-offset-2 active:scale-95"
           >
             <Plus className="size-6" />
-          </button>
+          </Link>
         )}
       </div>
       {hasLists ? (

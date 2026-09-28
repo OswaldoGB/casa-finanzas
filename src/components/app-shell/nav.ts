@@ -41,14 +41,14 @@ export const NAV: { label: string; items: NavItem[] }[] = [
         href: "/accounts",
         label: "Cuentas",
         icon: Landmark,
-        ready: false,
+        ready: true,
       },
       {
         module: "transactions",
         href: "/transactions",
         label: "Movimientos",
         icon: ArrowLeftRight,
-        ready: false,
+        ready: true,
       },
       {
         module: "budgets",

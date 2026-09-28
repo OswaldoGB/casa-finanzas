@@ -2,11 +2,16 @@ import { AuthForm } from "@/features/auth/components/auth-form";
 import { PermissionsForm } from "@/features/settings/components/permissions-form";
 import { createMember, updateHousehold } from "@/features/settings/actions";
 import { getSettings } from "@/features/settings/queries";
+import { CatalogSettings } from "@/features/catalogs/components/catalog-settings";
+import { getCatalogs } from "@/features/catalogs/queries";
+import { RecurringSettings } from "@/features/recurring/components/recurring-settings";
+import { getRecurringSettings } from "@/features/recurring/queries";
 
 export const metadata = { title: "Configuración" };
 
 export default async function SettingsPage() {
-  const { household, members, member, permissions } = await getSettings();
+  const [{ household, members, member, permissions }, catalogs, recurring] =
+    await Promise.all([getSettings(), getCatalogs(), getRecurringSettings()]);
   return (
     <div className="mx-auto max-w-5xl space-y-8">
       <div>
@@ -124,6 +129,8 @@ export default async function SettingsPage() {
           <PermissionsForm memberId={member.id} initial={permissions} />
         </section>
       )}
+      <CatalogSettings {...catalogs} />
+      <RecurringSettings {...recurring} />
     </div>
   );
 }
