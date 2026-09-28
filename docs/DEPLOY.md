@@ -172,3 +172,5 @@ El enlace de recuperación por correo que conserva la app no garantiza entrega a
 | Una descarga falla o contiene una tabla vacía    | Confirma la sesión, los permisos del módulo y los filtros elegidos. El JSON completo es exclusivo del admin.                                             |
 
 En los siguientes cambios de esquema, crea una migración nueva, pruébala en desarrollo y aplícala deliberadamente a producción antes de publicar el código que la necesita. No cambies una migración ya aplicada ni asumas que un rollback de Vercel revierte la base de datos.
+
+Si Vercel bloquea una publicación indicando que el autor no tiene acceso, verifica primero que GitHub atribuya el commit a tu cuenta y que esa misma cuenta esté vinculada en Vercel → Account Settings → Authentication → Login Connections. En Hobby, el autor debe ser el propietario. No cambies el autor por otra persona ni elimines metadata para eludir esta comprobación. [Diagnóstico oficial de colaboración](https://vercel.com/docs/deployments/troubleshoot-project-collaboration).
