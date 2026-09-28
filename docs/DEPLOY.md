@@ -1,6 +1,19 @@
 # Publicar Casa & Finanzas
 
-Guía para la última tarea del proyecto: publicar la app con **Supabase Free** y **Vercel Hobby**. Estos pasos preparan una instalación de producción independiente de desarrollo. La existencia de esta guía no significa que la app ya esté publicada.
+Guía de publicación y mantenimiento con **Supabase Free** y **Vercel Hobby**, en una instalación independiente de desarrollo.
+
+## Instalación publicada el 28 de septiembre de 2026
+
+- Dirección estable: [Casa & Finanzas](https://casa-finanzas-six.vercel.app).
+- Vercel: proyecto `casa-finanzas`, equipo `oswaldo-gb`, Node 24.x, estado Ready.
+- Supabase: `casa-finanzas-prod`, referencia `wmbudntitrkgrqptlyvc`, región `us-east-1`; las 21 migraciones están aplicadas y ambos buckets son privados.
+- Administrador inicializado antes de publicar; `/setup` está cerrado. Usa `/login`. Se conservaron correo, nombre y configuración del hogar; no se copiaron movimientos ni cuentas financieras de desarrollo.
+- Correo y contraseña inicial están únicamente en el archivo local ignorado `.env.production-access.local`. Después de entrar, cambia la contraseña en `/reset-password` y guárdala en tu gestor seguro.
+- Comprobados por HTTPS: redirecciones privadas, inicio de sesión, 13 módulos, JSON, Excel mensual de 11 hojas, CSV, RLS, registro cerrado y cron con/sin autorización. No se añadieron registros de prueba. El acceso desde un celular con datos móviles queda como comprobación del usuario; no se ha probado un dispositivo físico en otra red.
+
+La publicación fue manual, sin integración automática de GitHub. La revisión automática rechazó esa conexión por requerir autorización explícita para acceso continuo al repositorio. Para publicar futuros cambios revisados, usa `npx vercel deploy --prod --yes --scope oswaldo-gb` desde el proyecto enlazado. Las migraciones nuevas deben aplicarse deliberadamente al Supabase de producción antes del código que las requiere.
+
+`node scripts/verify-production.mjs` verifica acceso público y restricciones sin crear datos. Agrega `--authenticated` para verificar el acceso inicial y las descargas antes de cambiar esa contraseña; una vez cambiada, el archivo inicial deja de servir para esta prueba.
 
 Fuentes oficiales consultadas el **28 de septiembre de 2026**. Los proveedores pueden cambiar sus planes y pantallas.
 
@@ -28,7 +41,7 @@ Guarda los cambios revisados en GitHub. Los archivos `.env.local`, `.env.product
 4. Guarda su **Project Reference**: es el identificador del proyecto, distinto del de desarrollo.
 5. En las opciones de conexión/API del proyecto, copia su URL y las llaves `anon` y `service_role` de la sección de llaves heredadas. Esta app usa los nombres de variables de la tabla siguiente; no cambies esos nombres al copiarlas.
 
-No copies cuentas, datos Demo ni contraseñas de desarrollo. Los scripts `seed-dev.mjs` y `verify-*.mjs` son exclusivos de desarrollo.
+No copies cuentas, datos Demo ni contraseñas de desarrollo. `seed-dev.mjs` y los verificadores de fases son exclusivos de desarrollo; `verify-production.mjs` es la excepción explícita para comprobar la instalación publicada.
 
 ## 2. Aplicar el esquema a producción
 
@@ -64,6 +77,8 @@ En **Authentication → Sign In / Providers** del proyecto de producción:
 
 Con el registro cerrado, el administrador crea al segundo usuario desde Ajustes. La app crea ambas cuentas con correo confirmado mediante la API administrativa; este flujo no envía invitaciones ni necesita SMTP. La opción de registro público desactivada permite que las cuentas existentes sigan iniciando sesión. [Configuración de Supabase Auth](https://supabase.com/docs/guides/auth/general-configuration).
 
+Si usas `config push`, conserva `[auth] enable_signup = false` para cerrar el registro y `[auth.email] enable_signup = true` para mantener el proveedor de correo habilitado. Se comprobó que desactivar también este último bloque causa `email_provider_disabled` e impide iniciar sesión. Verifica en `/auth/v1/settings` que `disable_signup` sea `true` y `external.email` sea `true`. [Configuración de Auth y proveedor de correo](https://supabase.com/docs/reference/api/v1-get-auth-service-config).
+
 ## 4. Importar el repositorio en Vercel
 
 1. Entra a [Vercel](https://vercel.com/new) con la cuenta que tiene acceso al repositorio privado de GitHub.
@@ -96,7 +111,7 @@ Reemplaza `TU_DOMINIO` por el dominio real. Usa las direcciones exactas de produ
 
 Publica desde Vercel y espera el estado **Ready**. Si modificaste las variables después de construir, utiliza **Redeploy**: las variables públicas se incorporan durante la construcción.
 
-Abre de inmediato `https://TU_DOMINIO/setup` para crear tu hogar y la cuenta administradora. Esta pantalla inicial permite configurar al primer administrador; completa este paso antes de compartir la dirección. Una vez creado el perfil, la aplicación deja de permitir otra configuración inicial.
+En una instalación nueva que aún no tenga administrador, abre de inmediato `https://TU_DOMINIO/setup` para crear tu hogar y la cuenta administradora, antes de compartir la dirección. Una vez creado el perfil, la aplicación deja de permitir otra configuración inicial. En la instalación actual este paso ya se completó antes de publicar: entra por `/login`.
 
 Desde Ajustes puedes crear la cuenta de tu pareja. Sus módulos empiezan sin acceso: asigna tú los permisos y comparte la contraseña inicial por un medio privado. Las cuentas de desarrollo no existen automáticamente en producción.
 

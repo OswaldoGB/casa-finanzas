@@ -58,6 +58,8 @@ El admin dispone en Ajustes de un **respaldo JSON** y un **reporte mensual Excel
 
 ## Publicación y mantenimiento
 
-La publicación es la última tarea. Sigue la [guía de despliegue](docs/DEPLOY.md) para crear un Supabase Free de producción independiente, configurar Vercel Hobby, aplicar migraciones, crear el admin, revisar el cron y conservar respaldos. Incluye las variables exactas y soluciones a problemas comunes.
+La app está publicada en [Casa & Finanzas](https://casa-finanzas-six.vercel.app). Producción usa un Supabase independiente; el administrador ya está creado y el registro público está cerrado. Las credenciales iniciales se guardaron localmente en `.env.production-access.local`, excluido de Git. Cambia la contraseña después de iniciar sesión.
+
+La [guía de despliegue](docs/DEPLOY.md) registra la instalación, las comprobaciones, las variables y el mantenimiento. Las publicaciones actuales se realizan manualmente; GitHub no está conectado para desplegar automáticamente.
 
 Una vez publicada, puedes entrar desde cualquier red o dispositivo con navegador e internet, usando tus credenciales. Supabase Free puede pausar el proyecto por baja actividad; el cron diario no garantiza evitarlo. La guía explica cómo reactivarlo. Esta instalación no depende de recuperación por correo ni requiere configurar SMTP.
