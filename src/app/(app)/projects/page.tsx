@@ -67,7 +67,7 @@ export default async function ProjectsPage() {
           ))}
         </section>
         {canEdit && (
-          <aside className="bg-card rounded-2xl border p-5">
+          <aside id="new-project" className="bg-card rounded-2xl border p-5">
             <h2 className="mb-4 font-semibold">Nuevo proyecto</h2>
             <ProjectForm />
           </aside>

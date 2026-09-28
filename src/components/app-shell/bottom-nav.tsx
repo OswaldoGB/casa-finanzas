@@ -14,6 +14,7 @@ import {
 import { useSidebar } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
 import { canAccess, type PermissionMap } from "@/features/permissions/modules";
+import { getMobileCreateAction } from "./mobile-create";
 
 function Tab({
   href,
@@ -48,10 +49,15 @@ export function BottomNav({
   permissions: PermissionMap;
 }) {
   const { setOpenMobile } = useSidebar();
+  const pathname = usePathname();
   const hasDashboard = canAccess(role, permissions, "dashboard", "view");
   const hasTransactions = canAccess(role, permissions, "transactions", "view");
   const hasLists = canAccess(role, permissions, "shopping_lists", "view");
-  const canRegister = canAccess(role, permissions, "transactions", "edit");
+  const create = getMobileCreateAction(pathname);
+  const canCreate =
+    canAccess(role, permissions, create.module, "edit") &&
+    (create.module !== "loans" ||
+      canAccess(role, permissions, "transactions", "edit"));
   return (
     <nav
       aria-label="Navegación principal"
@@ -68,11 +74,12 @@ export function BottomNav({
         <span />
       )}
       <div className="grid place-items-center">
-        {canRegister && (
+        {canCreate && (
           <Link
-            href="/transactions/new"
-            aria-label="Registrar movimiento"
-            className="bg-primary text-primary-foreground shadow-primary/25 focus-visible:ring-ring -mt-5 grid size-14 place-items-center rounded-full shadow-lg outline-none focus-visible:ring-2 focus-visible:ring-offset-2 active:scale-95"
+            href={create.href}
+            aria-label={create.label}
+            title={create.label}
+            className="bg-primary text-primary-foreground shadow-primary/25 hover:shadow-primary/35 focus-visible:ring-ring -mt-5 grid size-14 place-items-center rounded-full shadow-lg transition duration-200 ease-out outline-none hover:-translate-y-0.5 hover:scale-105 focus-visible:ring-2 focus-visible:ring-offset-2 active:scale-95"
           >
             <Plus className="size-6" />
           </Link>

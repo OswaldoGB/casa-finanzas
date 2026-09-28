@@ -170,7 +170,7 @@ export default async function InventoryPage({
           )}
         </section>
         {canEdit && (
-          <aside className="bg-card rounded-2xl border p-5">
+          <aside id="new-inventory" className="bg-card rounded-2xl border p-5">
             <h2 className="mb-4 font-semibold">Nuevo artículo</h2>
             <InventoryForm transactions={transactions} />
           </aside>

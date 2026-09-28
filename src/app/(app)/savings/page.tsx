@@ -137,7 +137,7 @@ export default async function SavingsPage() {
           )}
         </section>
         {data.canEdit && (
-          <aside className="bg-card rounded-2xl border p-5">
+          <aside id="new-savings" className="bg-card rounded-2xl border p-5">
             <h2 className="mb-4 font-semibold">Nueva meta o provisión</h2>
             <GoalForm accounts={data.accounts} />
           </aside>

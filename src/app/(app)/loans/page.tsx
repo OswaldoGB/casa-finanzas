@@ -207,7 +207,7 @@ export default async function LoansPage({ searchParams }: LoansPageProps) {
             </>
           )}
         </section>
-        <aside className="bg-card rounded-2xl border p-5">
+        <aside id="new-loan" className="bg-card rounded-2xl border p-5">
           <h2 className="mb-4 font-semibold">Nuevo préstamo</h2>
           {data.canOperate ? (
             <CreateLoanForm
