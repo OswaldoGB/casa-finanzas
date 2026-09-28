@@ -2,6 +2,7 @@ import { ExportButtons } from "@/features/exports/components/export-buttons";
 import { getLoans } from "@/features/loans/queries";
 import {
   CreateLoanForm,
+  EditLoanSourceForm,
   RepayLoanForm,
   WriteOffLoanForm,
 } from "@/features/loans/components/loan-forms";
@@ -48,8 +49,25 @@ export default async function LoansPage() {
               <article
                 key={loan.id}
                 id={loan.id}
-                className={`bg-card rounded-2xl border p-5 ${loan.overdue ? "border-destructive" : ""}`}
+                className={`bg-card relative rounded-2xl border p-5 ${loan.overdue ? "border-destructive" : ""}`}
               >
+                {data.canOperate && loan.status !== "written_off" && (
+                  <details className="absolute top-3 right-3">
+                    <summary
+                      aria-label="Corregir origen del préstamo"
+                      title="Corregir origen"
+                      className="bg-muted hover:bg-muted/70 cursor-pointer rounded-md px-2 py-1 text-sm"
+                    >
+                      ✎
+                    </summary>
+                    <div className="bg-card absolute top-9 right-0 z-10 w-80 rounded-xl border p-3 shadow-lg">
+                      <EditLoanSourceForm
+                        loan={loan}
+                        accounts={data.sourceAccounts}
+                      />
+                    </div>
+                  </details>
+                )}
                 <div className="flex flex-wrap justify-between gap-3">
                   <h2 className="font-semibold">{loan.debtor}</h2>
                   <span className="text-sm">
@@ -75,6 +93,17 @@ export default async function LoansPage() {
                     ? ` · Pago esperado: ${loan.expected_payment_date}`
                     : ""}
                 </p>
+                {loan.source_account_name && (
+                  <p className="text-muted-foreground mt-2 text-xs">
+                    Origen: {loan.source_account_name}
+                    {loan.source_account_type === "credit_card"
+                      ? " · Tarjeta de crédito"
+                      : ""}
+                    {loan.already_recorded
+                      ? " · Ya incluido en el saldo al registrarlo"
+                      : ""}
+                  </p>
+                )}
                 {loan.notes && (
                   <p className="mt-3 text-sm whitespace-pre-wrap">
                     {loan.notes}
@@ -91,7 +120,7 @@ export default async function LoansPage() {
                           <RepayLoanForm
                             loan={loan}
                             today={data.today}
-                            accounts={data.accounts}
+                            accounts={data.depositAccounts}
                           />
                         </div>
                       </details>
@@ -110,7 +139,10 @@ export default async function LoansPage() {
         <aside className="bg-card rounded-2xl border p-5">
           <h2 className="mb-4 font-semibold">Nuevo préstamo</h2>
           {data.canOperate ? (
-            <CreateLoanForm today={data.today} accounts={data.accounts} />
+            <CreateLoanForm
+              today={data.today}
+              sourceAccounts={data.sourceAccounts}
+            />
           ) : (
             <p className="text-muted-foreground text-sm">
               Necesitas permiso de edición en préstamos y movimientos para

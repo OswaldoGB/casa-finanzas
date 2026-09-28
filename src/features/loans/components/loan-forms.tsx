@@ -1,7 +1,12 @@
 "use client";
 import { useActionState } from "react";
 import type { FormState } from "@/features/auth/schemas";
-import { createLoan, repayLoan, writeOffLoan } from "../actions";
+import {
+  createLoan,
+  repayLoan,
+  updateLoanSource,
+  writeOffLoan,
+} from "../actions";
 import type { Loan } from "../schemas";
 const field =
   "border-input bg-background h-11 w-full rounded-lg border px-3 text-sm";
@@ -28,11 +33,13 @@ function MoneyDateAccount({
   today,
   accounts,
   max,
+  accountLabel = "Cuenta",
 }: {
   prefix: string;
   today: string;
-  accounts: { id: string; name: string }[];
+  accounts: { id: string; name: string; type?: string }[];
   max?: number;
+  accountLabel?: string;
 }) {
   return (
     <>
@@ -62,7 +69,7 @@ function MoneyDateAccount({
         />
       </label>
       <label className="grid gap-1.5 text-sm" htmlFor={`${prefix}-account`}>
-        Cuenta
+        {accountLabel}
         <select
           id={`${prefix}-account`}
           name="account_id"
@@ -76,6 +83,7 @@ function MoneyDateAccount({
           {accounts.map((a) => (
             <option key={a.id} value={a.id}>
               {a.name}
+              {a.type === "credit_card" ? " · Tarjeta de crédito" : ""}
             </option>
           ))}
         </select>
@@ -85,10 +93,10 @@ function MoneyDateAccount({
 }
 export function CreateLoanForm({
   today,
-  accounts,
+  sourceAccounts,
 }: {
   today: string;
-  accounts: { id: string; name: string }[];
+  sourceAccounts: { id: string; name: string; type: string }[];
 }) {
   const [state, action, pending] = useActionState(createLoan, undefined);
   return (
@@ -103,7 +111,26 @@ export function CreateLoanForm({
           className={field}
         />
       </label>
-      <MoneyDateAccount prefix="new-loan" today={today} accounts={accounts} />
+      <MoneyDateAccount
+        prefix="new-loan"
+        today={today}
+        accounts={sourceAccounts}
+        accountLabel="Cuenta o tarjeta desde la que prestaste"
+      />
+      <label className="grid gap-1.5 text-sm" htmlFor="loan-effect">
+        ¿Cómo debe afectar el saldo?
+        <select
+          id="loan-effect"
+          name="balance_effect"
+          defaultValue="record_now"
+          className={field}
+        >
+          <option value="record_now">Registrar la salida ahora</option>
+          <option value="already_recorded">
+            Ya estaba incluido en el saldo actual
+          </option>
+        </select>
+      </label>
       <label className="grid gap-1.5 text-sm" htmlFor="loan-expected">
         Fecha esperada de pago (opcional)
         <input
@@ -123,11 +150,12 @@ export function CreateLoanForm({
         />
       </label>
       <p className="text-muted-foreground text-xs">
-        El dinero sale de esta cuenta y queda pendiente por cobrar. No cuenta
-        como gasto.
+        Si ya estaba incluido, se conserva como préstamo por cobrar sin volver a
+        cambiar el saldo. Una tarjeta puede ser el origen y aumenta su deuda
+        cuando registras la salida ahora.
       </p>
       <Feedback state={state} />
-      <button className={button} disabled={pending || !accounts.length}>
+      <button className={button} disabled={pending || !sourceAccounts.length}>
         {pending ? "Registrando…" : "Registrar préstamo"}
       </button>
     </form>
@@ -151,6 +179,7 @@ export function RepayLoanForm({
         today={today}
         accounts={accounts}
         max={loan.pending}
+        accountLabel="Cuenta donde recibiste el dinero"
       />
       <p className="text-muted-foreground text-xs">
         El abono entra en la cuenta elegida. No cuenta como ingreso.
@@ -158,6 +187,62 @@ export function RepayLoanForm({
       <Feedback state={state} />
       <button className={button} disabled={pending || !accounts.length}>
         {pending ? "Registrando…" : "Registrar abono"}
+      </button>
+    </form>
+  );
+}
+export function EditLoanSourceForm({
+  loan,
+  accounts,
+}: {
+  loan: Loan;
+  accounts: { id: string; name: string; type: string }[];
+}) {
+  const [state, action, pending] = useActionState(updateLoanSource, undefined);
+  return (
+    <form action={action} className="mt-3 grid gap-3 border-t pt-3">
+      <input type="hidden" name="id" value={loan.id} />
+      <label className="grid gap-1.5 text-sm">
+        Cuenta o tarjeta de origen
+        <select
+          name="account_id"
+          required
+          defaultValue={loan.source_account_id ?? ""}
+          className={field}
+        >
+          <option value="" disabled>
+            Selecciona una cuenta
+          </option>
+          {accounts.map((account) => (
+            <option key={account.id} value={account.id}>
+              {account.name}
+              {account.type === "credit_card" ? " · Tarjeta de crédito" : ""}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label className="grid gap-1.5 text-sm">
+        Estado del saldo al prestar
+        <select
+          name="balance_effect"
+          defaultValue={
+            loan.already_recorded ? "already_recorded" : "record_now"
+          }
+          className={field}
+        >
+          <option value="record_now">La salida debe afectar el saldo</option>
+          <option value="already_recorded">
+            La salida ya estaba incluida en el saldo
+          </option>
+        </select>
+      </label>
+      <p className="text-muted-foreground text-xs">
+        Esto corrige solo el origen y su efecto inicial. Los abonos registrados
+        se conservan.
+      </p>
+      <Feedback state={state} />
+      <button className={button} disabled={pending || !accounts.length}>
+        {pending ? "Guardando…" : "Guardar corrección"}
       </button>
     </form>
   );

@@ -522,6 +522,7 @@ export type Database = {
       }
       loans: {
         Row: {
+          already_recorded: boolean
           amount: number
           created_at: string
           created_by: string
@@ -531,11 +532,14 @@ export type Database = {
           household_id: string
           id: string
           notes: string | null
+          recovered_amount: number
+          source_account_id: string | null
           status: string
           updated_at: string
           written_off_at: string | null
         }
         Insert: {
+          already_recorded?: boolean
           amount: number
           created_at?: string
           created_by: string
@@ -545,11 +549,14 @@ export type Database = {
           household_id: string
           id?: string
           notes?: string | null
+          recovered_amount?: number
+          source_account_id?: string | null
           status?: string
           updated_at?: string
           written_off_at?: string | null
         }
         Update: {
+          already_recorded?: boolean
           amount?: number
           created_at?: string
           created_by?: string
@@ -559,6 +566,8 @@ export type Database = {
           household_id?: string
           id?: string
           notes?: string | null
+          recovered_amount?: number
+          source_account_id?: string | null
           status?: string
           updated_at?: string
           written_off_at?: string | null
@@ -577,6 +586,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "households"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loans_source_account_id_household_id_fkey"
+            columns: ["source_account_id", "household_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id", "household_id"]
           },
         ]
       }
@@ -1476,6 +1492,18 @@ export type Database = {
         }
         Returns: string
       }
+      loan_create_with_balance_effect: {
+        Args: {
+          p_account_id?: string
+          p_already_recorded?: boolean
+          p_amount: number
+          p_date: string
+          p_debtor: string
+          p_expected_payment_date?: string
+          p_notes?: string
+        }
+        Returns: string
+      }
       loan_repay: {
         Args: {
           p_account_id: string
@@ -1488,6 +1516,21 @@ export type Database = {
       loan_snapshot: {
         Args: { p_module?: Database["public"]["Enums"]["module_name"] }
         Returns: Json
+      }
+      loan_totals: {
+        Args: { p_loan_id: string; p_today: string }
+        Returns: {
+          lent: number
+          recovered: number
+        }[]
+      }
+      loan_update_source: {
+        Args: {
+          p_account_id: string
+          p_already_recorded: boolean
+          p_loan_id: string
+        }
+        Returns: undefined
       }
       loan_write_off: { Args: { p_loan_id: string }; Returns: undefined }
       next_occurrence_date: {

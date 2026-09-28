@@ -23,6 +23,7 @@ export const loanSchema = z
     expected_payment_date: optionalDate,
     notes: z.string().trim().max(2000),
     account_id: z.string().uuid("Elige una cuenta"),
+    balance_effect: z.enum(["record_now", "already_recorded"]),
   })
   .refine(
     (v) => !v.expected_payment_date || v.expected_payment_date >= v.date,
@@ -37,6 +38,11 @@ export const repaymentSchema = z.object({
   date: z.string().date(),
   account_id: z.string().uuid("Elige una cuenta"),
 });
+export const loanSourceSchema = z.object({
+  id: z.string().uuid(),
+  account_id: z.string().uuid("Elige una cuenta o tarjeta"),
+  balance_effect: z.enum(["record_now", "already_recorded"]),
+});
 export const loanSnapshotSchema = z.array(
   z.object({
     id: z.string().uuid(),
@@ -50,6 +56,10 @@ export const loanSnapshotSchema = z.array(
     recovered: z.number(),
     pending: z.number(),
     overdue: z.boolean(),
+    source_account_id: z.string().uuid().nullable(),
+    source_account_name: z.string().nullable(),
+    source_account_type: z.string().nullable(),
+    already_recorded: z.boolean(),
   }),
 );
 export type Loan = z.infer<typeof loanSnapshotSchema>[number];

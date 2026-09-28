@@ -18,7 +18,7 @@ const data = (r) => {
 const assert = (condition, message) => {
   if (!condition) throw new Error(message);
 };
-let userId, loanId;
+let userId, loanId, historyLoanId, cardId;
 const accounts = [],
   goals = [];
 try {
@@ -46,14 +46,12 @@ try {
     await admin.auth.admin.createUser({ email, password, email_confirm: true }),
   ).user.id;
   data(
-    await admin
-      .from("profiles")
-      .insert({
-        id: userId,
-        household_id: household,
-        role: "member",
-        full_name: "Prueba temporal ahorro",
-      }),
+    await admin.from("profiles").insert({
+      id: userId,
+      household_id: household,
+      role: "member",
+      full_name: "Prueba temporal ahorro",
+    }),
   );
   const base = { household_id: household, created_by: owner.id };
   const owned = { ...base, created_by: userId };
@@ -73,6 +71,21 @@ try {
       ).id,
     );
   }
+  cardId = data(
+    await admin
+      .from("accounts")
+      .insert({
+        ...base,
+        name: "Tarjeta temporal préstamo",
+        type: "credit_card",
+        opening_balance: 1000,
+        credit_limit: 2000,
+        statement_closing_day: 15,
+        payment_due_day: 25,
+      })
+      .select("id")
+      .single(),
+  ).id;
   data(await member.auth.signInWithPassword({ email, password }));
   const permit = async (module, level) =>
     data(
@@ -111,6 +124,84 @@ try {
     "Loans edit sin transactions edit pudo generar préstamo.",
   );
   await permit("transactions", "edit");
+  historyLoanId = data(
+    await member.rpc("loan_create_with_balance_effect", {
+      ...loanArgs,
+      p_debtor: "Préstamo ya incluido",
+      p_amount: 150,
+      p_account_id: cardId,
+      p_already_recorded: true,
+    }),
+  );
+  const history = async () =>
+    data(await member.rpc("loan_snapshot", { p_module: "loans" })).find(
+      (row) => row.id === historyLoanId,
+    );
+  assert(
+    (await history()).pending === 150 &&
+      (await history()).already_recorded === true &&
+      (await history()).source_account_type === "credit_card",
+    "El préstamo histórico de tarjeta no conservó pendiente u origen.",
+  );
+  assert(
+    data(
+      await admin
+        .from("transactions")
+        .select("account_id")
+        .eq("loan_id", historyLoanId)
+        .eq("type", "loan_out")
+        .single(),
+    ).account_id === null,
+    "Un préstamo ya incluido volvió a afectar una cuenta.",
+  );
+  data(
+    await member.rpc("loan_update_source", {
+      p_loan_id: historyLoanId,
+      p_account_id: accounts[1],
+      p_already_recorded: false,
+    }),
+  );
+  assert(
+    data(
+      await admin
+        .from("transactions")
+        .select("account_id")
+        .eq("loan_id", historyLoanId)
+        .eq("type", "loan_out")
+        .single(),
+    ).account_id === accounts[1],
+    "La corrección de origen no movió la salida inicial.",
+  );
+  assert(
+    (
+      await member.rpc("loan_repay", {
+        p_loan_id: historyLoanId,
+        p_amount: 1,
+        p_date: "2026-09-27",
+        p_account_id: cardId,
+      })
+    ).error,
+    "Un abono no puede depositarse en una tarjeta.",
+  );
+  data(
+    await member.rpc("loan_repay", {
+      p_loan_id: historyLoanId,
+      p_amount: 20,
+      p_date: "2026-09-27",
+      p_account_id: accounts[0],
+    }),
+  );
+  assert(
+    data(
+      await admin
+        .from("transactions")
+        .select("account_id")
+        .eq("loan_id", historyLoanId)
+        .eq("type", "loan_repayment")
+        .single(),
+    ).account_id === accounts[0],
+    "El abono no se depositó en la cuenta elegida.",
+  );
   loanId = data(await member.rpc("loan_create", loanArgs));
   const loan = async (module = "loans") =>
     data(await member.rpc("loan_snapshot", { p_module: module })).find(
@@ -140,31 +231,27 @@ try {
   );
   assert(
     (
-      await member
-        .from("transactions")
-        .insert({
-          ...owned,
-          type: "loan_repayment",
-          amount: 21,
-          date: "2026-09-27",
-          account_id: accounts[0],
-          loan_id: loanId,
-        })
+      await member.from("transactions").insert({
+        ...owned,
+        type: "loan_repayment",
+        amount: 21,
+        date: "2026-09-27",
+        account_id: accounts[0],
+        loan_id: loanId,
+      })
     ).error,
     "El libro directo permitió sobreabonar.",
   );
   assert(
     (
-      await member
-        .from("transactions")
-        .insert({
-          ...owned,
-          type: "loan_out",
-          amount: 1,
-          date: "2026-09-27",
-          account_id: accounts[0],
-          loan_id: randomUUID(),
-        })
+      await member.from("transactions").insert({
+        ...owned,
+        type: "loan_out",
+        amount: 1,
+        date: "2026-09-27",
+        account_id: accounts[0],
+        loan_id: randomUUID(),
+      })
     ).error,
     "El libro aceptó un préstamo ajeno/inexistente.",
   );
@@ -240,15 +327,13 @@ try {
   );
   assert(
     (
-      await member
-        .from("transactions")
-        .insert({
-          ...owned,
-          type: "goal_withdrawal",
-          amount: 71,
-          date: "2026-09-27",
-          savings_goal_id: goals[0],
-        })
+      await member.from("transactions").insert({
+        ...owned,
+        type: "goal_withdrawal",
+        amount: 71,
+        date: "2026-09-27",
+        savings_goal_id: goals[0],
+      })
     ).error,
     "El libro directo permitió sobreretirar.",
   );
@@ -351,20 +436,18 @@ try {
       failures.push(`${label}: ${error.message}`);
     }
   };
-  if (loanId) {
+  for (const id of [loanId, historyLoanId].filter(Boolean)) {
     await clean("abonos", () =>
       admin
         .from("transactions")
         .delete()
-        .eq("loan_id", loanId)
+        .eq("loan_id", id)
         .eq("type", "loan_repayment"),
     );
     await clean("desembolso", () =>
-      admin.from("transactions").delete().eq("loan_id", loanId),
+      admin.from("transactions").delete().eq("loan_id", id),
     );
-    await clean("préstamo", () =>
-      admin.from("loans").delete().eq("id", loanId),
-    );
+    await clean("préstamo", () => admin.from("loans").delete().eq("id", id));
   }
   for (const id of goals) {
     await clean("retiros", () =>
@@ -383,6 +466,10 @@ try {
   }
   for (const id of accounts)
     await clean("cuenta", () => admin.from("accounts").delete().eq("id", id));
+  if (cardId)
+    await clean("tarjeta", () =>
+      admin.from("accounts").delete().eq("id", cardId),
+    );
   if (userId) await clean("usuario", () => admin.auth.admin.deleteUser(userId));
   if (failures.length)
     throw new Error(`Limpieza incompleta: ${failures.join("; ")}`);
