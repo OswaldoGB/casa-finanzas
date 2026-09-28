@@ -143,6 +143,22 @@ if (process.argv.includes("--authenticated")) {
         Array.isArray(data.tables.card_payments),
       "Faltan planes y pagos de tarjetas en el respaldo.",
     );
+    for (const card of data.tables.accounts.filter(
+      (row) => row.type === "credit_card" && !row.is_archived,
+    )) {
+      const detail = await request(`/accounts/${card.id}`, headers());
+      assert.equal(
+        detail.status,
+        200,
+        "Fallo al abrir el detalle de una tarjeta.",
+      );
+      const content = await detail.text();
+      assert(
+        content.includes("Pagar tarjeta") &&
+          content.includes("Añadir compra a plazos"),
+        "Faltan los formularios de tarjeta en producción.",
+      );
+    }
     const serialized = JSON.stringify(data);
     assert(
       !serialized.includes(prod.SUPABASE_SERVICE_ROLE_KEY) &&
