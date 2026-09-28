@@ -1,3 +1,4 @@
+import { ExportButtons } from "@/features/exports/components/export-buttons";
 import Link from "next/link";
 import { QuickEntry } from "@/features/transactions/components/quick-entry";
 import { BulkToolbar } from "@/features/transactions/components/bulk-toolbar";
@@ -78,6 +79,7 @@ export default async function TransactionsPage({
           </div>
         )}
       </header>
+      <ExportButtons target="transactions" />
       <form className="bg-card grid gap-3 rounded-xl border p-4 sm:grid-cols-2 lg:grid-cols-4">
         <label className="grid gap-1 text-xs">
           Desde
@@ -240,6 +242,7 @@ export default async function TransactionsPage({
                     {money.format(expense)}
                   </p>
                 </header>
+                <ExportButtons target="transactions" />
                 <ul className="divide-y">
                   {items.map((item) => (
                     <li

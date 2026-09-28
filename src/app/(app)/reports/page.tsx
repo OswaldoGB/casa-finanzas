@@ -1,3 +1,4 @@
+import { ExportButtons } from "@/features/exports/components/export-buttons";
 import { getAnalytics } from "@/features/analytics/queries";
 import {
   CategoryDonut,
@@ -108,6 +109,7 @@ export default async function ReportsPage({
           </button>
         </form>
       </header>
+      <ExportButtons target="reports" />
       <p className="text-muted-foreground text-xs">
         Los totales incluyen solo ingresos y gastos publicados. Las
         transferencias y los movimientos pendientes se excluyen.

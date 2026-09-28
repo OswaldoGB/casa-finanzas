@@ -1,3 +1,4 @@
+import { ExportButtons } from "@/features/exports/components/export-buttons";
 import Link from "next/link";
 import { getShopping } from "@/features/shopping/queries";
 import {
@@ -36,6 +37,7 @@ export default async function ShoppingPage({
           Prioriza deseos y compras grandes del hogar.
         </p>
       </header>
+      <ExportButtons target="shopping" />
       <div className="bg-card rounded-2xl border p-5">
         <p className="text-muted-foreground text-xs">
           Estimado de compras pendientes
@@ -71,6 +73,7 @@ export default async function ShoppingPage({
           {visible.map((item) => (
             <article
               key={item.id}
+              id={item.id}
               className="bg-card space-y-3 rounded-2xl border p-5"
             >
               <div className="flex items-start justify-between gap-3">

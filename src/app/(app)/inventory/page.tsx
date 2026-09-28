@@ -1,3 +1,4 @@
+import { ExportButtons } from "@/features/exports/components/export-buttons";
 import Link from "next/link";
 import Image from "next/image";
 import { getInventory } from "@/features/inventory/queries";
@@ -31,6 +32,7 @@ export default async function InventoryPage({
           Lo que tienes en casa, dónde está y su garantía.
         </p>
       </header>
+      <ExportButtons target="inventory" />
       <div className="grid gap-3 sm:grid-cols-3">
         {[
           ["Valor registrado", formatUSD(inventoryValue(items))],

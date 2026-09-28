@@ -1,3 +1,4 @@
+import { ExportButtons } from "@/features/exports/components/export-buttons";
 import { Wallet } from "lucide-react";
 import { getBudgets } from "@/features/budgets/queries";
 import {
@@ -42,6 +43,7 @@ export default async function BudgetsPage({
         </div>
         {canEdit && <CopyBudgetForm month={month} />}
       </header>
+      <ExportButtons target="budgets" filters={{ month }} />
       <form className="flex flex-wrap items-end gap-3">
         <div className="space-y-1.5">
           <label htmlFor="budget-month" className="block text-sm font-medium">

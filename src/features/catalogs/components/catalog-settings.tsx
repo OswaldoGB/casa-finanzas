@@ -1,6 +1,8 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useState, useTransition } from "react";
+import { GripVertical } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -257,6 +259,35 @@ export function CatalogSettings({
   methods: Method[];
   accounts: Account[];
 }) {
+  const [draggedId, setDraggedId] = useState<string | null>(null);
+  const [dropId, setDropId] = useState<string | null>(null);
+  const [ordering, startOrdering] = useTransition();
+  function canDrop(target: Category) {
+    const source = categories.find((item) => item.id === draggedId);
+    return (
+      !ordering &&
+      source &&
+      source.id !== target.id &&
+      source.type === target.type &&
+      source.parent_id === target.parent_id
+    );
+  }
+  function dropCategory(target: Category) {
+    setDropId(null);
+    if (!canDrop(target) || !draggedId) return;
+    const form = new FormData();
+    form.set("id", draggedId);
+    form.set("targetId", target.id);
+    setDraggedId(null);
+    startOrdering(async () => {
+      try {
+        await moveCategory(form);
+        toast.success("Orden de categorías guardado.");
+      } catch {
+        toast.error("No se pudo guardar el orden. Inténtalo de nuevo.");
+      }
+    });
+  }
   return (
     <>
       <section
@@ -269,16 +300,48 @@ export function CatalogSettings({
           </h2>
           <p className="text-muted-foreground text-sm">
             Organiza ingresos y gastos. Puedes crear subcategorías y archivar
-            las que ya no uses.
+            las que ya no uses. Arrastra el ícono para ordenar categorías del
+            mismo tipo y nivel, o usa Subir y Bajar al abrirlas.
           </p>
         </div>
         <div className="divide-border divide-y rounded-xl border">
           {categories
             .filter((item) => !item.is_archived)
             .map((item) => (
-              <details key={item.id} className="group px-4 py-3">
+              <details
+                key={item.id}
+                className={`group px-4 py-3 ${dropId === item.id ? "bg-accent" : ""}`}
+                onDragOver={(event) => {
+                  if (canDrop(item)) {
+                    event.preventDefault();
+                    event.dataTransfer.dropEffect = "move";
+                    setDropId(item.id);
+                  }
+                }}
+                onDragLeave={() => setDropId(null)}
+                onDrop={(event) => {
+                  event.preventDefault();
+                  dropCategory(item);
+                }}
+              >
                 <summary className="flex cursor-pointer items-center justify-between gap-3 text-sm">
                   <span className="flex items-center gap-2">
+                    <span
+                      draggable={!ordering}
+                      className="text-muted-foreground cursor-grab touch-none"
+                      title={`Arrastrar ${item.name}`}
+                      onDragStart={(event) => {
+                        event.dataTransfer.setData("text/plain", item.id);
+                        event.dataTransfer.effectAllowed = "move";
+                        setDraggedId(item.id);
+                      }}
+                      onDragEnd={() => {
+                        setDraggedId(null);
+                        setDropId(null);
+                      }}
+                    >
+                      <GripVertical className="size-4" aria-hidden="true" />
+                    </span>
                     <span
                       className="size-3 rounded-full"
                       style={{ backgroundColor: item.color }}
@@ -301,6 +364,7 @@ export function CatalogSettings({
                         />
                         <Button
                           type="submit"
+                          disabled={ordering}
                           variant="outline"
                           aria-label={`${direction === "up" ? "Subir" : "Bajar"} ${item.name}`}
                         >

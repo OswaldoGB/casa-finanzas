@@ -11,6 +11,7 @@ import {
 } from "recharts";
 import { ChartContainer } from "@/components/ui/chart";
 import { projectCash, type ProjectionInput, type Scenario } from "../logic";
+import { ExportButtons } from "@/features/exports/components/export-buttons";
 
 const money = new Intl.NumberFormat("en-US", {
   style: "currency",
@@ -62,6 +63,16 @@ export function ProjectionView({ input }: { input: ProjectionInput }) {
           </select>
         </label>
       </header>
+      <ExportButtons
+        target="projections"
+        rows={rows.map((row) => ({
+          ...row,
+          calculado_al: input.today,
+          escenario: scenario
+            ? `${scenario.type}: ${scenario.amount} el ${scenario.date}`
+            : "Base",
+        }))}
+      />
       <div className="grid gap-4 sm:grid-cols-2">
         <section className="bg-card rounded-2xl border p-5">
           <h2 className="text-muted-foreground text-sm">Efectivo actual</h2>

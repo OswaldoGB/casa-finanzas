@@ -1,5 +1,6 @@
 import { AppSidebar } from "@/components/app-shell/app-sidebar";
 import { BottomNav } from "@/components/app-shell/bottom-nav";
+import { GlobalSearch } from "@/components/app-shell/global-search";
 import {
   SidebarInset,
   SidebarProvider,
@@ -25,16 +26,30 @@ export default async function AppLayout({
 
   return (
     <SidebarProvider>
+      <a
+        href="#main-content"
+        className="bg-background text-foreground fixed top-2 left-2 z-50 -translate-y-24 rounded-lg border px-4 py-2 focus:translate-y-0"
+      >
+        Saltar al contenido
+      </a>
       <AppSidebar
         user={{ fullName: profile.full_name, role: profile.role, permissions }}
       />
       <SidebarInset>
-        <header className="flex h-14 items-center gap-2 px-4 max-md:hidden">
-          <SidebarTrigger aria-label="Mostrar u ocultar menú" />
+        <header className="flex h-14 items-center gap-2 px-4">
+          <SidebarTrigger
+            className="max-md:hidden"
+            aria-label="Mostrar u ocultar menú"
+          />
+          <GlobalSearch role={profile.role} permissions={permissions} />
         </header>
-        <main className="flex-1 px-4 pt-4 pb-28 md:px-8 md:pb-10">
+        <div
+          id="main-content"
+          tabIndex={-1}
+          className="flex-1 px-4 pt-4 pb-28 md:px-8 md:pb-10"
+        >
           {children}
-        </main>
+        </div>
       </SidebarInset>
       <BottomNav role={profile.role} permissions={permissions} />
     </SidebarProvider>

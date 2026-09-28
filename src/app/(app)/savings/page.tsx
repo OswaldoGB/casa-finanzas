@@ -1,3 +1,4 @@
+import { ExportButtons } from "@/features/exports/components/export-buttons";
 import { getSavings } from "@/features/savings/queries";
 import { suggestedMonthly } from "@/features/savings/schemas";
 import {
@@ -17,6 +18,7 @@ export default async function SavingsPage() {
           Aparta para tus metas y para gastos que ya sabes que vendrán.
         </p>
       </header>
+      <ExportButtons target="savings" />
       <div className="grid items-start gap-6 lg:grid-cols-[1fr_340px]">
         <section
           className="grid gap-4 sm:grid-cols-2"
@@ -37,6 +39,7 @@ export default async function SavingsPage() {
               return (
                 <article
                   key={goal.id}
+                  id={goal.id}
                   className="bg-card min-w-0 rounded-2xl border p-5"
                 >
                   <div className="flex items-center gap-4">

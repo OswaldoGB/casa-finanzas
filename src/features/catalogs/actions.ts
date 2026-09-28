@@ -5,14 +5,20 @@ import { z } from "zod";
 import { requireAdmin } from "@/features/permissions/queries";
 import type { FormState } from "@/features/auth/schemas";
 import { categorySchema, paymentMethodSchema } from "./schemas";
-import { moveCategoryWithinSiblings } from "./category-order";
+import {
+  dropCategoryWithinSiblings,
+  moveCategoryWithinSiblings,
+} from "./category-order";
 
 const idSchema = z.string().uuid();
 
 export async function moveCategory(formData: FormData) {
   const { supabase, profile } = await requireAdmin();
   const parsed = z
-    .object({ id: idSchema, direction: z.enum(["up", "down"]) })
+    .union([
+      z.object({ id: idSchema, direction: z.enum(["up", "down"]) }),
+      z.object({ id: idSchema, targetId: idSchema }),
+    ])
     .safeParse(Object.fromEntries(formData));
   if (!parsed.success) throw new Error("Movimiento de categoría inválido.");
   const { data: categories, error } = await supabase
@@ -21,11 +27,18 @@ export async function moveCategory(formData: FormData) {
     .eq("household_id", profile.household_id)
     .eq("is_archived", false);
   if (error) throw new Error("No se pudieron cargar las categorías.");
-  const orderedIds = moveCategoryWithinSiblings(
-    categories,
-    parsed.data.id,
-    parsed.data.direction,
-  );
+  const orderedIds =
+    "targetId" in parsed.data
+      ? dropCategoryWithinSiblings(
+          categories,
+          parsed.data.id,
+          parsed.data.targetId,
+        )
+      : moveCategoryWithinSiblings(
+          categories,
+          parsed.data.id,
+          parsed.data.direction,
+        );
   if (!orderedIds) return;
   for (const [index, id] of orderedIds.entries()) {
     const { error: updateError } = await supabase

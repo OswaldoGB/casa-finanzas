@@ -6,6 +6,8 @@ import { CatalogSettings } from "@/features/catalogs/components/catalog-settings
 import { getCatalogs } from "@/features/catalogs/queries";
 import { RecurringSettings } from "@/features/recurring/components/recurring-settings";
 import { getRecurringSettings } from "@/features/recurring/queries";
+import { DataDownloads } from "@/features/exports/components/data-downloads";
+import { todayInTimeZone } from "@/features/recurring/processing";
 
 export const metadata = { title: "Configuración" };
 
@@ -131,6 +133,9 @@ export default async function SettingsPage() {
       )}
       <CatalogSettings {...catalogs} />
       <RecurringSettings {...recurring} />
+      <DataDownloads
+        month={todayInTimeZone(new Date(), household.timezone).slice(0, 7)}
+      />
     </div>
   );
 }

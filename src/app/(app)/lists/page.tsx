@@ -1,3 +1,4 @@
+import { ExportButtons } from "@/features/exports/components/export-buttons";
 import Link from "next/link";
 import { ShoppingBasket } from "lucide-react";
 import { getShoppingLists } from "@/features/shopping-lists/queries";
@@ -31,6 +32,7 @@ export default async function ListsPage() {
           </Link>
         )}
       </header>
+      <ExportButtons target="lists" />
       {lists.length === 0 ? (
         <div className="bg-card rounded-2xl border border-dashed p-12 text-center">
           <ShoppingBasket

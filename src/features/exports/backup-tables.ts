@@ -1,0 +1,17 @@
+export const BACKUP_TABLES = [
+  "accounts",
+  "attachments",
+  "budgets",
+  "categories",
+  "inventory_items",
+  "loans",
+  "payment_methods",
+  "profiles",
+  "projects",
+  "recurring_rules",
+  "savings_goals",
+  "shopping_items",
+  "shopping_list_items",
+  "shopping_lists",
+  "transactions",
+] as const;

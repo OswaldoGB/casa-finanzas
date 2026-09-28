@@ -1,3 +1,4 @@
+import { ExportButtons } from "@/features/exports/components/export-buttons";
 import Link from "next/link";
 import { CreditCard, Landmark, PiggyBank, Wallet } from "lucide-react";
 import { getAccounts } from "@/features/accounts/queries";
@@ -41,6 +42,7 @@ export default async function AccountsPage() {
           </Link>
         )}
       </header>
+      <ExportButtons target="accounts" />
       {active.length === 0 ? (
         <div className="bg-card flex flex-col items-center rounded-2xl border border-dashed px-6 py-14 text-center">
           <Wallet className="text-muted-foreground mb-4 size-10" aria-hidden />

@@ -1,3 +1,4 @@
+import { ExportButtons } from "@/features/exports/components/export-buttons";
 import Link from "next/link";
 import { getProjects } from "@/features/projects/queries";
 import { ProjectForm } from "@/features/projects/components/project-form";
@@ -15,6 +16,7 @@ export default async function ProjectsPage() {
           Planes del hogar y lo que realmente cuestan.
         </p>
       </header>
+      <ExportButtons target="projects" />
       <div className="grid items-start gap-6 lg:grid-cols-[1fr_360px]">
         <section className="grid gap-4 sm:grid-cols-2">
           {projects.length === 0 && (

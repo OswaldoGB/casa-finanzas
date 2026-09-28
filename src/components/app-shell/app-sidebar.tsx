@@ -14,7 +14,6 @@ import {
   SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
-  SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
@@ -32,21 +31,6 @@ export type SessionUser = {
 function Item({ item, active }: { item: NavItem; active: boolean }) {
   const { setOpenMobile } = useSidebar();
   const Icon = item.icon;
-  if (!item.ready) {
-    return (
-      <SidebarMenuItem>
-        <SidebarMenuButton
-          disabled
-          tooltip={`${item.label} (pronto)`}
-          className="opacity-50"
-        >
-          <Icon aria-hidden />
-          <span>{item.label}</span>
-        </SidebarMenuButton>
-        <SidebarMenuBadge className="text-[10px]">Pronto</SidebarMenuBadge>
-      </SidebarMenuItem>
-    );
-  }
   return (
     <SidebarMenuItem>
       <SidebarMenuButton asChild isActive={active} tooltip={item.label}>

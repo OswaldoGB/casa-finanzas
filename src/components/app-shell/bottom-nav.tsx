@@ -79,10 +79,7 @@ export function BottomNav({
         )}
       </div>
       {hasLists ? (
-        <span className="text-muted-foreground/50 flex flex-col items-center gap-0.5 py-2 text-[11px]">
-          <ListChecks className="size-5" aria-hidden />
-          Listas
-        </span>
+        <Tab href="/lists" label="Listas" icon={ListChecks} />
       ) : (
         <span />
       )}

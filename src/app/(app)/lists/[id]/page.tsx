@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ExportButtons } from "@/features/exports/components/export-buttons";
 import { notFound } from "next/navigation";
 import { getShoppingList } from "@/features/shopping-lists/queries";
 import {
@@ -45,6 +46,7 @@ export default async function ListPage({
           </div>
         )}
       </header>
+      <ExportButtons target="list_items" filters={{ list: id }} />
       {list.transaction_id && canViewTransaction && (
         <Link
           href={`/transactions/${list.transaction_id}`}

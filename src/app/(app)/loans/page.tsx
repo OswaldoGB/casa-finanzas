@@ -1,3 +1,4 @@
+import { ExportButtons } from "@/features/exports/components/export-buttons";
 import { getLoans } from "@/features/loans/queries";
 import {
   CreateLoanForm,
@@ -16,6 +17,7 @@ export default async function LoansPage() {
           El dinero que prestas y lo que has recuperado.
         </p>
       </header>
+      <ExportButtons target="loans" />
       <div className="grid gap-3 sm:grid-cols-3">
         {[
           {
@@ -45,6 +47,7 @@ export default async function LoansPage() {
             data.loans.map((loan) => (
               <article
                 key={loan.id}
+                id={loan.id}
                 className={`bg-card rounded-2xl border p-5 ${loan.overdue ? "border-destructive" : ""}`}
               >
                 <div className="flex flex-wrap justify-between gap-3">
