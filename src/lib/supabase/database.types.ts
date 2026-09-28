@@ -654,9 +654,21 @@ export type Database = {
           balance: number
         }[]
       }
+      analytics_snapshot: {
+        Args: {
+          p_from: string
+          p_module: Database["public"]["Enums"]["module_name"]
+          p_to: string
+        }
+        Returns: Json
+      }
       can_read_accounts: { Args: never; Returns: boolean }
       can_read_categories: { Args: never; Returns: boolean }
       can_read_payment_methods: { Args: never; Returns: boolean }
+      card_statement_unpaid: {
+        Args: { p_account_id: string; p_close: string; p_today: string }
+        Returns: number
+      }
       current_household_id: { Args: never; Returns: string }
       has_module_access: {
         Args: {
@@ -666,6 +678,15 @@ export type Database = {
         Returns: boolean
       }
       is_admin: { Args: never; Returns: boolean }
+      next_occurrence_date: {
+        Args: {
+          p_anchor: string
+          p_current: string
+          p_frequency: Database["public"]["Enums"]["recurring_frequency"]
+          p_interval: number
+        }
+        Returns: string
+      }
     }
     Enums: {
       account_type:

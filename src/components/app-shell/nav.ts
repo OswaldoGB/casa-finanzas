@@ -69,7 +69,7 @@ export const NAV: { label: string; items: NavItem[] }[] = [
         href: "/reports",
         label: "Reportes",
         icon: ChartColumn,
-        ready: false,
+        ready: true,
       },
     ],
   },
