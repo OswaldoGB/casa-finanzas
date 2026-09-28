@@ -9,6 +9,10 @@
   outline-offset: 3px;
 }
 
+:where(button, input, select, textarea) {
+  font: inherit;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-income: var(--income);
