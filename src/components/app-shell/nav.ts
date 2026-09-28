@@ -55,14 +55,14 @@ export const NAV: { label: string; items: NavItem[] }[] = [
         href: "/budgets",
         label: "Presupuestos",
         icon: ChartPie,
-        ready: false,
+        ready: true,
       },
       {
         module: "projections",
         href: "/projections",
         label: "Proyecciones",
         icon: TrendingUp,
-        ready: false,
+        ready: true,
       },
       {
         module: "reports",

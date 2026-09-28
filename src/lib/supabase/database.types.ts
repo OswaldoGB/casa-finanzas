@@ -163,6 +163,64 @@ export type Database = {
           },
         ]
       }
+      budgets: {
+        Row: {
+          amount: number
+          carry_over: boolean
+          category_id: string
+          created_at: string
+          created_by: string
+          household_id: string
+          id: string
+          month: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          carry_over?: boolean
+          category_id: string
+          created_at?: string
+          created_by: string
+          household_id: string
+          id?: string
+          month: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          carry_over?: boolean
+          category_id?: string
+          created_at?: string
+          created_by?: string
+          household_id?: string
+          id?: string
+          month?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "budgets_category_id_household_id_fkey"
+            columns: ["category_id", "household_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id", "household_id"]
+          },
+          {
+            foreignKeyName: "budgets_created_by_household_id_fkey"
+            columns: ["created_by", "household_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id", "household_id"]
+          },
+          {
+            foreignKeyName: "budgets_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       categories: {
         Row: {
           color: string
@@ -662,6 +720,13 @@ export type Database = {
         }
         Returns: Json
       }
+      budget_snapshot: {
+        Args: {
+          p_module?: Database["public"]["Enums"]["module_name"]
+          p_month: string
+        }
+        Returns: Json
+      }
       can_read_accounts: { Args: never; Returns: boolean }
       can_read_categories: { Args: never; Returns: boolean }
       can_read_payment_methods: { Args: never; Returns: boolean }
@@ -669,6 +734,7 @@ export type Database = {
         Args: { p_account_id: string; p_close: string; p_today: string }
         Returns: number
       }
+      copy_previous_budgets: { Args: { p_month: string }; Returns: number }
       current_household_id: { Args: never; Returns: string }
       has_module_access: {
         Args: {
@@ -687,6 +753,7 @@ export type Database = {
         }
         Returns: string
       }
+      projection_inputs: { Args: { p_months?: number }; Returns: Json }
     }
     Enums: {
       account_type:

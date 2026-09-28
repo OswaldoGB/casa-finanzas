@@ -11,6 +11,8 @@ import {
   MonthlyTrendChart,
 } from "@/features/dashboard/components/dashboard-charts";
 import { accountNetWorth, cashFlowPoints } from "@/features/dashboard/summary";
+import { getDashboardBudgets } from "@/features/budgets/queries";
+import { budgetProgress } from "@/features/budgets/schemas";
 
 export const metadata = { title: "Inicio" };
 const money = new Intl.NumberFormat("en-US", {
@@ -30,6 +32,7 @@ const day = new Intl.DateTimeFormat("es", {
 
 export default async function DashboardPage() {
   const data = await getAnalytics("dashboard");
+  const budgets = await getDashboardBudgets(`${data.today.slice(0, 7)}-01`);
   const worth = accountNetWorth(data.accounts);
   const monthlyNet = data.totals.income - data.totals.expense;
   const until = new Date(`${data.today}T00:00:00Z`);
@@ -100,6 +103,43 @@ export default async function DashboardPage() {
             </strong>
           </p>
         </div>
+      </section>
+      <section
+        className="bg-card rounded-2xl border p-5 sm:p-6"
+        aria-label="Presupuestos del mes"
+      >
+        <h2 className="font-semibold">Presupuestos del mes</h2>
+        {budgets.length ? (
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            {budgets.map((budget) => {
+              const progress = budgetProgress(budget.available, budget.spent);
+              return (
+                <div key={budget.id}>
+                  <div className="mb-2 flex justify-between gap-2 text-sm">
+                    <span>{budget.name}</span>
+                    <span className="tabular-nums">
+                      {money.format(budget.spent)} /{" "}
+                      {money.format(budget.available)}
+                    </span>
+                  </div>
+                  <progress
+                    aria-label={budget.name}
+                    max={100}
+                    value={Math.min(100, progress.percent)}
+                    className={`h-2 w-full ${progress.status === "exceeded" || progress.status === "danger" ? "accent-red-500" : progress.status === "warning" ? "accent-amber-500" : "accent-emerald-500"}`}
+                  />
+                  <p className="text-muted-foreground mt-1 text-xs">
+                    {progress.percent.toFixed(0)}% utilizado
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <p className="text-muted-foreground mt-3 text-sm">
+            Aún no hay presupuestos para este mes.
+          </p>
+        )}
       </section>
       <div className="grid gap-6 lg:grid-cols-3">
         <section
