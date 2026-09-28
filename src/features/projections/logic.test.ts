@@ -34,6 +34,43 @@ const rule = {
   mode: "auto" as const,
 };
 describe("proyección de efectivo", () => {
+  it("incluye abonos por cobrar y apartados hacia inversiones, omitiendo apartados virtuales", () => {
+    const result = projectCash(
+      {
+        ...base,
+        accounts: [
+          ...base.accounts,
+          {
+            ...base.accounts[0],
+            id: "investment",
+            type: "investment",
+            balance: 0,
+          },
+        ],
+        recurring: [
+          { ...rule, type: "loan_repayment", amount: 30 },
+          {
+            ...rule,
+            id: "goal",
+            type: "goal_contribution",
+            amount: 20,
+            category_id: null,
+            destination_account_id: "investment",
+          },
+          {
+            ...rule,
+            id: "virtual",
+            type: "goal_contribution",
+            amount: 100,
+            account_id: null,
+            category_id: null,
+          },
+        ],
+      },
+      3,
+    );
+    expect(result.map((row) => row.balance)).toEqual([1010, 1020, 1020]);
+  });
   it("repite categorías ausentes y respeta planes explícitos, incluso cero", () => {
     const food = {
       id: "b",

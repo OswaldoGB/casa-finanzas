@@ -18,9 +18,16 @@ export type ProjectionInput = {
   recurring: {
     id: string;
     name: string;
-    type: "income" | "expense" | "transfer";
+    type:
+      | "income"
+      | "expense"
+      | "transfer"
+      | "loan_out"
+      | "loan_repayment"
+      | "goal_contribution"
+      | "goal_withdrawal";
     amount: number;
-    account_id: string;
+    account_id: string | null;
     destination_account_id: string | null;
     category_id: string | null;
     frequency: RecurrenceFrequency;
@@ -126,7 +133,7 @@ export function projectCash(
     });
   }
   for (const rule of input.recurring) {
-    const source = accounts.get(rule.account_id);
+    const source = rule.account_id ? accounts.get(rule.account_id) : undefined;
     const destination = rule.destination_account_id
       ? accounts.get(rule.destination_account_id)
       : undefined;
@@ -137,12 +144,27 @@ export function projectCash(
         const amount = cents(rule.amount);
         let impact = 0;
         if (liquid(source.type))
-          impact = rule.type === "income" ? amount : -amount;
-        if (rule.type === "transfer" && destination && liquid(destination.type))
+          impact =
+            rule.type === "income" || rule.type === "loan_repayment"
+              ? amount
+              : -amount;
+        if (
+          ["transfer", "goal_contribution", "goal_withdrawal"].includes(
+            rule.type,
+          ) &&
+          destination &&
+          liquid(destination.type)
+        )
           impact += amount;
         events.push({ date, amount: impact });
         if (
-          (rule.type === "expense" || rule.type === "transfer") &&
+          [
+            "expense",
+            "transfer",
+            "loan_out",
+            "goal_contribution",
+            "goal_withdrawal",
+          ].includes(rule.type) &&
           source.type === "credit_card" &&
           source.statement_closing_day &&
           source.payment_due_day
@@ -156,9 +178,17 @@ export function projectCash(
             ),
             amount,
           });
-        if (rule.type === "income" && source.type === "credit_card")
+        if (
+          ["income", "loan_repayment"].includes(rule.type) &&
+          source.type === "credit_card"
+        )
           credits.push({ card: source.id, date, amount });
-        if (rule.type === "transfer" && destination?.type === "credit_card")
+        if (
+          ["transfer", "goal_contribution", "goal_withdrawal"].includes(
+            rule.type,
+          ) &&
+          destination?.type === "credit_card"
+        )
           credits.push({ card: destination.id, date, amount });
         if (
           rule.type === "expense" &&

@@ -13,6 +13,7 @@ import {
 import { accountNetWorth, cashFlowPoints } from "@/features/dashboard/summary";
 import { getDashboardBudgets } from "@/features/budgets/queries";
 import { budgetProgress } from "@/features/budgets/schemas";
+import { getDashboardSavings } from "@/features/dashboard/queries";
 
 export const metadata = { title: "Inicio" };
 const money = new Intl.NumberFormat("en-US", {
@@ -33,7 +34,14 @@ const day = new Intl.DateTimeFormat("es", {
 export default async function DashboardPage() {
   const data = await getAnalytics("dashboard");
   const budgets = await getDashboardBudgets(`${data.today.slice(0, 7)}-01`);
-  const worth = accountNetWorth(data.accounts);
+  const savings = await getDashboardSavings();
+  const pendingLoans =
+    savings.loans.reduce(
+      (sum, loan) => sum + Math.round(loan.pending * 100),
+      0,
+    ) / 100;
+  const worth =
+    Math.round((accountNetWorth(data.accounts) + pendingLoans) * 100) / 100;
   const monthlyNet = data.totals.income - data.totals.expense;
   const until = new Date(`${data.today}T00:00:00Z`);
   until.setUTCDate(until.getUTCDate() + 14);
@@ -66,14 +74,14 @@ export default async function DashboardPage() {
       >
         <div className="bg-primary text-primary-foreground rounded-2xl p-5 sm:p-6">
           <div className="flex items-center justify-between">
-            <h2 className="text-sm font-medium">Patrimonio de cuentas</h2>
+            <h2 className="text-sm font-medium">Patrimonio neto</h2>
             <Wallet className="size-5 opacity-75" aria-hidden />
           </div>
           <p className="mt-5 text-3xl font-semibold tracking-tight tabular-nums">
             {money.format(worth)}
           </p>
           <p className="mt-2 text-xs opacity-75">
-            Activos menos deuda de tarjetas
+            Cuentas menos tarjetas, más préstamos por cobrar
           </p>
         </div>
         <div className="bg-card rounded-2xl border p-5 sm:p-6">
@@ -141,6 +149,46 @@ export default async function DashboardPage() {
           </p>
         )}
       </section>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <section className="bg-card rounded-2xl border p-5">
+          <h2 className="font-semibold">Préstamos por cobrar</h2>
+          <p className="mt-3 text-2xl font-semibold">
+            {money.format(pendingLoans)}
+          </p>
+          <p className="text-muted-foreground mt-2 text-sm">
+            {savings.loans.filter((loan) => loan.overdue).length} préstamos
+            vencidos
+          </p>
+        </section>
+        <section className="bg-card rounded-2xl border p-5">
+          <h2 className="font-semibold">Metas y provisiones</h2>
+          {savings.goals.length ? (
+            <ul className="mt-3 space-y-3">
+              {savings.goals.map((goal) => (
+                <li key={goal.id}>
+                  <div className="flex justify-between gap-3 text-sm">
+                    <span>{goal.name}</span>
+                    <span>
+                      {money.format(goal.balance)} /{" "}
+                      {money.format(goal.target_amount)}
+                    </span>
+                  </div>
+                  <progress
+                    aria-label={goal.name}
+                    max={goal.target_amount}
+                    value={Math.min(goal.target_amount, goal.balance)}
+                    className="accent-primary mt-1 h-2 w-full"
+                  />
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-muted-foreground mt-3 text-sm">
+              Aún no hay metas o provisiones.
+            </p>
+          )}
+        </section>
+      </div>
       <div className="grid gap-6 lg:grid-cols-3">
         <section
           aria-labelledby="monthly-trend-title"

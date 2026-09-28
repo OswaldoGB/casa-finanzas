@@ -199,7 +199,7 @@ export default async function ReportsPage({
         <section className="bg-card min-w-0 rounded-2xl border p-5">
           <h2 className="text-base font-semibold">Evolución del patrimonio</h2>
           <p className="text-muted-foreground mt-1 mb-4 text-xs">
-            Saldo mensual de activos menos deuda de tarjetas.
+            Cuentas menos tarjetas, más préstamos pendientes por cobrar.
           </p>
           <NetWorthChart netWorth={data.accounts.length ? data.netWorth : []} />
         </section>
