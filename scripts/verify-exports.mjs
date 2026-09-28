@@ -3,13 +3,10 @@ import { randomUUID } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 import { createServerClient } from "@supabase/ssr";
 import ExcelJS from "exceljs";
+import { assertTestProject } from "./assert-test-project.mjs";
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-assert.equal(
-  url,
-  "https://rtqqmmahfdwcnaydrhhc.supabase.co",
-  "Esta prueba solo permite desarrollo.",
-);
+assert.doesNotThrow(() => assertTestProject(url), "Solo desarrollo.");
 const admin = createClient(url, process.env.SUPABASE_SERVICE_ROLE_KEY, {
   auth: { persistSession: false },
 });
@@ -63,14 +60,12 @@ try {
     await admin.auth.admin.createUser({ email, password, email_confirm: true }),
   ).user.id;
   checked(
-    await admin
-      .from("profiles")
-      .insert({
-        id: userId,
-        household_id: household,
-        role: "member",
-        full_name: "Prueba temporal exportación",
-      }),
+    await admin.from("profiles").insert({
+      id: userId,
+      household_id: household,
+      role: "member",
+      full_name: "Prueba temporal exportación",
+    }),
   );
   checked(await member.auth.signInWithPassword({ email, password }));
   const base = { household_id: household, created_by: owner.id };

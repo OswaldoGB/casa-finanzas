@@ -17,14 +17,16 @@ assert.deepEqual(
 );
 const dev = parseEnv(readFileSync(".env.local", "utf8"));
 const prod = parseEnv(readFileSync(".env.production.local", "utf8"));
-assert.equal(
-  dev.NEXT_PUBLIC_SUPABASE_URL,
-  "https://rtqqmmahfdwcnaydrhhc.supabase.co",
+assert.match(
+  dev.NEXT_PUBLIC_SUPABASE_URL ?? "",
+  /^https:\/\/.+\.supabase\.co$/,
 );
-assert.equal(
-  prod.NEXT_PUBLIC_SUPABASE_URL,
-  "https://wmbudntitrkgrqptlyvc.supabase.co",
+assert.match(
+  prod.NEXT_PUBLIC_SUPABASE_URL ?? "",
+  /^https:\/\/.+\.supabase\.co$/,
 );
+assert.notEqual(dev.NEXT_PUBLIC_SUPABASE_URL, prod.NEXT_PUBLIC_SUPABASE_URL);
+assert.match(prod.NEXT_PUBLIC_SITE_URL ?? "", /^https:\/\/[^/]+$/);
 assert(
   !existsSync(".env.production-access.local"),
   "Ya existe el archivo de acceso; no se reemplaza.",
@@ -80,7 +82,7 @@ assert(email, "Falta el correo del administrador.");
 const password = randomBytes(24).toString("base64url") + "aA1!";
 writeFileSync(
   ".env.production-access.local",
-  `ADMIN_EMAIL=${email}\nADMIN_PASSWORD=${password}\nSIGN_IN_URL=https://casa-finanzas-six.vercel.app/login\nCHANGE_PASSWORD_URL=https://casa-finanzas-six.vercel.app/reset-password\n`,
+  `ADMIN_EMAIL=${email}\nADMIN_PASSWORD=${password}\nSIGN_IN_URL=${prod.NEXT_PUBLIC_SITE_URL}/login\nCHANGE_PASSWORD_URL=${prod.NEXT_PUBLIC_SITE_URL}/reset-password\n`,
   { flag: "wx", mode: 0o600 },
 );
 let userId,
@@ -102,14 +104,12 @@ try {
       .single(),
   ).id;
   checked(
-    await destination
-      .from("profiles")
-      .insert({
-        id: userId,
-        household_id: householdId,
-        full_name: owner.full_name,
-        role: "admin",
-      }),
+    await destination.from("profiles").insert({
+      id: userId,
+      household_id: householdId,
+      full_name: owner.full_name,
+      role: "admin",
+    }),
   );
   complete = true;
   console.log(

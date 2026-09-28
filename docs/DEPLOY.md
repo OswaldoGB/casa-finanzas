@@ -2,20 +2,13 @@
 
 Guía de publicación y mantenimiento con **Supabase Free** y **Vercel Hobby**, en una instalación independiente de desarrollo.
 
-## Instalación publicada el 28 de septiembre de 2026
+## Principios de despliegue
 
-- Dirección estable: [Casa & Finanzas](https://casa-finanzas-six.vercel.app).
-- Vercel: proyecto `casa-finanzas`, equipo `oswaldo-gb`, Node 24.x, estado Ready.
-- Supabase: `casa-finanzas-prod`, referencia `wmbudntitrkgrqptlyvc`, región `us-east-1`; las 21 migraciones iniciales y las 3 actualizaciones de tarjetas están aplicadas, y ambos buckets son privados.
-- Administrador inicializado antes de publicar; `/setup` está cerrado. Usa `/login`. Se conservaron correo, nombre y configuración del hogar; no se copiaron movimientos ni cuentas financieras de desarrollo.
-- Correo y contraseña inicial están únicamente en el archivo local ignorado `.env.production-access.local`. Después de entrar, cambia la contraseña en `/reset-password` y guárdala en tu gestor seguro.
-- Comprobados por HTTPS: redirecciones privadas, inicio de sesión, 13 módulos, JSON, Excel mensual de 11 hojas, CSV, RLS, registro cerrado y cron con/sin autorización. No se añadieron registros de prueba. El acceso desde un celular con datos móviles queda como comprobación del usuario; no se ha probado un dispositivo físico en otra red.
+Cada fork debe publicar con su propio proyecto Supabase, sus propias variables de entorno y su propio dominio. Las migraciones nuevas se aplican deliberadamente a producción antes del código que las requiere.
 
-La publicación fue manual, sin integración automática de GitHub. La revisión automática rechazó esa conexión por requerir autorización explícita para acceso continuo al repositorio. Para publicar futuros cambios revisados, usa `npx vercel deploy --prod --yes --scope oswaldo-gb` desde el proyecto enlazado. Las migraciones nuevas deben aplicarse deliberadamente al Supabase de producción antes del código que las requiere.
+`node scripts/verify-production.mjs` verifica acceso público y restricciones sin crear datos. Agrega `--authenticated` para comprobar la cuenta inicial y las descargas mientras sus credenciales locales sigan vigentes.
 
-`node scripts/verify-production.mjs` verifica acceso público y restricciones sin crear datos. Agrega `--authenticated` para verificar el acceso inicial y las descargas antes de cambiar esa contraseña; una vez cambiada, el archivo inicial deja de servir para esta prueba.
-
-Fuentes oficiales consultadas el **28 de septiembre de 2026**. Los proveedores pueden cambiar sus planes y pantallas.
+Las pantallas y planes de Supabase y Vercel pueden cambiar; confirma la configuración actual en su documentación oficial antes de publicar.
 
 ## Antes de publicar
 

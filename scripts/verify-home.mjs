@@ -1,9 +1,9 @@
 import { createClient } from "@supabase/supabase-js";
 import { randomUUID } from "node:crypto";
+import { assertTestProject } from "./assert-test-project.mjs";
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-if (url !== "https://rtqqmmahfdwcnaydrhhc.supabase.co")
-  throw new Error("Esta prueba solo se permite en desarrollo.");
+assertTestProject(url);
 const options = { auth: { persistSession: false } };
 const admin = createClient(url, process.env.SUPABASE_SERVICE_ROLE_KEY, options);
 const member = createClient(
@@ -44,14 +44,12 @@ try {
     await admin.auth.admin.createUser({ email, password, email_confirm: true }),
   ).user.id;
   data(
-    await admin
-      .from("profiles")
-      .insert({
-        id: userId,
-        household_id: household,
-        full_name: "Prueba temporal hogar",
-        role: "member",
-      }),
+    await admin.from("profiles").insert({
+      id: userId,
+      household_id: household,
+      full_name: "Prueba temporal hogar",
+      role: "member",
+    }),
   );
   const base = { household_id: household, created_by: owner.id };
   const owned = { ...base, created_by: userId };

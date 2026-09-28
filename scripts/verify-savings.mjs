@@ -1,9 +1,9 @@
 import { createClient } from "@supabase/supabase-js";
 import { randomUUID } from "node:crypto";
+import { assertTestProject } from "./assert-test-project.mjs";
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-if (url !== "https://rtqqmmahfdwcnaydrhhc.supabase.co")
-  throw new Error("Esta prueba solo se permite en desarrollo.");
+assertTestProject(url);
 const options = { auth: { persistSession: false } };
 const admin = createClient(url, process.env.SUPABASE_SERVICE_ROLE_KEY, options);
 const member = createClient(

@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { randomUUID } from "node:crypto";
+import { assertTestProject } from "./assert-test-project.mjs";
 
 const args = process.argv.slice(2);
 if (args.includes("--help")) {
@@ -15,7 +16,9 @@ if (args.length !== 1 || args[0] !== "--confirmar") {
   process.exit(1);
 }
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-if (url !== "https://rtqqmmahfdwcnaydrhhc.supabase.co") {
+try {
+  assertTestProject(url);
+} catch {
   console.error(
     "Este script solo se permite en el proyecto de desarrollo configurado.",
   );

@@ -6,11 +6,11 @@ import { createServerClient } from "@supabase/ssr";
 import ExcelJS from "exceljs";
 
 const prod = parseEnv(readFileSync(".env.production.local", "utf8"));
-const site = "https://casa-finanzas-six.vercel.app";
-assert.equal(prod.NEXT_PUBLIC_SITE_URL, site);
-assert.equal(
-  prod.NEXT_PUBLIC_SUPABASE_URL,
-  "https://wmbudntitrkgrqptlyvc.supabase.co",
+const site = prod.NEXT_PUBLIC_SITE_URL;
+assert.match(site ?? "", /^https:\/\/[^/]+$/);
+assert.match(
+  prod.NEXT_PUBLIC_SUPABASE_URL ?? "",
+  /^https:\/\/.+\.supabase\.co$/,
 );
 assert(
   !process.argv.slice(2).some((arg) => arg !== "--authenticated"),

@@ -54,6 +54,7 @@ Completa estas variables con los datos de tu proyecto de **desarrollo**. Las enc
 | `NEXT_PUBLIC_SUPABASE_URL` | URL de tu proyecto Supabase. |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Llave pública usada por el navegador con las políticas RLS. |
 | `SUPABASE_SERVICE_ROLE_KEY` | Llave privada, usada solo en el servidor para crear usuarios y procesar tareas. |
+| `SUPABASE_TEST_URL` | La misma URL de desarrollo; bloquea scripts de prueba fuera de ese proyecto. |
 | `NEXT_PUBLIC_SITE_URL` | `http://localhost:3000` durante el desarrollo. |
 | `CRON_SECRET` | Cadena aleatoria privada para autorizar el proceso diario. |
 

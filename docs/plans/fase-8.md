@@ -12,8 +12,8 @@ La publicación se realiza después del desarrollo, conforme a la última instru
 
 ## Publicación terminada
 
-- Dominio estable: https://casa-finanzas-six.vercel.app; Vercel Ready, Node 24.x, cinco variables de producción.
-- Supabase independiente `casa-finanzas-prod` (`wmbudntitrkgrqptlyvc`), 21 migraciones aplicadas, buckets privados, registro público cerrado y URLs de Auth configuradas.
+- Dominio HTTPS estable, Vercel Ready, Node 24.x y cinco variables de producción.
+- Supabase independiente, migraciones aplicadas, buckets privados, registro público cerrado y URLs de Auth configuradas.
 - Administrador creado antes de publicar, sin datos financieros copiados; contraseña inicial únicamente en `.env.production-access.local`, ignorado por Git.
 - Verificación remota aprobada: HTTPS, login, setup cerrado, 13 módulos autenticados, JSON sin secretos, Excel de 11 hojas, CSV, RLS anónimo y cron protegido. Sin registros de prueba añadidos.
 - Corregido `email_provider_disabled`: el proveedor de correo permanece habilitado y el registro público sigue cerrado. La comprobación final verifica ambos estados.

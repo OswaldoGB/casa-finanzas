@@ -2,13 +2,10 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 import { createServerClient } from "@supabase/ssr";
+import { assertTestProject } from "./assert-test-project.mjs";
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-assert.equal(
-  url,
-  "https://rtqqmmahfdwcnaydrhhc.supabase.co",
-  "Solo desarrollo.",
-);
+assert.doesNotThrow(() => assertTestProject(url), "Solo desarrollo.");
 const service = createClient(url, process.env.SUPABASE_SERVICE_ROLE_KEY, {
   auth: { persistSession: false },
 });
