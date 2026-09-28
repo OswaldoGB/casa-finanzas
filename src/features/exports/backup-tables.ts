@@ -2,6 +2,8 @@ export const BACKUP_TABLES = [
   "accounts",
   "attachments",
   "budgets",
+  "card_installment_plans",
+  "card_payments",
   "categories",
   "inventory_items",
   "loans",

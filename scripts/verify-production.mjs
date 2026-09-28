@@ -65,6 +65,14 @@ assert(
   publicProfiles.error || publicProfiles.data.length === 0,
   "RLS expuso perfiles anónimos.",
 );
+for (const table of ["card_installment_plans", "card_payments"]) {
+  const response = await anonymous.from(table).select("id");
+  assert(
+    !response.error || response.error.code === "42501",
+    `Falta el esquema de tarjetas: ${table}.`,
+  );
+  assert(response.error || response.data.length === 0, `RLS expuso ${table}.`);
+}
 
 if (process.argv.includes("--authenticated")) {
   const access = parseEnv(readFileSync(".env.production-access.local", "utf8"));
@@ -129,6 +137,11 @@ if (process.argv.includes("--authenticated")) {
     assert(
       Array.isArray(data.tables.attachments),
       "Falta metadata de comprobantes en el respaldo.",
+    );
+    assert(
+      Array.isArray(data.tables.card_installment_plans) &&
+        Array.isArray(data.tables.card_payments),
+      "Faltan planes y pagos de tarjetas en el respaldo.",
     );
     const serialized = JSON.stringify(data);
     assert(

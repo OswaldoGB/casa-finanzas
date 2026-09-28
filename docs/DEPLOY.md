@@ -6,7 +6,7 @@ Guía de publicación y mantenimiento con **Supabase Free** y **Vercel Hobby**, 
 
 - Dirección estable: [Casa & Finanzas](https://casa-finanzas-six.vercel.app).
 - Vercel: proyecto `casa-finanzas`, equipo `oswaldo-gb`, Node 24.x, estado Ready.
-- Supabase: `casa-finanzas-prod`, referencia `wmbudntitrkgrqptlyvc`, región `us-east-1`; las 21 migraciones están aplicadas y ambos buckets son privados.
+- Supabase: `casa-finanzas-prod`, referencia `wmbudntitrkgrqptlyvc`, región `us-east-1`; las 21 migraciones iniciales y las 3 actualizaciones de tarjetas están aplicadas, y ambos buckets son privados.
 - Administrador inicializado antes de publicar; `/setup` está cerrado. Usa `/login`. Se conservaron correo, nombre y configuración del hogar; no se copiaron movimientos ni cuentas financieras de desarrollo.
 - Correo y contraseña inicial están únicamente en el archivo local ignorado `.env.production-access.local`. Después de entrar, cambia la contraseña en `/reset-password` y guárdala en tu gestor seguro.
 - Comprobados por HTTPS: redirecciones privadas, inicio de sesión, 13 módulos, JSON, Excel mensual de 11 hojas, CSV, RLS, registro cerrado y cron con/sin autorización. No se añadieron registros de prueba. El acceso desde un celular con datos móviles queda como comprobación del usuario; no se ha probado un dispositivo físico en otra red.

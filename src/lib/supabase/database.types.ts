@@ -221,6 +221,126 @@ export type Database = {
           },
         ]
       }
+      card_installment_plans: {
+        Row: {
+          amount: number
+          card_id: string
+          created_at: string
+          created_by: string
+          first_close: string
+          household_id: string
+          id: string
+          installments: number
+          name: string
+          purchase_date: string
+          transaction_id: string | null
+        }
+        Insert: {
+          amount: number
+          card_id: string
+          created_at?: string
+          created_by: string
+          first_close: string
+          household_id: string
+          id: string
+          installments: number
+          name: string
+          purchase_date: string
+          transaction_id?: string | null
+        }
+        Update: {
+          amount?: number
+          card_id?: string
+          created_at?: string
+          created_by?: string
+          first_close?: string
+          household_id?: string
+          id?: string
+          installments?: number
+          name?: string
+          purchase_date?: string
+          transaction_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "card_installment_plans_card_id_household_id_fkey"
+            columns: ["card_id", "household_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id", "household_id"]
+          },
+          {
+            foreignKeyName: "card_installment_plans_created_by_household_id_fkey"
+            columns: ["created_by", "household_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id", "household_id"]
+          },
+          {
+            foreignKeyName: "card_installment_plans_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "card_installment_plans_transaction_id_household_id_fkey"
+            columns: ["transaction_id", "household_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id", "household_id"]
+          },
+        ]
+      }
+      card_payments: {
+        Row: {
+          card_id: string
+          created_at: string
+          created_by: string
+          date: string
+          household_id: string
+          id: string
+        }
+        Insert: {
+          card_id: string
+          created_at?: string
+          created_by: string
+          date: string
+          household_id: string
+          id: string
+        }
+        Update: {
+          card_id?: string
+          created_at?: string
+          created_by?: string
+          date?: string
+          household_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "card_payments_card_id_household_id_fkey"
+            columns: ["card_id", "household_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id", "household_id"]
+          },
+          {
+            foreignKeyName: "card_payments_created_by_household_id_fkey"
+            columns: ["created_by", "household_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id", "household_id"]
+          },
+          {
+            foreignKeyName: "card_payments_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       categories: {
         Row: {
           color: string
@@ -1088,6 +1208,7 @@ export type Database = {
         Row: {
           account_id: string | null
           amount: number
+          card_payment_id: string | null
           category_id: string | null
           created_at: string
           created_by: string
@@ -1109,6 +1230,7 @@ export type Database = {
         Insert: {
           account_id?: string | null
           amount: number
+          card_payment_id?: string | null
           category_id?: string | null
           created_at?: string
           created_by: string
@@ -1130,6 +1252,7 @@ export type Database = {
         Update: {
           account_id?: string | null
           amount?: number
+          card_payment_id?: string | null
           category_id?: string | null
           created_at?: string
           created_by?: string
@@ -1154,6 +1277,13 @@ export type Database = {
             columns: ["account_id", "household_id"]
             isOneToOne: false
             referencedRelation: "accounts"
+            referencedColumns: ["id", "household_id"]
+          },
+          {
+            foreignKeyName: "transactions_card_payment_id_household_id_fkey"
+            columns: ["card_payment_id", "household_id"]
+            isOneToOne: false
+            referencedRelation: "card_payments"
             referencedColumns: ["id", "household_id"]
           },
           {
@@ -1245,6 +1375,10 @@ export type Database = {
         }
         Returns: Json
       }
+      assert_transactions_unfinanced: {
+        Args: { p_ids: string[] }
+        Returns: undefined
+      }
       budget_snapshot: {
         Args: {
           p_module?: Database["public"]["Enums"]["module_name"]
@@ -1255,8 +1389,23 @@ export type Database = {
       can_read_accounts: { Args: never; Returns: boolean }
       can_read_categories: { Args: never; Returns: boolean }
       can_read_payment_methods: { Args: never; Returns: boolean }
+      card_installment_schedule: {
+        Args: { p_after: string; p_card_id: string; p_until: string }
+        Returns: {
+          amount: number
+          card_id: string
+          close_date: string
+          due_date: string
+          installment: number
+          plan_id: string
+        }[]
+      }
       card_statement_unpaid: {
         Args: { p_account_id: string; p_close: string; p_today: string }
+        Returns: number
+      }
+      card_unbilled_installments: {
+        Args: { p_card_id: string; p_date: string }
         Returns: number
       }
       close_shopping_list: {
@@ -1270,6 +1419,20 @@ export type Database = {
         Returns: Json
       }
       copy_previous_budgets: { Args: { p_month: string }; Returns: number }
+      create_card_installment: {
+        Args: {
+          p_amount: number
+          p_card_id: string
+          p_category_id?: string
+          p_existing: boolean
+          p_first_close: string
+          p_id: string
+          p_installments: number
+          p_name: string
+          p_purchase_date: string
+        }
+        Returns: string
+      }
       current_household_id: { Args: never; Returns: string }
       duplicate_shopping_list: { Args: { p_list_id: string }; Returns: string }
       has_module_access: {
@@ -1314,8 +1477,22 @@ export type Database = {
         }
         Returns: string
       }
+      pay_credit_card: {
+        Args: {
+          p_card_id: string
+          p_date: string
+          p_id: string
+          p_sources: Json
+        }
+        Returns: string
+      }
       project_snapshot: { Args: never; Returns: Json }
       projection_inputs: { Args: { p_months?: number }; Returns: Json }
+      projection_inputs_without_installments: {
+        Args: { p_months?: number }
+        Returns: Json
+      }
+      remove_card_installment: { Args: { p_id: string }; Returns: undefined }
       savings_goal_operation: {
         Args: {
           p_amount: number

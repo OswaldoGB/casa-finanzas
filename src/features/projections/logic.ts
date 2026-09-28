@@ -14,6 +14,13 @@ export type ProjectionInput = {
     payment_due_day: number | null;
     statement_close: string | null;
     statement_unpaid: number;
+    installment_future?: number;
+  }[];
+  installments?: {
+    card_id: string;
+    close_date: string;
+    due_date: string;
+    amount: number;
   }[];
   recurring: {
     id: string;
@@ -111,6 +118,30 @@ export function projectCash(
       account.payment_due_day,
     );
     const unpaid = Math.max(0, cents(account.statement_unpaid));
+    const scheduledFuture = Math.max(0, cents(account.installment_future ?? 0));
+    const future = Math.min(
+      Math.max(0, cents(account.balance) - unpaid),
+      scheduledFuture,
+    );
+    let remaining = future;
+    let prepaid = scheduledFuture - future;
+    for (const installment of (input.installments ?? [])
+      .filter((row) => row.card_id === account.id)
+      .sort((a, b) => a.due_date.localeCompare(b.due_date))) {
+      const covered = Math.min(prepaid, cents(installment.amount));
+      prepaid -= covered;
+      const amount = Math.min(remaining, cents(installment.amount) - covered);
+      if (amount > 0)
+        cardPayments.push({
+          card: account.id,
+          date:
+            installment.due_date < input.today
+              ? input.today
+              : installment.due_date,
+          amount,
+        });
+      remaining -= amount;
+    }
     if (account.balance < 0)
       credits.push({
         card: account.id,
@@ -129,7 +160,7 @@ export function projectCash(
         account.statement_closing_day,
         account.payment_due_day,
       ),
-      amount: Math.max(0, cents(account.balance) - unpaid),
+      amount: Math.max(0, cents(account.balance) - unpaid - future),
     });
   }
   for (const rule of input.recurring) {

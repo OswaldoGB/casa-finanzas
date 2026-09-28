@@ -281,13 +281,14 @@ export function ProjectionView({ input }: { input: ProjectionInput }) {
       <p className="text-muted-foreground text-sm leading-relaxed">
         Esta estimación usa saldos publicados, recurrentes activos (incluidos
         los que necesitan confirmación), deuda de tarjetas y presupuestos. Los
-        cargos recurrentes de tarjeta se pagan en su vencimiento; sus pagos
-        programados se descuentan para evitar duplicarlos. El presupuesto
-        reserva efectivo en el mes del gasto y descuenta los recurrentes de su
-        categoría. Los meses sin plan usan el presupuesto base actual. No
-        incluye intereses, compras futuras sin programar ni ingresos no
-        registrados. Una reserva de presupuesto puede anticipar efectivo antes
-        del vencimiento real de una tarjeta.
+        compras a plazos se distribuyen según sus cuotas y los cargos
+        recurrentes de tarjeta se pagan en su vencimiento; sus pagos programados
+        se descuentan para evitar duplicarlos. El presupuesto reserva efectivo
+        en el mes del gasto y descuenta los recurrentes de su categoría. Los
+        meses sin plan usan el presupuesto base actual. No incluye intereses,
+        compras futuras sin programar ni ingresos no registrados. Una reserva de
+        presupuesto puede anticipar efectivo antes del vencimiento real de una
+        tarjeta.
       </p>
     </div>
   );

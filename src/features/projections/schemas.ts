@@ -14,8 +14,19 @@ export const projectionInputSchema = z.object({
         .number()
         .nullable()
         .transform((value) => value ?? 0),
+      installment_future: z.number().default(0),
     }),
   ),
+  installments: z
+    .array(
+      z.object({
+        card_id: z.string(),
+        close_date: z.string().date(),
+        due_date: z.string().date(),
+        amount: z.number(),
+      }),
+    )
+    .default([]),
   recurring: z.array(
     z.object({
       id: z.string(),

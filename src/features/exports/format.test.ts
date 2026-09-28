@@ -5,6 +5,8 @@ import { BACKUP_TABLES } from "./backup-tables";
 describe("descargas", () => {
   it("conserva las referencias a los comprobantes privados en el respaldo", () => {
     expect(BACKUP_TABLES).toContain("attachments");
+    expect(BACKUP_TABLES).toContain("card_installment_plans");
+    expect(BACKUP_TABLES).toContain("card_payments");
   });
   it("conserva IDs y añade las etiquetas visibles del movimiento", () => {
     expect(

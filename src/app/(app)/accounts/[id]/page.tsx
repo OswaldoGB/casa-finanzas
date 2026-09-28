@@ -3,6 +3,12 @@ import { notFound } from "next/navigation";
 import { archiveAccount } from "@/features/accounts/actions";
 import { AccountForm } from "@/features/accounts/components/account-form";
 import { getAccount } from "@/features/accounts/queries";
+import { randomUUID } from "node:crypto";
+import {
+  InstallmentForm,
+  CardPaymentForm,
+  RemoveInstallmentForm,
+} from "@/features/accounts/components/card-forms";
 
 export const metadata = { title: "Detalle de cuenta" };
 const money = new Intl.NumberFormat("en-US", {
@@ -18,7 +24,19 @@ export default async function AccountPage({
   const { id } = await params;
   const result = await getAccount(id);
   if (!result?.account) notFound();
-  const { account, canEdit, statement, history } = result;
+  const {
+    account,
+    canEdit,
+    statement,
+    history,
+    plans,
+    schedule,
+    today,
+    firstClose,
+    categories,
+    canTransact,
+    paymentAccounts,
+  } = result;
   const card = account.type === "credit_card";
   const utilization =
     card && account.credit_limit
@@ -50,7 +68,7 @@ export default async function AccountPage({
         </div>
         <div className="bg-card rounded-xl border px-5 py-3 text-right">
           <p className="text-muted-foreground text-xs">
-            {card ? "Deuda actual" : "Saldo actual"}
+            {card ? "Deuda total, incluidas cuotas futuras" : "Saldo actual"}
           </p>
           <p className="text-2xl font-semibold tabular-nums">
             {money.format(account.balance)}
@@ -96,12 +114,116 @@ export default async function AccountPage({
                 Fecha límite de pago: <strong>{statement.dueOn}</strong>
               </p>
               <p className="sm:col-span-2">
-                Saldo al corte:{" "}
+                Importe facturado al corte:{" "}
                 <strong>{money.format(statement.balance)}</strong>
+              </p>
+              <p className="sm:col-span-2">
+                Pendiente de pagar este corte:{" "}
+                <strong className="text-lg">
+                  {money.format(statement.unpaid)}
+                </strong>
+              </p>
+              <p className="text-muted-foreground sm:col-span-2">
+                Cuotas futuras incluidas en la deuda:{" "}
+                <strong>{money.format(statement.future)}</strong>. Se incorporan
+                al pago cuando llega su corte.
               </p>
             </div>
           )}
         </section>
+      )}
+      {card && plans.length > 0 && (
+        <section className="space-y-3">
+          <h2 className="text-lg font-semibold">Compras a plazos</h2>
+          {plans.map((plan) => {
+            const rows = schedule.filter((row) => row.plan_id === plan.id);
+            const future = rows.filter(
+              (row) => row.close_date > (statement?.closesOn ?? today),
+            );
+            return (
+              <article
+                key={plan.id}
+                className="bg-card space-y-3 rounded-xl border p-4"
+              >
+                <h3 className="font-medium">{plan.name}</h3>
+                <p className="text-sm">
+                  {money.format(Number(plan.amount))} en {plan.installments}{" "}
+                  cuotas · {future.length} por facturar
+                </p>
+                <p className="text-muted-foreground text-xs">
+                  {plan.transaction_id
+                    ? "Compra registrada como gasto una sola vez"
+                    : "Plan que ya estaba incluido en la deuda"}
+                </p>
+                <details>
+                  <summary className="cursor-pointer rounded py-2 text-sm">
+                    Ver calendario de cuotas
+                  </summary>
+                  <ul className="mt-2 space-y-2 text-sm">
+                    {rows.map((row) => (
+                      <li
+                        key={row.installment}
+                        className="flex flex-wrap justify-between gap-2"
+                      >
+                        <span>
+                          Cuota {row.installment} · Corte {row.close_date} ·
+                          Pago {row.due_date}
+                        </span>
+                        <strong>{money.format(Number(row.amount))}</strong>
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="text-muted-foreground mt-3 text-xs">
+                    Este calendario muestra lo facturado, no acredita pagos
+                    individuales. Los abonos se descuentan del saldo de la
+                    tarjeta.
+                  </p>
+                </details>
+                {canEdit && !account.is_archived && (
+                  <details>
+                    <summary className="text-muted-foreground cursor-pointer rounded py-2 text-xs">
+                      Corregir un plan registrado por error
+                    </summary>
+                    <RemoveInstallmentForm id={plan.id} cardId={account.id} />
+                  </details>
+                )}
+              </article>
+            );
+          })}
+        </section>
+      )}
+      {card && canEdit && !account.is_archived && statement && (
+        <>
+          <section className="bg-card space-y-4 rounded-2xl border p-5 sm:p-6">
+            <h2 className="text-lg font-semibold">Pagar tarjeta</h2>
+            {canTransact ? (
+              <CardPaymentForm
+                cardId={account.id}
+                today={today}
+                requestId={randomUUID()}
+                accounts={paymentAccounts}
+                due={statement.unpaid}
+              />
+            ) : (
+              <p className="text-muted-foreground text-sm">
+                Necesitas permiso de edición en Movimientos para registrar
+                pagos.
+              </p>
+            )}
+          </section>
+          <section className="bg-card space-y-4 rounded-2xl border p-5 sm:p-6">
+            <h2 className="text-lg font-semibold">Añadir compra a plazos</h2>
+            <InstallmentForm
+              cardId={account.id}
+              today={today}
+              lastClose={statement.closesOn}
+              firstClose={firstClose}
+              requestId={randomUUID()}
+              categories={categories}
+              canPurchase={canTransact}
+            />
+          </section>
+        </>
       )}
       {history.length > 0 && (
         <section className="space-y-3">

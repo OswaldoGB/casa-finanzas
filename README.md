@@ -52,6 +52,12 @@ Registra ingresos, gastos y transferencias en Movimientos. Los movimientos recur
 
 Usa **Buscar** o `Ctrl/Cmd + K` para abrir páginas, encontrar registros de tus módulos y crear movimientos o listas cuando tengas permiso. En el celular, abre el menú del navegador para agregar la app a la pantalla de inicio; necesitas conexión para consultar y guardar datos.
 
+En **Cuentas → tu tarjeta**, **Añadir compra a plazos** distingue una compra nueva de un plan que ya está incluido en la deuda. Para un plan existente, ingresa solo el importe y las cuotas que faltan, la fecha en que ese importe ya estaba en tu saldo y el primer corte de esas cuotas. Si ya estaba incluido en el último estado de cuenta, usa una fecha anterior o igual a ese corte. El total permanece como deuda y utiliza el límite; solamente las cuotas facturadas entran al pago del corte. Las cuotas futuras también se distribuyen en Proyecciones.
+
+**Pagar tarjeta** permite elegir una cuenta, o añadir otras e indicar el aporte de cada una. El pago reduce sus saldos y la deuda sin duplicar gastos. Las cuotas se reparten en importes iguales, ajustando los centavos en la última; incluye en el importe los intereses conocidos del plan. El calendario no identifica qué cuota pagó el banco: registra los abonos en la tarjeta.
+
+Comprueba esta función únicamente en desarrollo con `node --env-file=.env.local scripts/verify-cards.mjs`; crea un hogar aislado con un usuario temporal y elimina sus datos al terminar.
+
 En las páginas de datos, **Descargar CSV** y **Descargar Excel** conservan los filtros elegidos y requieren permiso de lectura del módulo. Para descargar los artículos de una lista, abre esa lista. Las descargas recorren todas las páginas de datos, aunque la pantalla muestre una lista limitada.
 
 El admin dispone en Ajustes de un **respaldo JSON** y un **reporte mensual Excel**. Movimientos, presupuestos y gastos por categoría corresponden al mes seleccionado; las demás hojas muestran el estado actual del hogar. El JSON incluye los registros y permisos, pero las fotos, comprobantes y cuentas de autenticación se conservan por separado. No incluye contraseñas ni existe importación automática desde la app. Guarda las descargas fuera del repositorio.

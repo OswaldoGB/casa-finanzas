@@ -98,7 +98,9 @@ Saldos y agregados mediante **vistas o funciones SQL** (saldo por cuenta, patrim
 
 **Dashboard:** patrimonio neto, saldo por cuenta, ingresos vs gastos del mes, progreso de presupuestos, próximos pagos (tarjetas y recurrentes en los próximos 14 días), préstamos pendientes, avance de metas, mini flujo de caja proyectado.
 
-**Cuentas y tarjetas:** CRUD, saldo actual, historial. Tarjetas: periodo de corte actual, saldo del estado de cuenta, fecha límite de pago, uso del límite (barra). Pagar tarjeta = transferencia desde otra cuenta.
+**Cuentas y tarjetas:** CRUD, saldo actual, historial. Tarjetas: deuda total, importe facturado al corte, pendiente de pago después de abonos, cuotas futuras, fecha límite y uso del crédito. Compras a plazos nuevas registran un único gasto por el total financiado; los planes existentes se clasifican sin volver a sumar deuda ni gasto. Cuotas mensuales iguales, hasta 120, con ajuste de centavos en la última, primer corte explícito y vencimientos según la tarjeta. Quitar financiación conserva la deuda y el gasto, pasando a pago al contado. No se simula un interés variable: el importe ingresado incluye los cargos conocidos del plan.
+
+Pagar tarjeta permite repartir el importe entre 1–20 cuentas activas distintas de tarjetas. Se guardan todas las transferencias en una operación atómica, con protección contra envíos duplicados, saldo insuficiente y pagos superiores a la deuda. Requiere edición de Cuentas y Movimientos. No genera un segundo gasto. El calendario acredita facturación, no pagos individuales por plan; los abonos reducen la deuda de la tarjeta.
 
 **Movimientos:** lista con filtros (fecha, tipo, cuenta, categoría, método, usuario, proyecto, texto), agrupada por día con subtotales, edición inline, adjuntos visibles, selección múltiple para recategorizar/borrar. Pendientes de recurrentes con botón "confirmar".
 
@@ -193,6 +195,7 @@ Distinto de "Compras próximas" (`shopping`, que son deseos/compras grandes). Es
 - `shopping_list_items` — `list_id`, nombre, cantidad (`numeric(10,3)`, admite 1.5 kg), unidad opcional, precio estimado (opcional), precio real (opcional, se captura en la tienda), marcado en carrito (`checked`), orden, notas.
 
 **Comportamiento:**
+
 - Los artículos pueden crearse **con o sin precio**. El precio real se escribe al momento de ponerlo en el carrito (tap en el artículo → teclado numérico).
 - Barra fija inferior con: **Total en carrito** (Σ precio real × cantidad de marcados), **Estimado restante** (Σ precio estimado de no marcados) y **Total proyectado**; si hay tope, barra de progreso y alerta ámbar/roja al acercarse o pasarse.
 - Los artículos sin precio se cuentan aparte ("3 sin precio") para que el total no engañe.

@@ -132,7 +132,11 @@ export async function saveTransaction(
         .select("id")
         .single();
   if (result.error || !result.data)
-    return { error: "No se pudo guardar el movimiento." };
+    return {
+      error: result.error?.message.startsWith("Quita primero")
+        ? result.error.message
+        : "No se pudo guardar el movimiento.",
+    };
   revalidatePath("/transactions");
   revalidatePath("/accounts");
   revalidatePath("/projects");
@@ -143,6 +147,10 @@ export async function deleteTransaction(formData: FormData) {
   const { supabase, profile } = await requireModule("transactions", "edit");
   const parsed = transactionIdSchema.safeParse(formData.get("id"));
   if (!parsed.success) throw new Error("Movimiento inválido.");
+  const financed = await supabase.rpc("assert_transactions_unfinanced", {
+    p_ids: [parsed.data],
+  });
+  if (financed.error) throw new Error(financed.error.message);
   const { data: attachments, error: attachmentsError } = await supabase
     .from("attachments")
     .select("storage_path")
@@ -239,6 +247,10 @@ export async function bulkTransactions(
     return { ok: `${ids.data.length} movimientos recategorizados.` };
   }
 
+  const financed = await supabase.rpc("assert_transactions_unfinanced", {
+    p_ids: ids.data,
+  });
+  if (financed.error) return { error: financed.error.message };
   const attachments = await supabase
     .from("attachments")
     .select("storage_path")
