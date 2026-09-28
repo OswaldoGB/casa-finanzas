@@ -1,12 +1,7 @@
 "use client";
 import { useActionState } from "react";
 import type { FormState } from "@/features/auth/schemas";
-import {
-  createLoan,
-  repayLoan,
-  updateLoanSource,
-  writeOffLoan,
-} from "../actions";
+import { createLoan, repayLoan, updateLoan, writeOffLoan } from "../actions";
 import type { Loan } from "../schemas";
 const field =
   "border-input bg-background h-11 w-full rounded-lg border px-3 text-sm";
@@ -191,17 +186,72 @@ export function RepayLoanForm({
     </form>
   );
 }
-export function EditLoanSourceForm({
+export function EditLoanForm({
   loan,
   accounts,
 }: {
   loan: Loan;
   accounts: { id: string; name: string; type: string }[];
 }) {
-  const [state, action, pending] = useActionState(updateLoanSource, undefined);
+  const [state, action, pending] = useActionState(updateLoan, undefined);
   return (
-    <form action={action} className="mt-3 grid gap-3 border-t pt-3">
+    <form action={action} className="grid gap-3">
       <input type="hidden" name="id" value={loan.id} />
+      <label
+        className="grid gap-1.5 text-sm"
+        htmlFor={`edit-${loan.id}-debtor`}
+      >
+        Persona a quien prestas
+        <input
+          id={`edit-${loan.id}-debtor`}
+          name="debtor"
+          defaultValue={loan.debtor}
+          maxLength={100}
+          required
+          className={field}
+        />
+      </label>
+      <label
+        className="grid gap-1.5 text-sm"
+        htmlFor={`edit-${loan.id}-amount`}
+      >
+        Monto prestado (USD)
+        <input
+          id={`edit-${loan.id}-amount`}
+          name="amount"
+          type="number"
+          min={loan.recovered || 0.01}
+          step="0.01"
+          inputMode="decimal"
+          defaultValue={loan.amount}
+          required
+          className={field}
+        />
+      </label>
+      <label className="grid gap-1.5 text-sm" htmlFor={`edit-${loan.id}-date`}>
+        Fecha del préstamo
+        <input
+          id={`edit-${loan.id}-date`}
+          name="date"
+          type="date"
+          defaultValue={loan.date}
+          required
+          className={field}
+        />
+      </label>
+      <label
+        className="grid gap-1.5 text-sm"
+        htmlFor={`edit-${loan.id}-expected`}
+      >
+        Fecha esperada de pago (opcional)
+        <input
+          id={`edit-${loan.id}-expected`}
+          name="expected_payment_date"
+          type="date"
+          defaultValue={loan.expected_payment_date ?? ""}
+          className={field}
+        />
+      </label>
       <label className="grid gap-1.5 text-sm">
         Cuenta o tarjeta de origen
         <select
@@ -236,13 +286,23 @@ export function EditLoanSourceForm({
           </option>
         </select>
       </label>
+      <label className="grid gap-1.5 text-sm" htmlFor={`edit-${loan.id}-notes`}>
+        Notas
+        <textarea
+          id={`edit-${loan.id}-notes`}
+          name="notes"
+          defaultValue={loan.notes ?? ""}
+          maxLength={2000}
+          className={`${field} h-20 py-2`}
+        />
+      </label>
       <p className="text-muted-foreground text-xs">
-        Esto corrige solo el origen y su efecto inicial. Los abonos registrados
-        se conservan.
+        Los abonos registrados se conservan. El monto no puede ser menor que lo
+        ya recuperado ({loan.recovered.toFixed(2)} USD).
       </p>
       <Feedback state={state} />
       <button className={button} disabled={pending || !accounts.length}>
-        {pending ? "Guardando…" : "Guardar corrección"}
+        {pending ? "Guardando…" : "Guardar cambios"}
       </button>
     </form>
   );

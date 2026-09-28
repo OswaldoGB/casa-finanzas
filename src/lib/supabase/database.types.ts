@@ -1524,6 +1524,19 @@ export type Database = {
           recovered: number
         }[]
       }
+      loan_update: {
+        Args: {
+          p_account_id?: string
+          p_already_recorded?: boolean
+          p_amount: number
+          p_date: string
+          p_debtor: string
+          p_expected_payment_date?: string
+          p_loan_id: string
+          p_notes?: string
+        }
+        Returns: undefined
+      }
       loan_update_source: {
         Args: {
           p_account_id: string

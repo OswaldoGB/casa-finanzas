@@ -2,7 +2,7 @@ import { ExportButtons } from "@/features/exports/components/export-buttons";
 import { getLoans } from "@/features/loans/queries";
 import {
   CreateLoanForm,
-  EditLoanSourceForm,
+  EditLoanForm,
   RepayLoanForm,
   WriteOffLoanForm,
 } from "@/features/loans/components/loan-forms";
@@ -49,36 +49,38 @@ export default async function LoansPage() {
               <article
                 key={loan.id}
                 id={loan.id}
-                className={`bg-card relative rounded-2xl border p-5 ${loan.overdue ? "border-destructive" : ""}`}
+                className={`bg-card rounded-2xl border p-5 ${loan.overdue ? "border-destructive" : ""}`}
               >
-                {data.canOperate && loan.status !== "written_off" && (
-                  <details className="absolute top-3 right-3">
-                    <summary
-                      aria-label="Corregir origen del préstamo"
-                      title="Corregir origen"
-                      className="bg-muted hover:bg-muted/70 cursor-pointer rounded-md px-2 py-1 text-sm"
-                    >
-                      ✎
-                    </summary>
-                    <div className="bg-card absolute top-9 right-0 z-10 w-80 rounded-xl border p-3 shadow-lg">
-                      <EditLoanSourceForm
-                        loan={loan}
-                        accounts={data.sourceAccounts}
-                      />
-                    </div>
-                  </details>
-                )}
-                <div className="flex flex-wrap justify-between gap-3">
-                  <h2 className="font-semibold">{loan.debtor}</h2>
-                  <span className="text-sm">
-                    {loan.status === "paid"
-                      ? "Pagado"
-                      : loan.status === "written_off"
-                        ? "Incobrable"
-                        : loan.overdue
-                          ? "Vencido"
-                          : "Activo"}
-                  </span>
+                <div className="flex items-start justify-between gap-3">
+                  <h2 className="min-w-0 font-semibold">{loan.debtor}</h2>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <span className="text-sm">
+                      {loan.status === "paid"
+                        ? "Pagado"
+                        : loan.status === "written_off"
+                          ? "Incobrable"
+                          : loan.overdue
+                            ? "Vencido"
+                            : "Activo"}
+                    </span>
+                    {data.canOperate && loan.status !== "written_off" && (
+                      <details className="relative">
+                        <summary
+                          aria-label="Editar préstamo"
+                          title="Editar préstamo"
+                          className="bg-muted hover:bg-muted/70 cursor-pointer rounded-md px-2 py-1 text-sm"
+                        >
+                          ✎
+                        </summary>
+                        <div className="bg-card absolute top-9 right-0 z-10 w-80 rounded-xl border p-3 shadow-lg">
+                          <EditLoanForm
+                            loan={loan}
+                            accounts={data.sourceAccounts}
+                          />
+                        </div>
+                      </details>
+                    )}
+                  </div>
                 </div>
                 <p className="mt-3 text-2xl font-semibold">
                   {formatUSD(loan.pending)}

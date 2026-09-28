@@ -4,7 +4,7 @@ import { z } from "zod";
 import { requireModule } from "@/features/permissions/queries";
 import { canAccess } from "@/features/permissions/modules";
 import type { FormState } from "@/features/auth/schemas";
-import { loanSchema, loanSourceSchema, repaymentSchema } from "./schemas";
+import { loanEditSchema, loanSchema, repaymentSchema } from "./schemas";
 function refresh() {
   for (const path of [
     "/loans",
@@ -51,7 +51,7 @@ export async function createLoan(
         : "Préstamo registrado y saldo actualizado.",
   };
 }
-export async function updateLoanSource(
+export async function updateLoan(
   _: FormState,
   form: FormData,
 ): Promise<FormState> {
@@ -61,17 +61,22 @@ export async function updateLoanSource(
   );
   if (!canAccess(profile.role, permissions, "transactions", "edit"))
     return { error: "Necesitas permiso para editar movimientos." };
-  const parsed = loanSourceSchema.safeParse(Object.fromEntries(form));
+  const parsed = loanEditSchema.safeParse(Object.fromEntries(form));
   if (!parsed.success) return { error: parsed.error.issues[0].message };
   const value = parsed.data;
-  const result = await supabase.rpc("loan_update_source", {
+  const result = await supabase.rpc("loan_update", {
     p_loan_id: value.id,
+    p_debtor: value.debtor,
+    p_amount: value.amount,
+    p_date: value.date,
+    p_expected_payment_date: value.expected_payment_date || undefined,
+    p_notes: value.notes,
     p_account_id: value.account_id,
     p_already_recorded: value.balance_effect === "already_recorded",
   });
   if (result.error) return { error: result.error.message };
   refresh();
-  return { ok: "Origen del préstamo corregido." };
+  return { ok: "Préstamo actualizado." };
 }
 export async function repayLoan(
   _: FormState,

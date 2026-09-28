@@ -43,6 +43,9 @@ export const loanSourceSchema = z.object({
   account_id: z.string().uuid("Elige una cuenta o tarjeta"),
   balance_effect: z.enum(["record_now", "already_recorded"]),
 });
+export const loanEditSchema = z
+  .object({ id: z.string().uuid() })
+  .and(loanSchema);
 export const loanSnapshotSchema = z.array(
   z.object({
     id: z.string().uuid(),
