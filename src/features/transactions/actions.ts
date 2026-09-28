@@ -25,7 +25,7 @@ export async function saveTransaction(
     ? await supabase
         .from("transactions")
         .select(
-          "status,type,account_id,destination_account_id,category_id,payment_method_id",
+          "status,type,account_id,destination_account_id,category_id,payment_method_id,project_id",
         )
         .eq("id", id)
         .eq("household_id", profile.household_id)
@@ -43,7 +43,7 @@ export async function saveTransaction(
   const accountIds = [values.account_id, values.destination_account_id].filter(
     (value): value is string => Boolean(value),
   );
-  const [accounts, category, method] = await Promise.all([
+  const [accounts, category, method, project] = await Promise.all([
     supabase
       .from("accounts")
       .select("id,is_archived")
@@ -65,7 +65,24 @@ export async function saveTransaction(
           .eq("id", values.payment_method_id)
           .maybeSingle()
       : Promise.resolve(null),
+    values.project_id
+      ? supabase
+          .from("projects")
+          .select("id,status")
+          .eq("id", values.project_id)
+          .eq("household_id", profile.household_id)
+          .maybeSingle()
+      : Promise.resolve(null),
   ]);
+  if (
+    values.project_id &&
+    (!project ||
+      project.error ||
+      !project.data ||
+      (project.data.status === "archived" &&
+        project.data.id !== existing?.data?.project_id))
+  )
+    return { error: "Selecciona un proyecto activo del hogar." };
   if (
     accounts.error ||
     accounts.data?.length !== accountIds.length ||
@@ -118,6 +135,7 @@ export async function saveTransaction(
     return { error: "No se pudo guardar el movimiento." };
   revalidatePath("/transactions");
   revalidatePath("/accounts");
+  revalidatePath("/projects");
   return { ok: id ? "Movimiento actualizado." : "Movimiento creado." };
 }
 

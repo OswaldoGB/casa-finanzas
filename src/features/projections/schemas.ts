@@ -10,7 +10,10 @@ export const projectionInputSchema = z.object({
       statement_closing_day: z.number().nullable(),
       payment_due_day: z.number().nullable(),
       statement_close: z.string().nullable(),
-      statement_unpaid: z.number(),
+      statement_unpaid: z
+        .number()
+        .nullable()
+        .transform((value) => value ?? 0),
     }),
   ),
   recurring: z.array(

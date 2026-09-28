@@ -45,6 +45,7 @@ export default async function TransactionsPage({
     category: first("category"),
     method: first("method"),
     user: first("user"),
+    project: first("project"),
     q: first("q"),
   };
   const [transactions, options] = await Promise.all([
@@ -165,6 +166,21 @@ export default async function TransactionsPage({
             {options.members.map((item) => (
               <option key={item.id} value={item.id}>
                 {item.full_name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="grid gap-1 text-xs">
+          Proyecto
+          <select
+            name="project"
+            defaultValue={filters.project}
+            className={selectClass}
+          >
+            <option value="">Todos</option>
+            {options.projects.map((item) => (
+              <option key={item.id} value={item.id}>
+                {item.name}
               </option>
             ))}
           </select>

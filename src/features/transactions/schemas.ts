@@ -28,6 +28,7 @@ export const transactionSchema = z
     destination_account_id: optionalId,
     category_id: optionalId,
     payment_method_id: optionalId,
+    project_id: optionalId.default(""),
     description: z.string().trim().max(240, "Máximo 240 caracteres"),
     notes: z
       .string()

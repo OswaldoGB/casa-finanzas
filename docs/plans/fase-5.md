@@ -1,0 +1,9 @@
+# Fase 5 — Hogar y compras compartidas
+
+1. Proyectos con presupuesto, fechas/estado, gasto real calculado y enlace desde movimientos. Inventario con datos de compra, ubicación, cantidad, garantía, notas, foto privada comprimida y vista tarjetas/tabla. Compras próximas con prioridad/estado y conversión atómica a gasto e inventario opcional.
+2. Listas compartidas: cantidades decimales, precio estimado/real, carrito, orden y notas; precios incluyen impuesto. Totales separados y conteo sin precio; barra fija móvil. Autocompletar con último precio de listas terminadas, duplicación y copia de pendientes al cerrar.
+3. Cerrar lista crea un gasto por el total real del carrito, con cuenta/categoría/método recordados y recibo por el flujo existente. Si faltan precios reales en el carrito, solicitar completarlos antes de cerrar. Cierre bloquea lista y evita duplicados. Realtime privado por RLS y actualizaciones optimistas con recuperación al fallar.
+4. RLS y validación por módulo/hogar en todas las acciones. Convertir a gasto requiere edit en movimientos; crear inventario requiere edit en inventario; editar lista por permiso shopping_lists. Visualizar agregados de proyecto no exige leer movimientos.
+5. Pruebas de totales, conversión/idempotencia/permisos, lint/typecheck/build, revisión móvil y respaldo.
+
+Cierre: lint/typecheck/build aprobados y 74 pruebas pasando durante integración. scripts/verify-home.mjs comprobó permisos, cierre decimal $6.65, bloqueo de precios faltantes, copia de pendientes, conversión atómica a gasto/inventario y rechazo de cierres repetidos. Revisión corrigió límite de nombre, historial de precios al archivar listas y sincronización de eliminaciones mediante actualización del padre. Interfaz móvil del carrito probada a 390 px con cantidad 1.5 y precio $1.23, total $1.85. Lista visual temporal eliminada; inventario/proyectos revisados en navegador.

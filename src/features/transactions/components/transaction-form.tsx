@@ -14,6 +14,7 @@ type Options = {
     is_archived: boolean;
   }[];
   methods: { id: string; name: string; is_archived: boolean }[];
+  projects: { id: string; name: string; status: string }[];
 };
 
 export function TransactionForm({
@@ -276,6 +277,30 @@ export function TransactionForm({
           <p className="text-destructive text-xs">{error("description")}</p>
         )}
       </div>
+      {!quick && (
+        <label className="grid gap-1 text-sm">
+          Proyecto opcional
+          <select
+            name="project_id"
+            defaultValue={transaction?.project_id ?? ""}
+            className={field}
+          >
+            <option value="">Sin proyecto</option>
+            {options.projects
+              .filter(
+                (item) =>
+                  item.status !== "archived" ||
+                  item.id === transaction?.project_id,
+              )
+              .map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.name}
+                </option>
+              ))}
+          </select>
+        </label>
+      )}
+      {quick && <input type="hidden" name="project_id" value="" />}
       {!quick && (
         <div className="grid gap-1">
           <label htmlFor="transaction-notes" className="text-sm font-medium">

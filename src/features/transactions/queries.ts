@@ -13,6 +13,7 @@ export type Filters = {
   category?: string;
   method?: string;
   user?: string;
+  project?: string;
   q?: string;
 };
 
@@ -20,7 +21,7 @@ export async function getTransactionOptions() {
   const { supabase, profile, permissions } =
     await requireModule("transactions");
   const household = profile.household_id;
-  const [accounts, categories, methods, members, householdResult] =
+  const [accounts, categories, methods, members, householdResult, projects] =
     await Promise.all([
       supabase
         .from("accounts")
@@ -47,13 +48,19 @@ export async function getTransactionOptions() {
         .select("timezone")
         .eq("id", household)
         .single(),
+      supabase
+        .from("projects")
+        .select("id,name,status")
+        .eq("household_id", household)
+        .order("name"),
     ]);
   if (
     accounts.error ||
     categories.error ||
     methods.error ||
     members.error ||
-    householdResult.error
+    householdResult.error ||
+    projects.error
   )
     throw new Error("No se pudieron cargar las opciones.");
   return {
@@ -61,6 +68,7 @@ export async function getTransactionOptions() {
     categories: categories.data ?? [],
     methods: methods.data ?? [],
     members: members.data ?? [],
+    projects: projects.data ?? [],
     today: todayInTimeZone(new Date(), householdResult.data.timezone),
     canEdit: profile.role === "admin" || permissions.transactions === "edit",
   };
@@ -94,6 +102,8 @@ export async function getTransactions(filters: Filters = {}) {
     query = query.eq("payment_method_id", filters.method);
   if (filters.user && transactionIdSchema.safeParse(filters.user).success)
     query = query.eq("created_by", filters.user);
+  if (filters.project && transactionIdSchema.safeParse(filters.project).success)
+    query = query.eq("project_id", filters.project);
   if (filters.q?.trim())
     query = query.ilike(
       "description",

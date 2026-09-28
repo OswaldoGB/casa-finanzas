@@ -315,6 +315,142 @@ export type Database = {
         }
         Relationships: []
       }
+      inventory_items: {
+        Row: {
+          category: string
+          condition: string
+          created_at: string
+          created_by: string
+          household_id: string
+          id: string
+          location: string
+          name: string
+          notes: string
+          photo_path: string | null
+          purchase_date: string | null
+          purchase_price: number | null
+          quantity: number
+          transaction_id: string | null
+          updated_at: string
+          warranty_until: string | null
+        }
+        Insert: {
+          category?: string
+          condition?: string
+          created_at?: string
+          created_by: string
+          household_id: string
+          id?: string
+          location?: string
+          name: string
+          notes?: string
+          photo_path?: string | null
+          purchase_date?: string | null
+          purchase_price?: number | null
+          quantity?: number
+          transaction_id?: string | null
+          updated_at?: string
+          warranty_until?: string | null
+        }
+        Update: {
+          category?: string
+          condition?: string
+          created_at?: string
+          created_by?: string
+          household_id?: string
+          id?: string
+          location?: string
+          name?: string
+          notes?: string
+          photo_path?: string | null
+          purchase_date?: string | null
+          purchase_price?: number | null
+          quantity?: number
+          transaction_id?: string | null
+          updated_at?: string
+          warranty_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_items_created_by_household_id_fkey"
+            columns: ["created_by", "household_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id", "household_id"]
+          },
+          {
+            foreignKeyName: "inventory_items_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_items_transaction_id_household_id_fkey"
+            columns: ["transaction_id", "household_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id", "household_id"]
+          },
+        ]
+      }
+      loans: {
+        Row: {
+          amount: number
+          created_at: string
+          created_by: string
+          date: string
+          debtor: string
+          expected_payment_date: string | null
+          household_id: string
+          id: string
+          notes: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          created_by: string
+          date: string
+          debtor: string
+          expected_payment_date?: string | null
+          household_id: string
+          id?: string
+          notes?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          created_by?: string
+          date?: string
+          debtor?: string
+          expected_payment_date?: string | null
+          household_id?: string
+          id?: string
+          notes?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loans_created_by_household_id_fkey"
+            columns: ["created_by", "household_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id", "household_id"]
+          },
+          {
+            foreignKeyName: "loans_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       module_permissions: {
         Row: {
           created_at: string
@@ -456,6 +592,63 @@ export type Database = {
           },
         ]
       }
+      projects: {
+        Row: {
+          budget: number
+          created_at: string
+          created_by: string
+          description: string
+          end_date: string | null
+          household_id: string
+          id: string
+          name: string
+          start_date: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          budget?: number
+          created_at?: string
+          created_by: string
+          description?: string
+          end_date?: string | null
+          household_id: string
+          id?: string
+          name: string
+          start_date?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          budget?: number
+          created_at?: string
+          created_by?: string
+          description?: string
+          end_date?: string | null
+          household_id?: string
+          id?: string
+          name?: string
+          start_date?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projects_created_by_household_id_fkey"
+            columns: ["created_by", "household_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id", "household_id"]
+          },
+          {
+            foreignKeyName: "projects_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       recurring_rules: {
         Row: {
           account_id: string | null
@@ -537,6 +730,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "recurring_project_fk"
+            columns: ["project_id", "household_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id", "household_id"]
+          },
+          {
             foreignKeyName: "recurring_rules_account_id_household_id_fkey"
             columns: ["account_id", "household_id"]
             isOneToOne: false
@@ -572,10 +772,311 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "recurring_rules_loan_id_household_id_fkey"
+            columns: ["loan_id", "household_id"]
+            isOneToOne: false
+            referencedRelation: "loans"
+            referencedColumns: ["id", "household_id"]
+          },
+          {
             foreignKeyName: "recurring_rules_payment_method_id_household_id_fkey"
             columns: ["payment_method_id", "household_id"]
             isOneToOne: false
             referencedRelation: "payment_methods"
+            referencedColumns: ["id", "household_id"]
+          },
+          {
+            foreignKeyName: "recurring_rules_savings_goal_id_household_id_fkey"
+            columns: ["savings_goal_id", "household_id"]
+            isOneToOne: false
+            referencedRelation: "savings_goals"
+            referencedColumns: ["id", "household_id"]
+          },
+        ]
+      }
+      savings_goals: {
+        Row: {
+          account_id: string | null
+          color: string
+          created_at: string
+          created_by: string
+          household_id: string
+          icon: string
+          id: string
+          name: string
+          target_amount: number
+          target_date: string | null
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          account_id?: string | null
+          color?: string
+          created_at?: string
+          created_by: string
+          household_id: string
+          icon?: string
+          id?: string
+          name: string
+          target_amount: number
+          target_date?: string | null
+          type?: string
+          updated_at?: string
+        }
+        Update: {
+          account_id?: string | null
+          color?: string
+          created_at?: string
+          created_by?: string
+          household_id?: string
+          icon?: string
+          id?: string
+          name?: string
+          target_amount?: number
+          target_date?: string | null
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "savings_goals_account_id_household_id_fkey"
+            columns: ["account_id", "household_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id", "household_id"]
+          },
+          {
+            foreignKeyName: "savings_goals_created_by_household_id_fkey"
+            columns: ["created_by", "household_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id", "household_id"]
+          },
+          {
+            foreignKeyName: "savings_goals_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shopping_items: {
+        Row: {
+          created_at: string
+          created_by: string
+          estimated_price: number | null
+          household_id: string
+          id: string
+          inventory_item_id: string | null
+          name: string
+          notes: string
+          priority: string
+          sort_order: number
+          status: string
+          target_date: string | null
+          transaction_id: string | null
+          updated_at: string
+          url: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          estimated_price?: number | null
+          household_id: string
+          id?: string
+          inventory_item_id?: string | null
+          name: string
+          notes?: string
+          priority?: string
+          sort_order?: number
+          status?: string
+          target_date?: string | null
+          transaction_id?: string | null
+          updated_at?: string
+          url?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          estimated_price?: number | null
+          household_id?: string
+          id?: string
+          inventory_item_id?: string | null
+          name?: string
+          notes?: string
+          priority?: string
+          sort_order?: number
+          status?: string
+          target_date?: string | null
+          transaction_id?: string | null
+          updated_at?: string
+          url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shopping_items_created_by_household_id_fkey"
+            columns: ["created_by", "household_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id", "household_id"]
+          },
+          {
+            foreignKeyName: "shopping_items_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shopping_items_inventory_item_id_household_id_fkey"
+            columns: ["inventory_item_id", "household_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id", "household_id"]
+          },
+          {
+            foreignKeyName: "shopping_items_transaction_id_household_id_fkey"
+            columns: ["transaction_id", "household_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id", "household_id"]
+          },
+        ]
+      }
+      shopping_list_items: {
+        Row: {
+          checked: boolean
+          created_at: string
+          created_by: string
+          estimated_price: number | null
+          household_id: string
+          id: string
+          list_id: string
+          name: string
+          notes: string
+          quantity: number
+          real_price: number | null
+          sort_order: number
+          unit: string
+          updated_at: string
+        }
+        Insert: {
+          checked?: boolean
+          created_at?: string
+          created_by: string
+          estimated_price?: number | null
+          household_id: string
+          id?: string
+          list_id: string
+          name: string
+          notes?: string
+          quantity?: number
+          real_price?: number | null
+          sort_order?: number
+          unit?: string
+          updated_at?: string
+        }
+        Update: {
+          checked?: boolean
+          created_at?: string
+          created_by?: string
+          estimated_price?: number | null
+          household_id?: string
+          id?: string
+          list_id?: string
+          name?: string
+          notes?: string
+          quantity?: number
+          real_price?: number | null
+          sort_order?: number
+          unit?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shopping_list_items_created_by_household_id_fkey"
+            columns: ["created_by", "household_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id", "household_id"]
+          },
+          {
+            foreignKeyName: "shopping_list_items_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shopping_list_items_list_id_household_id_fkey"
+            columns: ["list_id", "household_id"]
+            isOneToOne: false
+            referencedRelation: "shopping_lists"
+            referencedColumns: ["id", "household_id"]
+          },
+        ]
+      }
+      shopping_lists: {
+        Row: {
+          budget: number | null
+          completed_at: string | null
+          created_at: string
+          created_by: string
+          household_id: string
+          id: string
+          name: string
+          status: string
+          store: string
+          transaction_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          budget?: number | null
+          completed_at?: string | null
+          created_at?: string
+          created_by: string
+          household_id: string
+          id?: string
+          name: string
+          status?: string
+          store?: string
+          transaction_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          budget?: number | null
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string
+          household_id?: string
+          id?: string
+          name?: string
+          status?: string
+          store?: string
+          transaction_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shopping_lists_created_by_household_id_fkey"
+            columns: ["created_by", "household_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id", "household_id"]
+          },
+          {
+            foreignKeyName: "shopping_lists_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shopping_lists_transaction_id_household_id_fkey"
+            columns: ["transaction_id", "household_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
             referencedColumns: ["id", "household_id"]
           },
         ]
@@ -681,6 +1182,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "transactions_loan_id_household_id_fkey"
+            columns: ["loan_id", "household_id"]
+            isOneToOne: false
+            referencedRelation: "loans"
+            referencedColumns: ["id", "household_id"]
+          },
+          {
             foreignKeyName: "transactions_payment_method_id_household_id_fkey"
             columns: ["payment_method_id", "household_id"]
             isOneToOne: false
@@ -688,10 +1196,24 @@ export type Database = {
             referencedColumns: ["id", "household_id"]
           },
           {
+            foreignKeyName: "transactions_project_fk"
+            columns: ["project_id", "household_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id", "household_id"]
+          },
+          {
             foreignKeyName: "transactions_recurring_rule_id_household_id_fkey"
             columns: ["recurring_rule_id", "household_id"]
             isOneToOne: false
             referencedRelation: "recurring_rules"
+            referencedColumns: ["id", "household_id"]
+          },
+          {
+            foreignKeyName: "transactions_savings_goal_id_household_id_fkey"
+            columns: ["savings_goal_id", "household_id"]
+            isOneToOne: false
+            referencedRelation: "savings_goals"
             referencedColumns: ["id", "household_id"]
           },
         ]
@@ -734,8 +1256,19 @@ export type Database = {
         Args: { p_account_id: string; p_close: string; p_today: string }
         Returns: number
       }
+      close_shopping_list: {
+        Args: {
+          p_account_id: string
+          p_carry_unchecked?: boolean
+          p_category_id: string
+          p_list_id: string
+          p_payment_method_id?: string
+        }
+        Returns: Json
+      }
       copy_previous_budgets: { Args: { p_month: string }; Returns: number }
       current_household_id: { Args: never; Returns: string }
+      duplicate_shopping_list: { Args: { p_list_id: string }; Returns: string }
       has_module_access: {
         Args: {
           requested_module: Database["public"]["Enums"]["module_name"]
@@ -744,6 +1277,31 @@ export type Database = {
         Returns: boolean
       }
       is_admin: { Args: never; Returns: boolean }
+      loan_create: {
+        Args: {
+          p_account_id?: string
+          p_amount: number
+          p_date: string
+          p_debtor: string
+          p_expected_payment_date?: string
+          p_notes?: string
+        }
+        Returns: string
+      }
+      loan_repay: {
+        Args: {
+          p_account_id: string
+          p_amount: number
+          p_date: string
+          p_loan_id: string
+        }
+        Returns: string
+      }
+      loan_snapshot: {
+        Args: { p_module?: Database["public"]["Enums"]["module_name"] }
+        Returns: Json
+      }
+      loan_write_off: { Args: { p_loan_id: string }; Returns: undefined }
       next_occurrence_date: {
         Args: {
           p_anchor: string
@@ -753,7 +1311,43 @@ export type Database = {
         }
         Returns: string
       }
+      project_snapshot: { Args: never; Returns: Json }
       projection_inputs: { Args: { p_months?: number }; Returns: Json }
+      savings_goal_operation: {
+        Args: {
+          p_amount: number
+          p_counterparty_account_id?: string
+          p_date: string
+          p_goal_id: string
+          p_type: Database["public"]["Enums"]["transaction_type"]
+        }
+        Returns: string
+      }
+      savings_snapshot: {
+        Args: { p_module?: Database["public"]["Enums"]["module_name"] }
+        Returns: Json
+      }
+      shopping_buy: {
+        Args: {
+          p_account_id: string
+          p_amount: number
+          p_category_id: string
+          p_create_inventory?: boolean
+          p_date?: string
+          p_item_id: string
+          p_payment_method_id?: string
+        }
+        Returns: Json
+      }
+      validate_purchase_refs: {
+        Args: {
+          p_account: string
+          p_category: string
+          p_home: string
+          p_method: string
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       account_type:
