@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { saveInstallment, payCard, removeInstallment } from "../card-actions";
+import { installmentAmounts } from "../card-schemas";
 import type { AccountWithBalance } from "../queries";
 import type { FormState } from "../../auth/schemas";
 
@@ -46,12 +47,28 @@ export function InstallmentForm({
 }) {
   const [state, action, pending] = useActionState(saveInstallment, undefined);
   const [mode, setMode] = useState(canPurchase ? "new" : "existing");
+  const [amountMode, setAmountMode] = useState<"remaining" | "original">(
+    "remaining",
+  );
+  const [amount, setAmount] = useState("");
+  const [installments, setInstallments] = useState("12");
+  const [paidInstallments, setPaidInstallments] = useState("0");
+  const paid = mode === "existing" ? Number(paidInstallments) || 0 : 0;
+  const calculation = installmentAmounts(
+    Number(amount),
+    Number(installments),
+    paid,
+    mode === "new" ? "original" : amountMode,
+  );
+  const resetForm = () => {
+    setMode(canPurchase ? "new" : "existing");
+    setAmountMode("remaining");
+    setAmount("");
+    setInstallments("12");
+    setPaidInstallments("0");
+  };
   return (
-    <form
-      action={action}
-      onReset={() => setMode(canPurchase ? "new" : "existing")}
-      className="space-y-4"
-    >
+    <form action={action} onReset={resetForm} className="space-y-4">
       <input type="hidden" name="card_id" value={cardId} />
       <input type="hidden" name="request_id" value={requestId} />
       <label className="grid gap-1.5 text-sm font-medium">
@@ -60,7 +77,10 @@ export function InstallmentForm({
           name="mode"
           className={input}
           value={mode}
-          onChange={(event) => setMode(event.target.value)}
+          onChange={(event) => {
+            setMode(event.target.value);
+            if (event.target.value === "new") setPaidInstallments("0");
+          }}
         >
           {canPurchase && (
             <option value="new">Compra nueva: sumar gasto y deuda</option>
@@ -70,7 +90,7 @@ export function InstallmentForm({
       </label>
       <p className="text-muted-foreground text-sm">
         {mode === "existing"
-          ? "Indica únicamente el importe y las cuotas que aún faltan. No se agrega otro gasto ni se vuelve a sumar la deuda. La fecha debe ser aquella en que ese importe ya estaba incluido en el saldo."
+          ? "Indica el monto original o el saldo pendiente y cuántas cuotas ya pagaste. No se agrega otro gasto ni se vuelve a sumar la deuda."
           : "El importe financiado se registra una sola vez como gasto. Incluye los intereses o cargos que ya conozcas; las cuotas mensuales no generan otro gasto."}
       </p>
       <label className="grid gap-1.5 text-sm font-medium">
@@ -85,9 +105,11 @@ export function InstallmentForm({
       </label>
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="grid gap-1.5 text-sm font-medium">
-          {mode === "existing"
-            ? "Importe pendiente incluido en la deuda"
-            : "Importe total financiado"}{" "}
+          {mode === "existing" && amountMode === "original"
+            ? "Monto original de la compra"
+            : mode === "existing"
+              ? "Saldo pendiente incluido en la deuda"
+              : "Importe total financiado"}{" "}
           (USD)
           <input
             name="amount"
@@ -98,20 +120,60 @@ export function InstallmentForm({
             step="0.01"
             inputMode="decimal"
             className={input}
+            value={amount}
+            onChange={(event) => setAmount(event.target.value)}
           />
         </label>
         <label className="grid gap-1.5 text-sm font-medium">
-          {mode === "existing" ? "Cuotas que faltan" : "Número de cuotas"}
+          {mode === "existing" ? "Cuotas totales del plan" : "Número de cuotas"}
           <input
             name="installments"
             required
             type="number"
             min="1"
             max="120"
-            defaultValue="12"
+            value={installments}
+            onChange={(event) => setInstallments(event.target.value)}
             className={input}
           />
         </label>
+        {mode === "existing" && (
+          <>
+            <label className="grid gap-1.5 text-sm font-medium">
+              Tipo de monto
+              <select
+                name="amount_mode"
+                className={input}
+                value={amountMode}
+                onChange={(event) =>
+                  setAmountMode(event.target.value as "remaining" | "original")
+                }
+              >
+                <option value="remaining">Saldo pendiente</option>
+                <option value="original">Monto original de la compra</option>
+              </select>
+            </label>
+            <label className="grid gap-1.5 text-sm font-medium">
+              Cuotas ya pagadas
+              <input
+                name="paid_installments"
+                required
+                type="number"
+                min="0"
+                max="119"
+                value={paidInstallments}
+                onChange={(event) => setPaidInstallments(event.target.value)}
+                className={input}
+              />
+            </label>
+          </>
+        )}
+        {mode === "new" && (
+          <>
+            <input type="hidden" name="amount_mode" value="original" />
+            <input type="hidden" name="paid_installments" value="0" />
+          </>
+        )}
         <label className="grid gap-1.5 text-sm font-medium">
           {mode === "existing"
             ? "Fecha del saldo registrado"
@@ -127,7 +189,9 @@ export function InstallmentForm({
           />
         </label>
         <label className="grid gap-1.5 text-sm font-medium">
-          Primer corte que incluye una cuota
+          {mode === "existing"
+            ? "Primer corte de la próxima cuota pendiente"
+            : "Primer corte que incluye una cuota"}
           <input
             name="first_close"
             required
@@ -137,6 +201,15 @@ export function InstallmentForm({
           />
         </label>
       </div>
+      {mode === "existing" && calculation && (
+        <p className="bg-muted rounded-lg px-3 py-2 text-sm">
+          Quedarán <strong>{money.format(calculation.pendingAmount)}</strong> en{" "}
+          <strong>{calculation.pendingCount} cuotas</strong>. Próxima cuota:{" "}
+          {paid + 1} de {installments}, por{" "}
+          {money.format(calculation.monthlyAmount)}; la última ajusta los
+          centavos.
+        </p>
+      )}
       {mode === "new" ? (
         <label className="grid gap-1.5 text-sm font-medium">
           Categoría del gasto

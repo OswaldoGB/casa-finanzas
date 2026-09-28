@@ -1,9 +1,29 @@
 import { expect, it } from "vitest";
 import { installmentSchema, cardPaymentSchema } from "./card-schemas";
 import { projectCash } from "../projections/logic";
+import { installmentAmounts } from "./card-schemas";
 
 const card = "11111111-1111-4111-8111-111111111111";
 const source = "22222222-2222-4222-8222-222222222222";
+it("importa cuotas avanzadas desde saldo pendiente o importe original sin perder el redondeo final", () => {
+  expect(installmentAmounts(1200, 12, 6, "original")).toEqual({
+    pendingAmount: 600,
+    pendingCount: 6,
+    monthlyAmount: 100,
+  });
+  expect(installmentAmounts(600, 12, 6, "remaining")).toEqual({
+    pendingAmount: 600,
+    pendingCount: 6,
+    monthlyAmount: 100,
+  });
+  expect(installmentAmounts(1000, 12, 10, "original")).toEqual({
+    pendingAmount: 166.7,
+    pendingCount: 2,
+    monthlyAmount: 83.33,
+  });
+  expect(installmentAmounts(600, 12, 12, "remaining")).toBeNull();
+  expect(installmentAmounts(600, 12, -1, "remaining")).toBeNull();
+});
 it("valida plazos y rechaza importes que no alcanzan un centavo por cuota", () => {
   const plan = {
     card_id: card,

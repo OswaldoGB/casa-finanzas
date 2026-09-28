@@ -232,6 +232,8 @@ export type Database = {
           id: string
           installments: number
           name: string
+          original_amount: number | null
+          paid_installments: number
           purchase_date: string
           transaction_id: string | null
         }
@@ -245,6 +247,8 @@ export type Database = {
           id: string
           installments: number
           name: string
+          original_amount?: number | null
+          paid_installments?: number
           purchase_date: string
           transaction_id?: string | null
         }
@@ -258,6 +262,8 @@ export type Database = {
           id?: string
           installments?: number
           name?: string
+          original_amount?: number | null
+          paid_installments?: number
           purchase_date?: string
           transaction_id?: string | null
         }
@@ -1429,6 +1435,22 @@ export type Database = {
           p_id: string
           p_installments: number
           p_name: string
+          p_purchase_date: string
+        }
+        Returns: string
+      }
+      create_card_installment_with_progress: {
+        Args: {
+          p_amount: number
+          p_amount_mode: string
+          p_card_id: string
+          p_category_id?: string
+          p_existing: boolean
+          p_first_close: string
+          p_id: string
+          p_installments: number
+          p_name: string
+          p_paid_installments: number
           p_purchase_date: string
         }
         Returns: string

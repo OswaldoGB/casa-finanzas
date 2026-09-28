@@ -31,17 +31,22 @@ export async function saveInstallment(
     return { error: "Solicitud inválida. Recarga la página." };
   const plan = parsed.data;
   if (plan.mode === "new") await requireModule("transactions", "edit");
-  const { error } = await supabase.rpc("create_card_installment", {
-    p_id: requestId.data,
-    p_card_id: plan.card_id,
-    p_name: plan.name,
-    p_amount: plan.amount,
-    p_installments: plan.installments,
-    p_purchase_date: plan.purchase_date,
-    p_first_close: plan.first_close,
-    p_existing: plan.mode === "existing",
-    p_category_id: plan.category_id ?? undefined,
-  });
+  const { error } = await supabase.rpc(
+    "create_card_installment_with_progress",
+    {
+      p_id: requestId.data,
+      p_card_id: plan.card_id,
+      p_name: plan.name,
+      p_amount: plan.amount,
+      p_installments: plan.installments,
+      p_paid_installments: plan.paid_installments,
+      p_amount_mode: plan.amount_mode,
+      p_purchase_date: plan.purchase_date,
+      p_first_close: plan.first_close,
+      p_existing: plan.mode === "existing",
+      p_category_id: plan.category_id ?? undefined,
+    },
+  );
   if (error) return { error: error.message };
   refresh(plan.card_id);
   return {

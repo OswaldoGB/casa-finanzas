@@ -140,6 +140,8 @@ export default async function AccountPage({
             const future = rows.filter(
               (row) => row.close_date > (statement?.closesOn ?? today),
             );
+            const totalInstallments =
+              plan.installments + plan.paid_installments;
             return (
               <article
                 key={plan.id}
@@ -147,9 +149,18 @@ export default async function AccountPage({
               >
                 <h3 className="font-medium">{plan.name}</h3>
                 <p className="text-sm">
-                  {money.format(Number(plan.amount))} en {plan.installments}{" "}
-                  cuotas · {future.length} por facturar
+                  {money.format(Number(plan.amount))} pendientes en{" "}
+                  {plan.installments} cuotas · {future.length} por facturar
                 </p>
+                {plan.paid_installments > 0 && (
+                  <p className="text-muted-foreground text-xs">
+                    Registrado con {plan.paid_installments} de{" "}
+                    {totalInstallments} cuotas ya pagadas
+                    {plan.original_amount
+                      ? ` · compra original: ${money.format(Number(plan.original_amount))}`
+                      : ""}
+                  </p>
+                )}
                 <p className="text-muted-foreground text-xs">
                   {plan.transaction_id
                     ? "Compra registrada como gasto una sola vez"

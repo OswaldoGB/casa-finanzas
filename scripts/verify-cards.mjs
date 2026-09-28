@@ -320,6 +320,146 @@ try {
       ["2026-03-31", "2026-04-05", 333.34],
     ],
   );
+  const advancedOriginal = await addAccount(
+    "Avance original",
+    "credit_card",
+    600,
+    {
+      credit_limit: 2000,
+      statement_closing_day: 15,
+      payment_due_day: 25,
+    },
+  );
+  const advancedPlan = {
+    p_id: randomUUID(),
+    p_card_id: advancedOriginal,
+    p_name: "Compra con seis cuotas pagadas",
+    p_amount: 1200,
+    p_installments: 12,
+    p_paid_installments: 6,
+    p_amount_mode: "original",
+    p_purchase_date: "2026-01-10",
+    p_first_close: "2026-01-15",
+    p_existing: true,
+    p_category_id: null,
+  };
+  checked(
+    await client.rpc("create_card_installment_with_progress", advancedPlan),
+  );
+  checked(
+    await client.rpc("create_card_installment_with_progress", advancedPlan),
+  );
+  assert.equal(
+    await balance(advancedOriginal),
+    600,
+    "El importe original no duplica el saldo existente.",
+  );
+  const advancedRows = checked(
+    await client.rpc("card_installment_schedule", {
+      p_card_id: advancedOriginal,
+      p_after: "2026-01-01",
+      p_until: "2026-07-31",
+    }),
+  );
+  assert.deepEqual(
+    advancedRows.map((row) => [row.installment, Number(row.amount)]),
+    [
+      [7, 100],
+      [8, 100],
+      [9, 100],
+      [10, 100],
+      [11, 100],
+      [12, 100],
+    ],
+    "El calendario debe continuar por la cuota 7 sin inventar pagos históricos.",
+  );
+  assert.equal(await unpaid(advancedOriginal, "2026-01-15", "2026-01-16"), 100);
+  assert.equal(
+    Number(
+      checked(
+        await client.rpc("card_unbilled_installments", {
+          p_card_id: advancedOriginal,
+          p_date: "2026-01-15",
+        }),
+      ),
+    ),
+    500,
+  );
+  const advancedRemainder = await addAccount(
+    "Avance saldo",
+    "credit_card",
+    600,
+    {
+      credit_limit: 2000,
+      statement_closing_day: 15,
+      payment_due_day: 25,
+    },
+  );
+  checked(
+    await client.rpc("create_card_installment_with_progress", {
+      ...advancedPlan,
+      p_id: randomUUID(),
+      p_card_id: advancedRemainder,
+      p_amount: 600,
+      p_amount_mode: "remaining",
+    }),
+  );
+  assert.equal(await balance(advancedRemainder), 600);
+  const roundingCard = await addAccount(
+    "Avance redondeo",
+    "credit_card",
+    166.7,
+    {
+      credit_limit: 2000,
+      statement_closing_day: 15,
+      payment_due_day: 25,
+    },
+  );
+  checked(
+    await client.rpc("create_card_installment_with_progress", {
+      ...advancedPlan,
+      p_id: randomUUID(),
+      p_card_id: roundingCard,
+      p_amount: 1000,
+      p_installments: 12,
+      p_paid_installments: 10,
+    }),
+  );
+  const roundingRows = checked(
+    await client.rpc("card_installment_schedule", {
+      p_card_id: roundingCard,
+      p_after: "2026-01-01",
+      p_until: "2026-03-31",
+    }),
+  );
+  assert.deepEqual(
+    roundingRows.map((row) => [row.installment, Number(row.amount)]),
+    [
+      [11, 83.33],
+      [12, 83.37],
+    ],
+    "La última cuota pendiente conserva el redondeo del monto original.",
+  );
+  assert(
+    (
+      await client.rpc("create_card_installment_with_progress", {
+        ...advancedPlan,
+        p_id: randomUUID(),
+        p_existing: false,
+      })
+    ).error,
+    "Una compra nueva no puede tener cuotas históricas.",
+  );
+  assert(
+    (
+      await client.rpc("create_card_installment_with_progress", {
+        ...advancedPlan,
+        p_id: randomUUID(),
+        p_paid_installments: 12,
+      })
+    ).error,
+    "Debe quedar al menos una cuota por pagar.",
+  );
   assert(
     (
       await client.rpc("create_card_installment", {
