@@ -268,7 +268,7 @@ export default async function TransactionsPage({
                         </Link>
                         <p className="text-muted-foreground flex flex-wrap items-center gap-1.5 text-xs">
                           <span
-                            className={`rounded-full px-1.5 py-0.5 font-medium ${item.type === "loan_out" ? "bg-warning/15 text-warning" : item.type === "loan_repayment" ? "bg-income/15 text-income" : "bg-muted text-muted-foreground"}`}
+                            className={`rounded-full px-1.5 py-0.5 font-medium ${item.type === "income" || item.type === "loan_repayment" ? "bg-income/15 text-income" : item.type === "expense" ? "bg-destructive/15 text-destructive" : item.type === "loan_out" ? "bg-warning/15 text-warning" : "bg-muted text-muted-foreground"}`}
                           >
                             {label[item.type]}
                           </span>
