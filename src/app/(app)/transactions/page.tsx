@@ -292,6 +292,17 @@ export default async function TransactionsPage({
                           </p>
                         </div>
                         <div className="flex shrink-0 items-center gap-3">
+                          {options.canEdit &&
+                            item.status === "posted" &&
+                            ["income", "expense", "transfer"].includes(
+                              item.type,
+                            ) && (
+                              <TransactionDialog
+                                options={options}
+                                transaction={item}
+                                compact
+                              />
+                            )}
                           <span
                             className={`text-sm font-semibold tabular-nums ${item.type === "income" || item.type === "loan_repayment" ? "text-income" : item.type === "expense" ? "text-destructive" : item.type === "loan_out" ? "text-warning" : "text-info"}`}
                           >

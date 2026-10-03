@@ -44,6 +44,7 @@ export function TransactionDialog({
         <button
           type="button"
           aria-label={editing ? "Editar movimiento" : "Nuevo movimiento"}
+          title={editing ? "Editar movimiento" : "Nuevo movimiento"}
           className={
             compact
               ? "text-primary hover:bg-accent inline-flex size-9 items-center justify-center rounded-lg transition-colors"
