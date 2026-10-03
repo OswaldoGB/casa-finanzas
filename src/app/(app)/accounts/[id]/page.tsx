@@ -9,6 +9,7 @@ import {
   CardPaymentForm,
   RemoveInstallmentForm,
 } from "@/features/accounts/components/card-forms";
+import { CategoryIcon } from "@/features/catalogs/components/category-icon";
 
 export const metadata = { title: "Detalle de cuenta" };
 const money = new Intl.NumberFormat("en-US", {
@@ -63,6 +64,7 @@ export default async function AccountPage({
     canEdit,
     statement,
     history,
+    historyCategories,
     plans,
     schedule,
     today,
@@ -72,6 +74,9 @@ export default async function AccountPage({
     paymentAccounts,
   } = result;
   const card = account.type === "credit_card";
+  const categoryById = new Map(
+    historyCategories.map((category) => [category.id, category]),
+  );
   const utilization =
     card && account.credit_limit
       ? Math.max(
@@ -276,6 +281,9 @@ export default async function AccountPage({
           <ul className="divide-border divide-y rounded-xl border">
             {history.map((item) => {
               const style = movementStyle(item.type);
+              const category = item.category_id
+                ? categoryById.get(item.category_id)
+                : undefined;
               return (
                 <li key={item.id}>
                   <Link
@@ -294,6 +302,16 @@ export default async function AccountPage({
                         >
                           {movementLabel[item.type] ?? "Movimiento"}
                         </span>
+                        {category && (
+                          <span className="flex items-center gap-1.5">
+                            <CategoryIcon
+                              icon={category.icon}
+                              color={category.color}
+                              className="size-3.5"
+                            />
+                            {category.name}
+                          </span>
+                        )}
                         {item.date}
                         {item.status === "pending" && "· Pendiente"}
                       </span>

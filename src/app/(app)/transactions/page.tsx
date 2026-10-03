@@ -2,6 +2,7 @@ import { ExportButtons } from "@/features/exports/components/export-buttons";
 import Link from "next/link";
 import { QuickEntry } from "@/features/transactions/components/quick-entry";
 import { BulkToolbar } from "@/features/transactions/components/bulk-toolbar";
+import { CategoryIcon } from "@/features/catalogs/components/category-icon";
 import { confirmTransaction } from "@/features/transactions/actions";
 import {
   getTransactionOptions,
@@ -53,6 +54,7 @@ export default async function TransactionsPage({
     getTransactions(filters),
     getTransactionOptions(),
   ]);
+  const categories = new Map(options.categories.map((item) => [item.id, item]));
   const days = Map.groupBy(transactions, (item) => item.date);
   const selectClass =
     "border-input bg-background h-10 rounded-lg border px-2 text-sm";
@@ -244,63 +246,78 @@ export default async function TransactionsPage({
                 </header>
                 <ExportButtons target="transactions" />
                 <ul className="divide-y">
-                  {items.map((item) => (
-                    <li
-                      key={item.id}
-                      className="flex items-center justify-between gap-3 px-4 py-3"
-                    >
-                      {options.canEdit && (
-                        <input
-                          type="checkbox"
-                          name="ids"
-                          value={item.id}
-                          form="bulk-transactions"
-                          aria-label={`Seleccionar ${item.description || label[item.type]}`}
-                          className="size-4 shrink-0"
-                        />
-                      )}
-                      <div className="min-w-0 flex-1">
-                        <Link
-                          href={`/transactions/${item.id}`}
-                          className="block truncate text-sm font-medium hover:underline"
-                        >
-                          {item.description || label[item.type]}
-                        </Link>
-                        <p className="text-muted-foreground flex flex-wrap items-center gap-1.5 text-xs">
-                          <span
-                            className={`rounded-full px-1.5 py-0.5 font-medium ${item.type === "income" || item.type === "loan_repayment" ? "bg-income/15 text-income" : item.type === "expense" ? "bg-destructive/15 text-destructive" : item.type === "loan_out" ? "bg-warning/15 text-warning" : "bg-muted text-muted-foreground"}`}
-                          >
-                            {label[item.type]}
-                          </span>
-                          {item.status === "pending" ? "Pendiente ·" : ""}
-                          {options.members.find(
-                            (member) => member.id === item.created_by,
-                          )?.full_name ?? "Usuario"}
-                        </p>
-                      </div>
-                      <div className="flex shrink-0 items-center gap-3">
-                        <span
-                          className={`text-sm font-semibold tabular-nums ${item.type === "income" || item.type === "loan_repayment" ? "text-income" : item.type === "expense" ? "text-destructive" : item.type === "loan_out" ? "text-warning" : "text-info"}`}
-                        >
-                          {item.type === "expense" || item.type === "loan_out"
-                            ? "−"
-                            : item.type === "income" ||
-                                item.type === "loan_repayment"
-                              ? "+"
-                              : ""}
-                          {money.format(Number(item.amount))}
-                        </span>
-                        {item.status === "pending" && options.canEdit && (
-                          <form action={confirmTransaction}>
-                            <input type="hidden" name="id" value={item.id} />
-                            <button className="text-primary text-xs font-medium underline">
-                              Confirmar
-                            </button>
-                          </form>
+                  {items.map((item) => {
+                    const category = item.category_id
+                      ? categories.get(item.category_id)
+                      : undefined;
+                    return (
+                      <li
+                        key={item.id}
+                        className="flex items-center justify-between gap-3 px-4 py-3"
+                      >
+                        {options.canEdit && (
+                          <input
+                            type="checkbox"
+                            name="ids"
+                            value={item.id}
+                            form="bulk-transactions"
+                            aria-label={`Seleccionar ${item.description || label[item.type]}`}
+                            className="size-4 shrink-0"
+                          />
                         )}
-                      </div>
-                    </li>
-                  ))}
+                        <div className="min-w-0 flex-1">
+                          <Link
+                            href={`/transactions/${item.id}`}
+                            className="block truncate text-sm font-medium hover:underline"
+                          >
+                            {item.description || label[item.type]}
+                          </Link>
+                          <p className="text-muted-foreground flex flex-wrap items-center gap-1.5 text-xs">
+                            <span
+                              className={`rounded-full px-1.5 py-0.5 font-medium ${item.type === "income" || item.type === "loan_repayment" ? "bg-income/15 text-income" : item.type === "expense" ? "bg-destructive/15 text-destructive" : item.type === "loan_out" ? "bg-warning/15 text-warning" : "bg-muted text-muted-foreground"}`}
+                            >
+                              {label[item.type]}
+                            </span>
+                            {category && (
+                              <span className="flex items-center gap-1.5">
+                                <CategoryIcon
+                                  icon={category.icon}
+                                  color={category.color}
+                                  className="size-3.5"
+                                />
+                                {category.name}
+                              </span>
+                            )}
+                            {item.status === "pending" ? "Pendiente ·" : ""}
+                            {options.members.find(
+                              (member) => member.id === item.created_by,
+                            )?.full_name ?? "Usuario"}
+                          </p>
+                        </div>
+                        <div className="flex shrink-0 items-center gap-3">
+                          <span
+                            className={`text-sm font-semibold tabular-nums ${item.type === "income" || item.type === "loan_repayment" ? "text-income" : item.type === "expense" ? "text-destructive" : item.type === "loan_out" ? "text-warning" : "text-info"}`}
+                          >
+                            {item.type === "expense" || item.type === "loan_out"
+                              ? "−"
+                              : item.type === "income" ||
+                                  item.type === "loan_repayment"
+                                ? "+"
+                                : ""}
+                            {money.format(Number(item.amount))}
+                          </span>
+                          {item.status === "pending" && options.canEdit && (
+                            <form action={confirmTransaction}>
+                              <input type="hidden" name="id" value={item.id} />
+                              <button className="text-primary text-xs font-medium underline">
+                                Confirmar
+                              </button>
+                            </form>
+                          )}
+                        </div>
+                      </li>
+                    );
+                  })}
                 </ul>
               </section>
             );

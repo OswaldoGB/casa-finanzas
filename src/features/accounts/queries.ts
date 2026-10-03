@@ -56,7 +56,7 @@ export async function getAccount(id: string) {
   const historyPromise = canViewTransactions
     ? supabase
         .from("transactions")
-        .select("id,date,type,status,amount,description")
+        .select("id,date,type,status,amount,description,category_id")
         .eq("household_id", profile.household_id)
         .or(`account_id.eq.${id},destination_account_id.eq.${id}`)
         .order("date", { ascending: false })
@@ -70,11 +70,23 @@ export async function getAccount(id: string) {
           .eq("id", profile.household_id)
           .single()
       : null;
-  const [historyResult, timezoneResult] = await Promise.all([
-    historyPromise,
-    timezonePromise,
-  ]);
-  if (historyResult?.error || timezoneResult?.error)
+  const historyCategoriesPromise = canViewTransactions
+    ? supabase
+        .from("categories")
+        .select("id,name,color,icon")
+        .eq("household_id", profile.household_id)
+    : null;
+  const [historyResult, timezoneResult, historyCategoriesResult] =
+    await Promise.all([
+      historyPromise,
+      timezonePromise,
+      historyCategoriesPromise,
+    ]);
+  if (
+    historyResult?.error ||
+    timezoneResult?.error ||
+    historyCategoriesResult?.error
+  )
     throw new Error("No se pudo cargar el detalle de la cuenta.");
   let statement: {
     startsOn: string;
@@ -195,6 +207,7 @@ export async function getAccount(id: string) {
     canEdit,
     statement,
     history: historyResult?.data ?? [],
+    historyCategories: historyCategoriesResult?.data ?? [],
     today,
     firstClose,
     plans,
