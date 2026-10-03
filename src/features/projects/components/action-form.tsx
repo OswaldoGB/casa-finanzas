@@ -1,7 +1,8 @@
 "use client";
 
-import { useActionState, type ReactNode } from "react";
+import { useActionState, useId, type ReactNode } from "react";
 import type { FormState } from "@/features/auth/schemas";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 export function ActionForm({
   action,
@@ -17,14 +18,9 @@ export function ActionForm({
   confirm?: string;
 }) {
   const [state, submit, pending] = useActionState(action, undefined);
+  const formId = useId();
   return (
-    <form
-      action={submit}
-      className={className}
-      onSubmit={(event) => {
-        if (confirm && !window.confirm(confirm)) event.preventDefault();
-      }}
-    >
+    <form id={formId} action={submit} className={className}>
       {children}
       {state?.error && (
         <p role="alert" className="text-destructive text-sm">
@@ -45,12 +41,30 @@ export function ActionForm({
           {state.ok}
         </p>
       )}
-      <button
-        disabled={pending}
-        className="bg-primary text-primary-foreground rounded-lg px-4 py-2.5 text-sm font-medium disabled:opacity-50"
-      >
-        {pending ? "Guardando…" : label}
-      </button>
+      {confirm ? (
+        <ConfirmDialog
+          title="¿Confirmar esta acción?"
+          description={confirm}
+          confirmLabel={label}
+          trigger={
+            <button
+              type="button"
+              disabled={pending}
+              className="bg-primary text-primary-foreground rounded-lg px-4 py-2.5 text-sm font-medium disabled:opacity-50"
+            >
+              {label}
+            </button>
+          }
+          actionProps={{ type: "submit", form: formId, disabled: pending }}
+        />
+      ) : (
+        <button
+          disabled={pending}
+          className="bg-primary text-primary-foreground rounded-lg px-4 py-2.5 text-sm font-medium disabled:opacity-50"
+        >
+          {pending ? "Guardando…" : label}
+        </button>
+      )}
     </form>
   );
 }

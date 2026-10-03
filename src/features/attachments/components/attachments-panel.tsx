@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { FileImage, FileText, Loader2, Paperclip, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { createClient } from "@/lib/supabase/client";
 import {
   deleteAttachment,
@@ -103,7 +104,6 @@ export function AttachmentsPanel({
   }
 
   async function remove(id: string) {
-    if (!window.confirm("¿Borrar este comprobante?")) return;
     setError("");
     setBusy(true);
     try {
@@ -189,15 +189,25 @@ export function AttachmentsPanel({
                 {Math.ceil(item.size_bytes / 1024)} KB
               </span>
               {canEdit && (
-                <button
-                  type="button"
-                  disabled={busy}
-                  onClick={() => void remove(item.id)}
-                  aria-label="Borrar comprobante"
-                  className="text-muted-foreground hover:text-destructive focus-visible:ring-ring rounded p-1.5 focus-visible:ring-2 focus-visible:outline-none disabled:opacity-50"
-                >
-                  <Trash2 className="size-4" aria-hidden />
-                </button>
+                <ConfirmDialog
+                  title="¿Borrar este comprobante?"
+                  description="El archivo adjunto se eliminará permanentemente."
+                  confirmLabel="Borrar comprobante"
+                  trigger={
+                    <button
+                      type="button"
+                      disabled={busy}
+                      aria-label="Borrar comprobante"
+                      className="text-muted-foreground hover:text-destructive focus-visible:ring-ring rounded p-1.5 focus-visible:ring-2 focus-visible:outline-none disabled:opacity-50"
+                    >
+                      <Trash2 className="size-4" aria-hidden />
+                    </button>
+                  }
+                  actionProps={{
+                    onClick: () => void remove(item.id),
+                    disabled: busy,
+                  }}
+                />
               )}
             </li>
           ))}

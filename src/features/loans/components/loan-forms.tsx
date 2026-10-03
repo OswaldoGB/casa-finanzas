@@ -1,5 +1,6 @@
 "use client";
 import { useActionState } from "react";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import type { FormState } from "@/features/auth/schemas";
 import { createLoan, repayLoan, updateLoan, writeOffLoan } from "../actions";
 import type { Loan } from "../schemas";
@@ -311,24 +312,30 @@ export function WriteOffLoanForm({ loan }: { loan: Loan }) {
   const [state, action, pending] = useActionState(writeOffLoan, undefined);
   return (
     <form
+      id={`write-off-loan-${loan.id}`}
       action={action}
       className="mt-4 space-y-2"
-      onSubmit={(e) => {
-        if (
-          !window.confirm(
-            `¿Cerrar el préstamo a ${loan.debtor} como incobrable? Lo pendiente dejará de sumar al patrimonio y no se creará un gasto.`,
-          )
-        )
-          e.preventDefault();
-      }}
     >
       <input type="hidden" name="id" value={loan.id} />
-      <button
-        disabled={pending}
-        className="text-destructive min-h-11 text-sm underline"
-      >
-        {pending ? "Cerrando…" : "Cerrar como incobrable"}
-      </button>
+      <ConfirmDialog
+        title={`¿Cerrar el préstamo a ${loan.debtor} como incobrable?`}
+        description="Lo pendiente dejará de sumar al patrimonio y no se creará un gasto."
+        confirmLabel="Cerrar préstamo"
+        trigger={
+          <button
+            type="button"
+            disabled={pending}
+            className="text-destructive min-h-11 text-sm underline"
+          >
+            {pending ? "Cerrando…" : "Cerrar como incobrable"}
+          </button>
+        }
+        actionProps={{
+          type: "submit",
+          form: `write-off-loan-${loan.id}`,
+          disabled: pending,
+        }}
+      />
       <Feedback state={state} />
     </form>
   );

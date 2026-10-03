@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { copyPreviousBudgets, deleteBudget, saveBudget } from "../actions";
 import type { BudgetSummary } from "../schemas";
 import type { FormState } from "@/features/auth/schemas";
@@ -151,25 +152,27 @@ export function CopyBudgetForm({ month }: { month: string }) {
 export function DeleteBudgetForm({ id, name }: { id: string; name: string }) {
   const [state, action, pending] = useActionState(deleteBudget, undefined);
   return (
-    <form
-      action={action}
-      onSubmit={(event) => {
-        if (
-          !window.confirm(
-            `¿Eliminar el presupuesto de ${name}? Los movimientos se conservan.`,
-          )
-        )
-          event.preventDefault();
-      }}
-      className="mt-4 space-y-2"
-    >
+    <form id={`delete-budget-${id}`} action={action} className="mt-4 space-y-2">
       <input type="hidden" name="id" value={id} />
-      <button
-        disabled={pending}
-        className="text-destructive focus-visible:ring-ring rounded px-1 py-2 text-sm underline underline-offset-4 focus-visible:ring-2 focus-visible:outline-none disabled:opacity-50"
-      >
-        {pending ? "Eliminando…" : "Eliminar presupuesto"}
-      </button>
+      <ConfirmDialog
+        title={`¿Eliminar el presupuesto de ${name}?`}
+        description="Los movimientos se conservan."
+        confirmLabel="Eliminar presupuesto"
+        trigger={
+          <button
+            type="button"
+            disabled={pending}
+            className="text-destructive focus-visible:ring-ring rounded px-1 py-2 text-sm underline underline-offset-4 focus-visible:ring-2 focus-visible:outline-none disabled:opacity-50"
+          >
+            {pending ? "Eliminando…" : "Eliminar presupuesto"}
+          </button>
+        }
+        actionProps={{
+          type: "submit",
+          form: `delete-budget-${id}`,
+          disabled: pending,
+        }}
+      />
       <Feedback state={state} />
     </form>
   );

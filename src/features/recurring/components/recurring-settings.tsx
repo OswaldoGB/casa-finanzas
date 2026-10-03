@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { Database } from "@/lib/supabase/database.types";
@@ -278,17 +279,23 @@ function ExistingRule({
               </Button>
             </form>
           )}
-          <form
-            action={removeAction}
-            onSubmit={(event) => {
-              if (!window.confirm("¿Eliminar este recurrente?"))
-                event.preventDefault();
-            }}
-          >
+          <form id={`delete-recurring-${rule.id}`} action={removeAction}>
             <input type="hidden" name="id" value={rule.id} />
-            <Button type="submit" variant="destructive" disabled={removing}>
-              Eliminar
-            </Button>
+            <ConfirmDialog
+              title="¿Eliminar este recurrente?"
+              description="Se eliminará la regla y no se crearán más movimientos programados."
+              confirmLabel="Eliminar recurrente"
+              trigger={
+                <Button type="button" variant="destructive" disabled={removing}>
+                  Eliminar
+                </Button>
+              }
+              actionProps={{
+                type: "submit",
+                form: `delete-recurring-${rule.id}`,
+                disabled: removing,
+              }}
+            />
           </form>
         </div>
         {removeState?.error && (

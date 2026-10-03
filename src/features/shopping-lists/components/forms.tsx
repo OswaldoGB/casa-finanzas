@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useRef } from "react";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
   archiveList,
   closeList,
@@ -235,28 +236,36 @@ export function ListOperation({
     undefined,
   );
   return (
-    <form
-      action={action}
-      onSubmit={(event) => {
-        if (
-          kind === "archive" &&
-          !window.confirm("¿Archivar esta lista? Se conservará para consulta.")
-        )
-          event.preventDefault();
-      }}
-      className="space-y-2"
-    >
+    <form id={`${kind}-list-${list.id}`} action={action} className="space-y-2">
       <input type="hidden" name="id" value={list.id} />
-      <button
-        disabled={pending}
-        className="focus-visible:ring-ring min-h-10 rounded-lg border px-4 text-sm font-medium focus-visible:ring-2 focus-visible:outline-none disabled:opacity-50"
-      >
-        {pending
-          ? "Procesando…"
-          : kind === "duplicate"
-            ? "Duplicar lista"
-            : "Archivar"}
-      </button>
+      {kind === "archive" ? (
+        <ConfirmDialog
+          title="¿Archivar esta lista?"
+          description="La lista se conservará para consulta y podrá revisarse más adelante."
+          confirmLabel="Archivar lista"
+          trigger={
+            <button
+              type="button"
+              disabled={pending}
+              className="focus-visible:ring-ring min-h-10 rounded-lg border px-4 text-sm font-medium focus-visible:ring-2 focus-visible:outline-none disabled:opacity-50"
+            >
+              {pending ? "Procesando…" : "Archivar"}
+            </button>
+          }
+          actionProps={{
+            type: "submit",
+            form: `archive-list-${list.id}`,
+            disabled: pending,
+          }}
+        />
+      ) : (
+        <button
+          disabled={pending}
+          className="focus-visible:ring-ring min-h-10 rounded-lg border px-4 text-sm font-medium focus-visible:ring-2 focus-visible:outline-none disabled:opacity-50"
+        >
+          {pending ? "Procesando…" : "Duplicar lista"}
+        </button>
+      )}
       <Feedback state={state} />
     </form>
   );
@@ -265,21 +274,31 @@ export function DeleteItemForm({ item }: { item: ShoppingItem }) {
   const [state, action, pending] = useActionState(deleteItem, undefined);
   return (
     <form
+      id={`delete-list-item-${item.id}`}
       action={action}
-      onSubmit={(event) => {
-        if (!window.confirm(`¿Eliminar ${item.name} de la lista?`))
-          event.preventDefault();
-      }}
       className="mt-3 space-y-2"
     >
       <input type="hidden" name="id" value={item.id} />
       <input type="hidden" name="list_id" value={item.list_id} />
-      <button
-        disabled={pending}
-        className="text-destructive rounded py-2 text-sm underline underline-offset-4"
-      >
-        Eliminar artículo
-      </button>
+      <ConfirmDialog
+        title={`¿Eliminar ${item.name} de la lista?`}
+        description="El artículo se quitará de esta lista de compra."
+        confirmLabel="Eliminar artículo"
+        trigger={
+          <button
+            type="button"
+            disabled={pending}
+            className="text-destructive rounded py-2 text-sm underline underline-offset-4"
+          >
+            Eliminar artículo
+          </button>
+        }
+        actionProps={{
+          type: "submit",
+          form: `delete-list-item-${item.id}`,
+          disabled: pending,
+        }}
+      />
       <Feedback state={state} />
     </form>
   );

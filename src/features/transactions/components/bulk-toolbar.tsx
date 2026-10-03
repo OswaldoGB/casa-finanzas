@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { bulkTransactions } from "../actions";
 
 export function BulkToolbar({
@@ -19,17 +20,6 @@ export function BulkToolbar({
       id="bulk-transactions"
       action={action}
       className="bg-card grid gap-3 rounded-xl border p-4 sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-end"
-      onSubmit={(event) => {
-        const data = new FormData(event.currentTarget);
-        if (
-          (event.nativeEvent.submitter as HTMLButtonElement | null)?.value ===
-            "delete" &&
-          !window.confirm(
-            `¿Borrar ${data.getAll("ids").length} movimientos seleccionados y sus comprobantes?`,
-          )
-        )
-          event.preventDefault();
-      }}
     >
       <label className="grid gap-1 text-xs">
         Nueva categoría
@@ -55,14 +45,27 @@ export function BulkToolbar({
       >
         {pending ? "Aplicando…" : "Cambiar categoría"}
       </button>
-      <button
-        name="mode"
-        value="delete"
-        disabled={pending}
-        className="bg-destructive text-destructive-foreground h-10 rounded-lg px-4 text-sm font-medium disabled:opacity-50"
-      >
-        Borrar seleccionados
-      </button>
+      <ConfirmDialog
+        title="¿Borrar los movimientos seleccionados?"
+        description="También se borrarán sus comprobantes. Esta acción no se puede deshacer."
+        confirmLabel="Borrar seleccionados"
+        trigger={
+          <button
+            type="button"
+            disabled={pending}
+            className="bg-destructive text-destructive-foreground h-10 rounded-lg px-4 text-sm font-medium disabled:opacity-50"
+          >
+            Borrar seleccionados
+          </button>
+        }
+        actionProps={{
+          type: "submit",
+          form: "bulk-transactions",
+          name: "mode",
+          value: "delete",
+          disabled: pending,
+        }}
+      />
       <p className="text-muted-foreground text-xs sm:col-span-3">
         Marca hasta 100 movimientos. Puedes borrarlos o elegir una categoría y
         cambiarla para ingresos o gastos del mismo tipo.

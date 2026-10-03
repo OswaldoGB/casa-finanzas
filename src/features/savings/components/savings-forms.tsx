@@ -1,5 +1,6 @@
 "use client";
 import { useActionState } from "react";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import type { FormState } from "@/features/auth/schemas";
 import { saveGoal, operateGoal, deleteGoal } from "../actions";
 import type { SavingsGoal } from "../schemas";
@@ -239,24 +240,30 @@ export function DeleteGoalForm({ goal }: { goal: SavingsGoal }) {
   const [state, action, pending] = useActionState(deleteGoal, undefined);
   return (
     <form
+      id={`delete-goal-${goal.id}`}
       action={action}
       className="mt-4 space-y-2"
-      onSubmit={(e) => {
-        if (
-          !window.confirm(
-            `¿Eliminar ${goal.name}? Solo se eliminan metas sin movimientos.`,
-          )
-        )
-          e.preventDefault();
-      }}
     >
       <input type="hidden" name="id" value={goal.id} />
-      <button
-        disabled={pending}
-        className="text-destructive min-h-11 text-sm underline"
-      >
-        Eliminar meta sin movimientos
-      </button>
+      <ConfirmDialog
+        title={`¿Eliminar ${goal.name}?`}
+        description="Solo se eliminan metas sin movimientos."
+        confirmLabel="Eliminar meta"
+        trigger={
+          <button
+            type="button"
+            disabled={pending}
+            className="text-destructive min-h-11 text-sm underline"
+          >
+            Eliminar meta sin movimientos
+          </button>
+        }
+        actionProps={{
+          type: "submit",
+          form: `delete-goal-${goal.id}`,
+          disabled: pending,
+        }}
+      />
       <Feedback state={state} />
     </form>
   );
