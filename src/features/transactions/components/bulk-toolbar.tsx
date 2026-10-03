@@ -18,11 +18,12 @@ export function BulkToolbar({
     <form
       id="bulk-transactions"
       action={action}
-      className="bg-card flex flex-wrap items-end gap-3 rounded-xl border p-4"
+      className="bg-card grid gap-3 rounded-xl border p-4 sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-end"
       onSubmit={(event) => {
         const data = new FormData(event.currentTarget);
         if (
-          data.get("mode") === "delete" &&
+          (event.nativeEvent.submitter as HTMLButtonElement | null)?.value ===
+            "delete" &&
           !window.confirm(
             `¿Borrar ${data.getAll("ids").length} movimientos seleccionados y sus comprobantes?`,
           )
@@ -30,16 +31,6 @@ export function BulkToolbar({
           event.preventDefault();
       }}
     >
-      <label className="grid gap-1 text-xs">
-        Acción sobre seleccionados
-        <select
-          name="mode"
-          className="bg-background h-10 rounded-lg border px-2 text-sm"
-        >
-          <option value="recategorize">Cambiar categoría</option>
-          <option value="delete">Borrar movimientos</option>
-        </select>
-      </label>
       <label className="grid gap-1 text-xs">
         Nueva categoría
         <select
@@ -57,14 +48,24 @@ export function BulkToolbar({
         </select>
       </label>
       <button
+        name="mode"
+        value="recategorize"
         disabled={pending}
         className="bg-secondary text-secondary-foreground h-10 rounded-lg px-4 text-sm font-medium disabled:opacity-50"
       >
-        {pending ? "Aplicando…" : "Aplicar"}
+        {pending ? "Aplicando…" : "Cambiar categoría"}
       </button>
-      <p className="text-muted-foreground basis-full text-xs">
-        Marca hasta 100 movimientos. Para cambiar categoría, selecciona solo
-        ingresos o solo gastos.
+      <button
+        name="mode"
+        value="delete"
+        disabled={pending}
+        className="bg-destructive text-destructive-foreground h-10 rounded-lg px-4 text-sm font-medium disabled:opacity-50"
+      >
+        Borrar seleccionados
+      </button>
+      <p className="text-muted-foreground text-xs sm:col-span-3">
+        Marca hasta 100 movimientos. Puedes borrarlos o elegir una categoría y
+        cambiarla para ingresos o gastos del mismo tipo.
       </p>
       {state?.error && (
         <p role="alert" className="text-destructive text-sm">

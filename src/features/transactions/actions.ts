@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { requireModule } from "@/features/permissions/queries";
 import type { FormState } from "@/features/auth/schemas";
 import { transactionIdSchema, transactionSchema } from "./schemas";
@@ -175,6 +176,7 @@ export async function deleteTransaction(formData: FormData) {
   if (error || !data) throw new Error("No se pudo borrar el movimiento.");
   revalidatePath("/transactions");
   revalidatePath("/accounts");
+  redirect("/transactions");
 }
 
 export async function confirmTransaction(formData: FormData) {

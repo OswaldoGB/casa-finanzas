@@ -35,7 +35,7 @@ export default async function AppLayout({
       <AppSidebar
         user={{ fullName: profile.full_name, role: profile.role, permissions }}
       />
-      <SidebarInset>
+      <SidebarInset className="min-w-0 overflow-x-clip">
         <header className="flex h-14 items-center gap-2 px-4">
           <SidebarTrigger
             className="max-md:hidden"
@@ -46,7 +46,7 @@ export default async function AppLayout({
         <div
           id="main-content"
           tabIndex={-1}
-          className="flex-1 px-4 pt-4 pb-28 md:px-8 md:pb-10"
+          className="min-w-0 flex-1 overflow-x-clip px-4 pt-4 pb-28 md:px-8 md:pb-10"
         >
           {children}
         </div>
