@@ -61,7 +61,7 @@ export function BottomNav({
   return (
     <nav
       aria-label="Navegación principal"
-      className="bg-background/85 fixed inset-x-0 bottom-0 z-40 grid min-w-0 grid-cols-5 overflow-hidden border-t pb-[env(safe-area-inset-bottom)] backdrop-blur-lg md:hidden"
+      className="bg-background/85 fixed inset-x-0 bottom-0 z-40 grid min-w-0 grid-cols-5 border-t pb-[env(safe-area-inset-bottom)] backdrop-blur-lg md:hidden"
     >
       {hasDashboard ? (
         <Tab href="/dashboard" label="Inicio" icon={LayoutDashboard} />
