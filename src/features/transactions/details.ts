@@ -12,6 +12,16 @@ export function transactionTypeLabel(type: string) {
   return labels[type] ?? type;
 }
 
+const linkedLabels = {
+  shopping_list: "Lista de compra",
+  shopping_item: "Compra próxima",
+  inventory_item: "Inventario",
+} as const;
+
+export function linkedRecordLabel(type: keyof typeof linkedLabels) {
+  return linkedLabels[type];
+}
+
 export function loanRepaymentSummary(loan: {
   debtor: string;
   amount: number;

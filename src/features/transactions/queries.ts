@@ -128,18 +128,57 @@ export async function getTransaction(id: string) {
     .eq("household_id", profile.household_id)
     .maybeSingle();
   if (error) throw new Error("No se pudo cargar el movimiento.");
-  const loan = data?.loan_id
-    ? await supabase
-        .from("loans")
-        .select("id,debtor,amount,recovered_amount,date,expected_payment_date")
-        .eq("id", data.loan_id)
-        .eq("household_id", profile.household_id)
-        .maybeSingle()
-    : null;
-  if (loan?.error) throw new Error("No se pudo cargar el préstamo vinculado.");
+  const [loan, shoppingList, shoppingItem, inventoryItem] = await Promise.all([
+    data?.loan_id
+      ? supabase
+          .from("loans")
+          .select(
+            "id,debtor,amount,recovered_amount,date,expected_payment_date",
+          )
+          .eq("id", data.loan_id)
+          .eq("household_id", profile.household_id)
+          .maybeSingle()
+      : Promise.resolve({ data: null, error: null }),
+    data
+      ? supabase
+          .from("shopping_lists")
+          .select("id,name,store,status")
+          .eq("transaction_id", data.id)
+          .eq("household_id", profile.household_id)
+          .maybeSingle()
+      : Promise.resolve({ data: null, error: null }),
+    data
+      ? supabase
+          .from("shopping_items")
+          .select("id,name,status")
+          .eq("transaction_id", data.id)
+          .eq("household_id", profile.household_id)
+          .maybeSingle()
+      : Promise.resolve({ data: null, error: null }),
+    data
+      ? supabase
+          .from("inventory_items")
+          .select("id,name,location")
+          .eq("transaction_id", data.id)
+          .eq("household_id", profile.household_id)
+          .maybeSingle()
+      : Promise.resolve({ data: null, error: null }),
+  ]);
+  if (
+    loan.error ||
+    shoppingList.error ||
+    shoppingItem.error ||
+    inventoryItem.error
+  )
+    throw new Error("No se pudo cargar el origen del movimiento.");
   return {
     transaction: data,
-    loan: loan?.data ?? null,
+    loan: loan.data,
+    sources: {
+      shoppingList: shoppingList.data,
+      shoppingItem: shoppingItem.data,
+      inventoryItem: inventoryItem.data,
+    },
     canEdit: profile.role === "admin" || permissions.transactions === "edit",
   };
 }

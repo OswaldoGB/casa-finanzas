@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { loanRepaymentSummary, transactionTypeLabel } from "./details";
+import {
+  linkedRecordLabel,
+  loanRepaymentSummary,
+  transactionTypeLabel,
+} from "./details";
 
 describe("transaction details", () => {
   it("uses understandable labels instead of internal transaction types", () => {
@@ -24,5 +28,11 @@ describe("transaction details", () => {
       date: "2026-09-15",
       expectedPaymentDate: "2026-11-01",
     });
+  });
+
+  it("names the records that originated a movement", () => {
+    expect(linkedRecordLabel("shopping_list")).toBe("Lista de compra");
+    expect(linkedRecordLabel("shopping_item")).toBe("Compra próxima");
+    expect(linkedRecordLabel("inventory_item")).toBe("Inventario");
   });
 });
