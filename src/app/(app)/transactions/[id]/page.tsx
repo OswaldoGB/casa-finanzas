@@ -4,7 +4,7 @@ import {
   getTransaction,
   getTransactionOptions,
 } from "@/features/transactions/queries";
-import { TransactionForm } from "@/features/transactions/components/transaction-form";
+import { TransactionDialog } from "@/features/transactions/components/transaction-dialog";
 import { DeleteButton } from "@/features/transactions/components/delete-button";
 import { getAttachments } from "@/features/attachments/queries";
 import { AttachmentsPanel } from "@/features/attachments/components/attachments-panel";
@@ -95,9 +95,16 @@ export default async function TransactionPage({
       >
         ← Movimientos
       </Link>
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2">
         <h1 className="text-2xl font-semibold">Movimiento</h1>
-        {result.canEdit && <DeleteButton id={id} />}
+        <div className="flex items-center gap-2">
+          {result.canEdit &&
+            transaction.status === "posted" &&
+            ["income", "expense", "transfer"].includes(transaction.type) && (
+              <TransactionDialog options={options} transaction={transaction} />
+            )}
+          {result.canEdit && <DeleteButton id={id} />}
+        </div>
       </div>
       {transaction.status === "pending" && (
         <p className="rounded-lg border px-3 py-2 text-sm">
@@ -105,12 +112,7 @@ export default async function TransactionPage({
           editarlo.
         </p>
       )}
-      {result.canEdit &&
-      transaction.status === "posted" &&
-      ["income", "expense", "transfer"].includes(transaction.type) ? (
-        <TransactionForm transaction={transaction} options={options} />
-      ) : (
-        <dl className="bg-card grid grid-cols-2 gap-3 rounded-xl border p-4 text-sm">
+      <dl className="bg-card grid grid-cols-2 gap-3 rounded-xl border p-4 text-sm">
           <dt>Tipo</dt>
           <dd>{transactionTypeLabel(transaction.type)}</dd>
           <dt>Monto</dt>
@@ -152,8 +154,7 @@ export default async function TransactionPage({
               )}
             </>
           )}
-        </dl>
-      )}
+      </dl>
       <section
         className="bg-card rounded-xl border p-4 text-sm"
         aria-labelledby="traceability-title"

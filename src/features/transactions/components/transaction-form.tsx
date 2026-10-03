@@ -26,11 +26,13 @@ export function TransactionForm({
   options,
   quick = false,
   rememberDefaults = false,
+  onSuccess,
 }: {
   transaction?: Transaction;
   options: Options;
   quick?: boolean;
   rememberDefaults?: boolean;
+  onSuccess?: (message: string) => void;
 }) {
   const [state, action, pending] = useActionState(saveTransaction, undefined);
   const formRef = useRef<HTMLFormElement>(null);
@@ -82,6 +84,9 @@ export function TransactionForm({
       /* Browser storage may be unavailable. */
     }
   }, [quick, rememberDefaults, accounts, categories, methods]);
+  useEffect(() => {
+    if (state?.ok) onSuccess?.(state.ok);
+  }, [onSuccess, state?.ok]);
   return (
     <form
       ref={formRef}

@@ -1,6 +1,7 @@
 import { ExportButtons } from "@/features/exports/components/export-buttons";
 import Link from "next/link";
 import { QuickEntry } from "@/features/transactions/components/quick-entry";
+import { TransactionDialog } from "@/features/transactions/components/transaction-dialog";
 import { BulkToolbar } from "@/features/transactions/components/bulk-toolbar";
 import { CategoryIcon } from "@/features/catalogs/components/category-icon";
 import { confirmTransaction } from "@/features/transactions/actions";
@@ -50,6 +51,7 @@ export default async function TransactionsPage({
     project: first("project"),
     q: first("q"),
   };
+  const openNew = first("new") === "1";
   const [transactions, options] = await Promise.all([
     getTransactions(filters),
     getTransactionOptions(),
@@ -72,12 +74,7 @@ export default async function TransactionsPage({
             <div className="hidden md:block">
               <QuickEntry options={options} />
             </div>
-            <Link
-              href="/transactions/new"
-              className="bg-primary text-primary-foreground rounded-lg px-4 py-2 text-sm font-medium"
-            >
-              Nuevo movimiento
-            </Link>
+            <TransactionDialog options={options} defaultOpen={openNew} />
           </div>
         )}
       </header>

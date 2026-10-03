@@ -14,7 +14,7 @@ const actions: [string, MobileCreateAction][] = [
   [
     "/transactions",
     {
-      href: "/transactions/new",
+      href: "/transactions?new=1",
       label: "Registrar movimiento",
       module: "transactions",
     },

@@ -1,12 +1,15 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { Plus } from "lucide-react";
 import { TransactionForm } from "./transaction-form";
 
 type Props = { options: Parameters<typeof TransactionForm>[0]["options"] };
 export function QuickEntry({ options }: Props) {
   const [open, setOpen] = useState(false);
+  const router = useRouter();
   return (
     <>
       <button
@@ -42,7 +45,15 @@ export function QuickEntry({ options }: Props) {
                 ×
               </button>
             </div>
-            <TransactionForm quick options={options} />
+            <TransactionForm
+              quick
+              options={options}
+              onSuccess={(message) => {
+                toast.success(message);
+                setOpen(false);
+                router.refresh();
+              }}
+            />
           </section>
         </div>
       )}
