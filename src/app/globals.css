@@ -184,6 +184,7 @@ html {
   body {
     @apply bg-background text-foreground;
     font-feature-settings: "cv11";
+    overflow-x: hidden;
   }
   html {
     @apply font-sans;

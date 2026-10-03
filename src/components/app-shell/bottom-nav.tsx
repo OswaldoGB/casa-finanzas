@@ -31,12 +31,12 @@ function Tab({
       href={href}
       aria-current={active ? "page" : undefined}
       className={cn(
-        "flex flex-col items-center gap-0.5 py-2 text-[11px]",
+        "flex min-w-0 flex-col items-center gap-0.5 px-1 py-2 text-[11px]",
         active ? "text-primary" : "text-muted-foreground",
       )}
     >
       <Icon className="size-5" aria-hidden />
-      {label}
+      <span className="max-w-full truncate">{label}</span>
     </Link>
   );
 }
@@ -61,7 +61,7 @@ export function BottomNav({
   return (
     <nav
       aria-label="Navegación principal"
-      className="bg-background/85 fixed bottom-0 left-0 z-40 grid w-screen max-w-[100dvw] min-w-0 grid-cols-5 overflow-hidden border-t pb-[env(safe-area-inset-bottom)] backdrop-blur-lg md:hidden"
+      className="bg-background/85 fixed inset-x-0 bottom-0 z-40 grid min-w-0 grid-cols-5 overflow-hidden border-t pb-[env(safe-area-inset-bottom)] backdrop-blur-lg md:hidden"
     >
       {hasDashboard ? (
         <Tab href="/dashboard" label="Inicio" icon={LayoutDashboard} />
@@ -73,7 +73,7 @@ export function BottomNav({
       ) : (
         <span />
       )}
-      <div className="grid place-items-center">
+      <div className="grid min-w-0 place-items-center">
         {canCreate && (
           <Link
             href={create.href}
@@ -93,10 +93,10 @@ export function BottomNav({
       <button
         type="button"
         onClick={() => setOpenMobile(true)}
-        className="text-muted-foreground flex flex-col items-center gap-0.5 py-2 text-[11px]"
+        className="text-muted-foreground flex min-w-0 flex-col items-center gap-0.5 px-1 py-2 text-[11px]"
       >
         <Menu className="size-5" aria-hidden />
-        Más
+        <span className="max-w-full truncate">Más</span>
       </button>
     </nav>
   );

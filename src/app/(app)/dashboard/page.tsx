@@ -56,7 +56,7 @@ export default async function DashboardPage() {
     (item) => item.income !== 0 || item.expense !== 0,
   );
   return (
-    <div className="mx-auto max-w-6xl space-y-6">
+    <div className="mx-auto w-full min-w-0 max-w-6xl space-y-6">
       <header>
         <p className="text-muted-foreground text-sm capitalize">
           {month.format(new Date(`${data.today}T00:00:00Z`))}
@@ -189,10 +189,10 @@ export default async function DashboardPage() {
           )}
         </section>
       </div>
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid min-w-0 gap-6 lg:grid-cols-3">
         <section
           aria-labelledby="monthly-trend-title"
-          className="bg-card rounded-2xl border p-5 sm:p-6 lg:col-span-2"
+          className="bg-card min-w-0 rounded-2xl border p-5 sm:p-6 lg:col-span-2"
         >
           <h2 id="monthly-trend-title" className="font-semibold">
             Ingresos y gastos
@@ -214,7 +214,7 @@ export default async function DashboardPage() {
         </section>
         <section
           aria-labelledby="balances-title"
-          className="bg-card rounded-2xl border p-5 sm:p-6"
+          className="bg-card min-w-0 rounded-2xl border p-5 sm:p-6"
         >
           <h2 id="balances-title" className="font-semibold">
             Tus cuentas
@@ -245,7 +245,7 @@ export default async function DashboardPage() {
                       </p>
                     )}
                   </div>
-                  <strong className="text-sm tabular-nums">
+                  <strong className="shrink-0 text-right text-sm tabular-nums">
                     {money.format(account.balance)}
                   </strong>
                 </li>
