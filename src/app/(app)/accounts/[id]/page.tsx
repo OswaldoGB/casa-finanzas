@@ -15,6 +15,40 @@ const money = new Intl.NumberFormat("en-US", {
   style: "currency",
   currency: "USD",
 });
+const movementLabel: Record<string, string> = {
+  income: "Ingreso",
+  expense: "Gasto",
+  transfer: "Transferencia",
+  loan_out: "Préstamo",
+  loan_repayment: "Abono",
+  goal_contribution: "Aporte",
+  goal_withdrawal: "Retiro",
+};
+function movementStyle(type: string) {
+  if (type === "income" || type === "loan_repayment")
+    return {
+      chip: "bg-income/15 text-income",
+      amount: "text-income",
+      sign: "+",
+    };
+  if (type === "expense")
+    return {
+      chip: "bg-destructive/15 text-destructive",
+      amount: "text-destructive",
+      sign: "−",
+    };
+  if (type === "loan_out")
+    return {
+      chip: "bg-warning/15 text-warning",
+      amount: "text-warning",
+      sign: "−",
+    };
+  return {
+    chip: "bg-muted text-muted-foreground",
+    amount: "text-info",
+    sign: "",
+  };
+}
 
 export default async function AccountPage({
   params,
@@ -240,30 +274,38 @@ export default async function AccountPage({
         <section className="space-y-3">
           <h2 className="text-lg font-semibold">Movimientos recientes</h2>
           <ul className="divide-border divide-y rounded-xl border">
-            {history.map((item) => (
-              <li key={item.id}>
-                <Link
-                  href={`/transactions/${item.id}`}
-                  className="hover:bg-muted/50 flex items-center justify-between gap-3 px-4 py-3 text-sm"
-                >
-                  <span className="min-w-0">
-                    <span className="block truncate font-medium">
-                      {item.description ||
-                        (item.type === "transfer"
-                          ? "Transferencia"
-                          : "Movimiento")}
+            {history.map((item) => {
+              const style = movementStyle(item.type);
+              return (
+                <li key={item.id}>
+                  <Link
+                    href={`/transactions/${item.id}`}
+                    className="hover:bg-muted/50 flex items-center justify-between gap-3 px-4 py-3 text-sm"
+                  >
+                    <span className="min-w-0">
+                      <span className="block truncate font-medium">
+                        {item.description ||
+                          movementLabel[item.type] ||
+                          "Movimiento"}
+                      </span>
+                      <span className="text-muted-foreground flex flex-wrap items-center gap-1.5 text-xs">
+                        <span
+                          className={`rounded-full px-1.5 py-0.5 font-medium ${style.chip}`}
+                        >
+                          {movementLabel[item.type] ?? "Movimiento"}
+                        </span>
+                        {item.date}
+                        {item.status === "pending" && "· Pendiente"}
+                      </span>
                     </span>
-                    <span className="text-muted-foreground text-xs">
-                      {item.date}
-                      {item.status === "pending" ? " · Pendiente" : ""}
-                    </span>
-                  </span>
-                  <strong className="shrink-0 tabular-nums">
-                    {money.format(Number(item.amount))}
-                  </strong>
-                </Link>
-              </li>
-            ))}
+                    <strong className={`shrink-0 tabular-nums ${style.amount}`}>
+                      {style.sign}
+                      {money.format(Number(item.amount))}
+                    </strong>
+                  </Link>
+                </li>
+              );
+            })}
           </ul>
         </section>
       )}
