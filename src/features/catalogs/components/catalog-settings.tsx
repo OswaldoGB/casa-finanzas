@@ -13,6 +13,7 @@ import {
   savePaymentMethod,
   moveCategory,
 } from "../actions";
+import { CategoryIcon } from "./category-icon";
 
 type Category = {
   id: string;
@@ -36,21 +37,27 @@ type Account = { id: string; name: string; is_archived: boolean };
 const iconOptions = [
   ["tag", "Etiqueta"],
   ["shopping-cart", "Supermercado"],
+  ["shopping-bag", "Compras y ventas"],
   ["house", "Hogar"],
   ["car", "Transporte"],
-  ["heart", "Salud"],
   ["utensils", "Comida"],
-  ["briefcase", "Trabajo"],
   ["briefcase-business", "Trabajo"],
+  ["landmark", "Honorarios"],
+  ["trending-up", "Inversiones"],
+  ["rotate-ccw", "Reembolso"],
   ["circle-plus", "Extra"],
   ["receipt", "Recibos"],
   ["heart-pulse", "Salud"],
   ["clapperboard", "Entretenimiento"],
+  ["smartphone", "Suscripciones"],
+  ["shirt", "Ropa y cuidado"],
+  ["paw-print", "Mascotas"],
+  ["plane", "Viajes"],
+  ["hand-coins", "Deudas y comisiones"],
+  ["file-text", "Impuestos"],
   ["ellipsis", "Otros"],
   ["gift", "Regalos"],
   ["graduation-cap", "Educación"],
-  ["wallet", "Dinero"],
-  ["gamepad-2", "Ocio"],
 ];
 
 function Feedback({
@@ -343,9 +350,11 @@ export function CatalogSettings({
                       <GripVertical className="size-4" aria-hidden="true" />
                     </span>
                     <span
-                      className="size-3 rounded-full"
-                      style={{ backgroundColor: item.color }}
-                    />
+                      className="grid size-7 place-items-center rounded-lg"
+                      style={{ backgroundColor: `${item.color}20` }}
+                    >
+                      <CategoryIcon icon={item.icon} color={item.color} />
+                    </span>
                     {item.name}
                   </span>
                   <span className="text-muted-foreground">

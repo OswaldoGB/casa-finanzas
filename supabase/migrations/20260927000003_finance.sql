@@ -404,18 +404,32 @@ create function public.seed_finance_categories() returns trigger
 language plpgsql security definer set search_path = '' as $$
 begin
   if new.role = 'admin' then
-    insert into public.categories (household_id, created_by, name, type, icon, sort_order)
+    insert into public.categories (household_id, created_by, name, type, color, icon, sort_order)
     values
-      (new.household_id, new.id, 'Salario', 'income', 'briefcase-business', 1),
-      (new.household_id, new.id, 'Otros ingresos', 'income', 'circle-plus', 2),
-      (new.household_id, new.id, 'Supermercado', 'expense', 'shopping-cart', 3),
-      (new.household_id, new.id, 'Vivienda', 'expense', 'house', 4),
-      (new.household_id, new.id, 'Servicios', 'expense', 'receipt', 5),
-      (new.household_id, new.id, 'Transporte', 'expense', 'car', 6),
-      (new.household_id, new.id, 'Salud', 'expense', 'heart-pulse', 7),
-      (new.household_id, new.id, 'Educación', 'expense', 'graduation-cap', 8),
-      (new.household_id, new.id, 'Entretenimiento', 'expense', 'clapperboard', 9),
-      (new.household_id, new.id, 'Otros gastos', 'expense', 'ellipsis', 10);
+      (new.household_id, new.id, 'Salario', 'income', '#2563eb', 'briefcase-business', 1),
+      (new.household_id, new.id, 'Honorarios y freelance', 'income', '#7c3aed', 'landmark', 2),
+      (new.household_id, new.id, 'Ventas', 'income', '#0891b2', 'shopping-bag', 3),
+      (new.household_id, new.id, 'Inversiones', 'income', '#16a34a', 'trending-up', 4),
+      (new.household_id, new.id, 'Reembolsos', 'income', '#0d9488', 'rotate-ccw', 5),
+      (new.household_id, new.id, 'Regalos', 'income', '#db2777', 'gift', 6),
+      (new.household_id, new.id, 'Otros ingresos', 'income', '#64748b', 'circle-plus', 7),
+      (new.household_id, new.id, 'Supermercado', 'expense', '#ea580c', 'shopping-cart', 1),
+      (new.household_id, new.id, 'Comida fuera', 'expense', '#f97316', 'utensils', 2),
+      (new.household_id, new.id, 'Vivienda', 'expense', '#a16207', 'house', 3),
+      (new.household_id, new.id, 'Servicios', 'expense', '#0284c7', 'receipt', 4),
+      (new.household_id, new.id, 'Transporte', 'expense', '#2563eb', 'car', 5),
+      (new.household_id, new.id, 'Salud', 'expense', '#dc2626', 'heart-pulse', 6),
+      (new.household_id, new.id, 'Educación', 'expense', '#7c3aed', 'graduation-cap', 7),
+      (new.household_id, new.id, 'Entretenimiento', 'expense', '#db2777', 'clapperboard', 8),
+      (new.household_id, new.id, 'Suscripciones', 'expense', '#4f46e5', 'smartphone', 9),
+      (new.household_id, new.id, 'Compras personales', 'expense', '#c2410c', 'shopping-bag', 10),
+      (new.household_id, new.id, 'Ropa y cuidado personal', 'expense', '#e11d48', 'shirt', 11),
+      (new.household_id, new.id, 'Mascotas', 'expense', '#65a30d', 'paw-print', 12),
+      (new.household_id, new.id, 'Regalos y donaciones', 'expense', '#be185d', 'gift', 13),
+      (new.household_id, new.id, 'Viajes', 'expense', '#0e7490', 'plane', 14),
+      (new.household_id, new.id, 'Deudas y comisiones', 'expense', '#b45309', 'hand-coins', 15),
+      (new.household_id, new.id, 'Impuestos', 'expense', '#475569', 'file-text', 16),
+      (new.household_id, new.id, 'Otros gastos', 'expense', '#64748b', 'ellipsis', 17);
   end if;
   return new;
 end $$;
