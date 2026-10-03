@@ -30,7 +30,7 @@ export async function getTransactionOptions() {
         .order("name"),
       supabase
         .from("categories")
-        .select("id,name,type,is_archived")
+        .select("id,name,type,color,icon,is_archived")
         .eq("household_id", household)
         .order("name"),
       supabase

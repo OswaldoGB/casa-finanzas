@@ -3,6 +3,8 @@
 import { useActionState, useEffect, useRef, useState } from "react";
 import type { Transaction } from "../queries";
 import { saveTransaction } from "../actions";
+import { FormSelect } from "@/components/ui/form-select";
+import { CategoryIcon } from "@/features/catalogs/components/category-icon";
 
 type Options = {
   today: string;
@@ -11,6 +13,8 @@ type Options = {
     id: string;
     name: string;
     type: "income" | "expense";
+    color: string;
+    icon: string;
     is_archived: boolean;
   }[];
   methods: { id: string; name: string; is_archived: boolean }[];
@@ -35,6 +39,13 @@ export function TransactionForm({
       ? transaction.type
       : "expense",
   );
+  const [accountId, setAccountId] = useState(transaction?.account_id ?? "");
+  const [categoryId, setCategoryId] = useState(
+    transaction?.category_id ?? "",
+  );
+  const [methodId, setMethodId] = useState(
+    transaction?.payment_method_id ?? "",
+  );
   const error = (field: string) => state?.fieldErrors?.[field]?.[0];
   const field =
     "border-input bg-background h-11 w-full rounded-lg border px-3 text-sm";
@@ -58,18 +69,19 @@ export function TransactionForm({
       const saved = JSON.parse(
         localStorage.getItem("transaction-quick-defaults") ?? "{}",
       ) as Record<string, string>;
-      for (const name of ["account_id", "category_id", "payment_method_id"]) {
-        const select = formRef.current.elements.namedItem(name);
-        if (
-          select instanceof HTMLSelectElement &&
-          [...select.options].some((option) => option.value === saved[name])
-        )
-          select.value = saved[name];
-      }
+      const frame = requestAnimationFrame(() => {
+        if (accounts.some((account) => account.id === saved.account_id))
+          setAccountId(saved.account_id);
+        if (categories.some((category) => category.id === saved.category_id))
+          setCategoryId(saved.category_id);
+        if (methods.some((method) => method.id === saved.payment_method_id))
+          setMethodId(saved.payment_method_id);
+      });
+      return () => cancelAnimationFrame(frame);
     } catch {
       /* Browser storage may be unavailable. */
     }
-  }, [quick, rememberDefaults, type]);
+  }, [quick, rememberDefaults, accounts, categories, methods]);
   return (
     <form
       ref={formRef}
@@ -120,17 +132,21 @@ export function TransactionForm({
         <label htmlFor="transaction-type" className="text-sm font-medium">
           Tipo
         </label>
-        <select
+        <FormSelect
           id="transaction-type"
           name="type"
           value={type}
-          onChange={(event) => setType(event.target.value as typeof type)}
-          className={field}
-        >
-          <option value="expense">Gasto</option>
-          <option value="income">Ingreso</option>
-          <option value="transfer">Transferencia</option>
-        </select>
+          onValueChange={(value) => {
+            setType(value as typeof type);
+            setCategoryId("");
+          }}
+          placeholder="Seleccionar tipo"
+          options={[
+            { value: "expense", label: "Gasto" },
+            { value: "income", label: "Ingreso" },
+            { value: "transfer", label: "Transferencia" },
+          ]}
+        />
       </div>
       <div className="grid gap-1">
         <label htmlFor="transaction-date" className="text-sm font-medium">
@@ -152,20 +168,14 @@ export function TransactionForm({
         <label htmlFor="transaction-account" className="text-sm font-medium">
           {type === "transfer" ? "Cuenta origen" : "Cuenta"}
         </label>
-        <select
+        <FormSelect
           id="transaction-account"
           name="account_id"
-          required
-          defaultValue={transaction?.account_id ?? ""}
-          className={field}
-        >
-          <option value="">Seleccionar cuenta</option>
-          {accounts.map((item) => (
-            <option key={item.id} value={item.id}>
-              {item.name}
-            </option>
-          ))}
-        </select>
+          value={accountId}
+          onValueChange={setAccountId}
+          placeholder="Seleccionar cuenta"
+          options={accounts.map((item) => ({ value: item.id, label: item.name }))}
+        />
         {error("account_id") && (
           <p className="text-destructive text-xs">{error("account_id")}</p>
         )}
@@ -178,20 +188,13 @@ export function TransactionForm({
           >
             Cuenta destino
           </label>
-          <select
+          <FormSelect
             id="transaction-destination"
             name="destination_account_id"
-            required
             defaultValue={transaction?.destination_account_id ?? ""}
-            className={field}
-          >
-            <option value="">Seleccionar cuenta</option>
-            {accounts.map((item) => (
-              <option key={item.id} value={item.id}>
-                {item.name}
-              </option>
-            ))}
-          </select>
+            placeholder="Seleccionar cuenta"
+            options={accounts.map((item) => ({ value: item.id, label: item.name }))}
+          />
           {error("destination_account_id") && (
             <p className="text-destructive text-xs">
               {error("destination_account_id")}
@@ -208,21 +211,18 @@ export function TransactionForm({
             >
               Categoría
             </label>
-            <select
+            <FormSelect
               id="transaction-category"
               name="category_id"
-              required
-              defaultValue={transaction?.category_id ?? ""}
-              key={type}
-              className={field}
-            >
-              <option value="">Seleccionar categoría</option>
-              {categories.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.name}
-                </option>
-              ))}
-            </select>
+              value={categoryId}
+              onValueChange={setCategoryId}
+              placeholder="Seleccionar categoría"
+              options={categories.map((item) => ({
+                value: item.id,
+                label: item.name,
+                leading: <CategoryIcon icon={item.icon} color={item.color} />,
+              }))}
+            />
             {error("category_id") && (
               <p className="text-destructive text-xs">{error("category_id")}</p>
             )}
@@ -231,19 +231,14 @@ export function TransactionForm({
             <label htmlFor="transaction-method" className="text-sm font-medium">
               Método de pago
             </label>
-            <select
+            <FormSelect
               id="transaction-method"
               name="payment_method_id"
-              defaultValue={transaction?.payment_method_id ?? ""}
-              className={field}
-            >
-              <option value="">Sin especificar</option>
-              {methods.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.name}
-                </option>
-              ))}
-            </select>
+              value={methodId}
+              onValueChange={setMethodId}
+              placeholder="Sin especificar"
+              options={methods.map((item) => ({ value: item.id, label: item.name }))}
+            />
             {error("payment_method_id") && (
               <p className="text-destructive text-xs">
                 {error("payment_method_id")}
@@ -280,24 +275,17 @@ export function TransactionForm({
       {!quick && (
         <label className="grid gap-1 text-sm">
           Proyecto opcional
-          <select
+          <FormSelect
             name="project_id"
             defaultValue={transaction?.project_id ?? ""}
-            className={field}
-          >
-            <option value="">Sin proyecto</option>
-            {options.projects
+            placeholder="Sin proyecto"
+            options={options.projects
               .filter(
                 (item) =>
-                  item.status !== "archived" ||
-                  item.id === transaction?.project_id,
+                  item.status !== "archived" || item.id === transaction?.project_id,
               )
-              .map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.name}
-                </option>
-              ))}
-          </select>
+              .map((item) => ({ value: item.id, label: item.name }))}
+          />
         </label>
       )}
       {quick && <input type="hidden" name="project_id" value="" />}
