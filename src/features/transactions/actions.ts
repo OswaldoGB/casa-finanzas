@@ -148,10 +148,6 @@ export async function deleteTransaction(formData: FormData) {
   const { supabase, profile } = await requireModule("transactions", "edit");
   const parsed = transactionIdSchema.safeParse(formData.get("id"));
   if (!parsed.success) throw new Error("Movimiento inválido.");
-  const financed = await supabase.rpc("assert_transactions_unfinanced", {
-    p_ids: [parsed.data],
-  });
-  if (financed.error) throw new Error(financed.error.message);
   const { data: attachments, error: attachmentsError } = await supabase
     .from("attachments")
     .select("storage_path")
@@ -166,14 +162,10 @@ export async function deleteTransaction(formData: FormData) {
       .remove(paths.slice(offset, offset + 100));
     if (error) throw new Error("No se pudieron borrar los comprobantes.");
   }
-  const { data, error } = await supabase
-    .from("transactions")
-    .delete()
-    .eq("id", parsed.data)
-    .eq("household_id", profile.household_id)
-    .select("id")
-    .maybeSingle();
-  if (error || !data) throw new Error("No se pudo borrar el movimiento.");
+  const deleted = await supabase.rpc("delete_transaction_with_dependencies", {
+    p_transaction_id: parsed.data,
+  });
+  if (deleted.error) throw new Error(deleted.error.message);
   revalidatePath("/transactions");
   revalidatePath("/accounts");
   redirect("/transactions");

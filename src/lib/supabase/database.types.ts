@@ -1472,6 +1472,10 @@ export type Database = {
         Returns: string
       }
       current_household_id: { Args: never; Returns: string }
+      delete_transaction_with_dependencies: {
+        Args: { p_transaction_id: string }
+        Returns: undefined
+      }
       duplicate_shopping_list: { Args: { p_list_id: string }; Returns: string }
       has_module_access: {
         Args: {
