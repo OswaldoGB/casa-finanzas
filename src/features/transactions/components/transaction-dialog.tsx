@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Pencil, Plus } from "lucide-react";
 import { toast } from "sonner";
@@ -32,11 +32,11 @@ export function TransactionDialog({
   const router = useRouter();
   const editing = Boolean(transaction);
 
-  function saved(message: string) {
+  const saved = useCallback((message: string) => {
     toast.success(message);
     setOpen(false);
     router.refresh();
-  }
+  }, [router]);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
