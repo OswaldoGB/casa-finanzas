@@ -266,11 +266,13 @@ export default async function TransactionsPage({
                         >
                           {item.description || label[item.type]}
                         </Link>
-                        <p className="text-muted-foreground text-xs">
-                          {label[item.type]}
-                          {item.status === "pending"
-                            ? " · Pendiente"
-                            : ""} ·{" "}
+                        <p className="text-muted-foreground flex flex-wrap items-center gap-1.5 text-xs">
+                          <span
+                            className={`rounded-full px-1.5 py-0.5 font-medium ${item.type === "loan_out" ? "bg-warning/15 text-warning" : item.type === "loan_repayment" ? "bg-income/15 text-income" : "bg-muted text-muted-foreground"}`}
+                          >
+                            {label[item.type]}
+                          </span>
+                          {item.status === "pending" ? "Pendiente ·" : ""}
                           {options.members.find(
                             (member) => member.id === item.created_by,
                           )?.full_name ?? "Usuario"}
@@ -278,11 +280,12 @@ export default async function TransactionsPage({
                       </div>
                       <div className="flex shrink-0 items-center gap-3">
                         <span
-                          className={`text-sm font-semibold tabular-nums ${item.type === "income" ? "text-income" : item.type === "expense" ? "text-destructive" : "text-info"}`}
+                          className={`text-sm font-semibold tabular-nums ${item.type === "income" || item.type === "loan_repayment" ? "text-income" : item.type === "expense" ? "text-destructive" : item.type === "loan_out" ? "text-warning" : "text-info"}`}
                         >
-                          {item.type === "expense"
+                          {item.type === "expense" || item.type === "loan_out"
                             ? "−"
-                            : item.type === "income"
+                            : item.type === "income" ||
+                                item.type === "loan_repayment"
                               ? "+"
                               : ""}
                           {money.format(Number(item.amount))}
