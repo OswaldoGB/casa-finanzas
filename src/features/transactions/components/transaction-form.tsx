@@ -42,12 +42,11 @@ export function TransactionForm({
       : "expense",
   );
   const [accountId, setAccountId] = useState(transaction?.account_id ?? "");
-  const [categoryId, setCategoryId] = useState(
-    transaction?.category_id ?? "",
-  );
+  const [categoryId, setCategoryId] = useState(transaction?.category_id ?? "");
   const [methodId, setMethodId] = useState(
     transaction?.payment_method_id ?? "",
   );
+  const restoredDefaults = useRef(false);
   const error = (field: string) => state?.fieldErrors?.[field]?.[0];
   const field =
     "border-input bg-background h-11 w-full rounded-lg border px-3 text-sm";
@@ -66,24 +65,38 @@ export function TransactionForm({
     (item) => !item.is_archived || item.id === transaction?.payment_method_id,
   );
   useEffect(() => {
-    if (!(quick || rememberDefaults) || !formRef.current) return;
+    if (
+      restoredDefaults.current ||
+      !(quick || rememberDefaults) ||
+      !formRef.current
+    )
+      return;
+    restoredDefaults.current = true;
     try {
       const saved = JSON.parse(
         localStorage.getItem("transaction-quick-defaults") ?? "{}",
       ) as Record<string, string>;
       const frame = requestAnimationFrame(() => {
-        if (accounts.some((account) => account.id === saved.account_id))
+        if (options.accounts.some((account) => account.id === saved.account_id))
           setAccountId(saved.account_id);
-        if (categories.some((category) => category.id === saved.category_id))
+        if (
+          options.categories.some(
+            (category) => category.id === saved.category_id,
+          )
+        )
           setCategoryId(saved.category_id);
-        if (methods.some((method) => method.id === saved.payment_method_id))
+        if (
+          options.methods.some(
+            (method) => method.id === saved.payment_method_id,
+          )
+        )
           setMethodId(saved.payment_method_id);
       });
       return () => cancelAnimationFrame(frame);
     } catch {
       /* Browser storage may be unavailable. */
     }
-  }, [quick, rememberDefaults, accounts, categories, methods]);
+  }, [quick, rememberDefaults, options]);
   useEffect(() => {
     if (state?.ok) onSuccess?.(state.ok);
   }, [onSuccess, state?.ok]);
@@ -179,7 +192,10 @@ export function TransactionForm({
           value={accountId}
           onValueChange={setAccountId}
           placeholder="Seleccionar cuenta"
-          options={accounts.map((item) => ({ value: item.id, label: item.name }))}
+          options={accounts.map((item) => ({
+            value: item.id,
+            label: item.name,
+          }))}
         />
         {error("account_id") && (
           <p className="text-destructive text-xs">{error("account_id")}</p>
@@ -198,7 +214,10 @@ export function TransactionForm({
             name="destination_account_id"
             defaultValue={transaction?.destination_account_id ?? ""}
             placeholder="Seleccionar cuenta"
-            options={accounts.map((item) => ({ value: item.id, label: item.name }))}
+            options={accounts.map((item) => ({
+              value: item.id,
+              label: item.name,
+            }))}
           />
           {error("destination_account_id") && (
             <p className="text-destructive text-xs">
@@ -242,7 +261,10 @@ export function TransactionForm({
               value={methodId}
               onValueChange={setMethodId}
               placeholder="Sin especificar"
-              options={methods.map((item) => ({ value: item.id, label: item.name }))}
+              options={methods.map((item) => ({
+                value: item.id,
+                label: item.name,
+              }))}
             />
             {error("payment_method_id") && (
               <p className="text-destructive text-xs">
@@ -287,7 +309,8 @@ export function TransactionForm({
             options={options.projects
               .filter(
                 (item) =>
-                  item.status !== "archived" || item.id === transaction?.project_id,
+                  item.status !== "archived" ||
+                  item.id === transaction?.project_id,
               )
               .map((item) => ({ value: item.id, label: item.name }))}
           />

@@ -5,6 +5,7 @@ import {
   IncomeExpenseChart,
   NetWorthChart,
 } from "@/features/reports/components/report-charts";
+import { CategoryIcon } from "@/features/catalogs/components/category-icon";
 
 export const metadata = { title: "Reportes" };
 const money = new Intl.NumberFormat("en-US", {
@@ -168,9 +169,15 @@ export default async function ReportsPage({
                       <th scope="row" className="py-3 text-left font-normal">
                         <span
                           aria-hidden
-                          className="mr-2 inline-block size-2.5 rounded-full"
-                          style={{ backgroundColor: item.color }}
-                        />
+                          className="mr-2 inline-grid size-6 place-items-center rounded-md align-middle"
+                          style={{ backgroundColor: `${item.color}20` }}
+                        >
+                          <CategoryIcon
+                            icon={item.icon}
+                            color={item.color}
+                            className="size-3.5"
+                          />
+                        </span>
                         {item.name}
                       </th>
                       <td className="py-3 text-right tabular-nums">

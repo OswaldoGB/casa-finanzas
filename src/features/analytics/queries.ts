@@ -20,7 +20,7 @@ export async function getAnalytics(
   to?: string,
 ) {
   const { supabase, profile } = await requireModule(module);
-  const [household, catalog] = await Promise.all([
+  const [household, catalog, categoryCatalog] = await Promise.all([
     supabase
       .from("households")
       .select("timezone")
@@ -33,8 +33,12 @@ export async function getAnalytics(
       )
       .eq("household_id", profile.household_id)
       .order("name"),
+    supabase
+      .from("categories")
+      .select("id,icon")
+      .eq("household_id", profile.household_id),
   ]);
-  if (household.error || catalog.error)
+  if (household.error || catalog.error || categoryCatalog.error)
     throw new Error("No se pudo cargar el resumen financiero.");
   const today = todayInTimeZone(new Date(), household.data.timezone);
   const datedBalances = await Promise.all(
@@ -56,6 +60,12 @@ export async function getAnalytics(
   });
   if (error) throw new Error("No se pudieron cargar los reportes.");
   const snapshot = analyticsSnapshotSchema.parse(data);
+  const categoryIcons = new Map(
+    (categoryCatalog.data ?? []).map((category) => [
+      category.id,
+      category.icon,
+    ]),
+  );
   const balances = new Map(datedBalances);
   const accounts = catalog.data.map((account) => ({
     id: account.id,
@@ -103,7 +113,17 @@ export async function getAnalytics(
       });
   }
   upcoming.sort((a, b) => a.date.localeCompare(b.date));
-  return { ...snapshot, ...range, today, accounts, upcoming };
+  return {
+    ...snapshot,
+    ...range,
+    today,
+    accounts,
+    upcoming,
+    categories: snapshot.categories.map((category) => ({
+      ...category,
+      icon: categoryIcons.get(category.id) ?? "tag",
+    })),
+  };
 }
 
 export type AnalyticsData = Awaited<ReturnType<typeof getAnalytics>>;

@@ -14,6 +14,7 @@ import {
   YAxis,
 } from "recharts";
 import { ChartContainer } from "@/components/ui/chart";
+import { CategoryIcon } from "@/features/catalogs/components/category-icon";
 
 const money = new Intl.NumberFormat("en-US", {
   style: "currency",
@@ -40,7 +41,13 @@ const tooltipStyle = {
 export function CategoryDonut({
   categories,
 }: {
-  categories: { id: string; name: string; color: string; amount: number }[];
+  categories: {
+    id: string;
+    name: string;
+    color: string;
+    icon: string;
+    amount: number;
+  }[];
 }) {
   const data = categories
     .filter((item) => item.amount > 0)
@@ -52,27 +59,46 @@ export function CategoryDonut({
       </p>
     );
   return (
-    <ChartContainer
-      config={{ amount: { label: "Gastos" } }}
-      className="mx-auto h-72 w-full max-w-md"
-      aria-label="Distribución de gastos por categoría; los valores aparecen en la tabla siguiente"
-    >
-      <PieChart accessibilityLayer>
-        <Pie
-          data={data}
-          dataKey="amount"
-          nameKey="name"
-          innerRadius="58%"
-          outerRadius="85%"
-          paddingAngle={2}
-          stroke="var(--card)"
-        />
-        <Tooltip
-          formatter={(value) => money.format(Number(value))}
-          contentStyle={tooltipStyle}
-        />
-      </PieChart>
-    </ChartContainer>
+    <div className="mx-auto w-full max-w-md">
+      <ChartContainer
+        config={{ amount: { label: "Gastos" } }}
+        className="h-64 w-full"
+        aria-label="Distribución de gastos por categoría"
+      >
+        <PieChart accessibilityLayer>
+          <Pie
+            data={data}
+            dataKey="amount"
+            nameKey="name"
+            innerRadius="58%"
+            outerRadius="85%"
+            paddingAngle={2}
+            stroke="var(--card)"
+          />
+          <Tooltip
+            formatter={(value) => money.format(Number(value))}
+            contentStyle={tooltipStyle}
+          />
+        </PieChart>
+      </ChartContainer>
+      <ul className="mt-1 grid grid-cols-2 gap-x-3 gap-y-2 text-xs">
+        {data.map((item) => (
+          <li key={item.id} className="flex min-w-0 items-center gap-1.5">
+            <span
+              className="grid size-6 shrink-0 place-items-center rounded-md"
+              style={{ backgroundColor: `${item.color}20` }}
+            >
+              <CategoryIcon
+                icon={item.icon}
+                color={item.color}
+                className="size-3.5"
+              />
+            </span>
+            <span className="truncate">{item.name}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 
