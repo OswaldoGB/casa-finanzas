@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LogOut, Wallet } from "lucide-react";
+import { LogOut } from "lucide-react";
 import { signOut } from "@/features/auth/actions";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { BrandLockup } from "@/components/brand-mark";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   Sidebar,
@@ -57,14 +58,7 @@ export function AppSidebar({ user }: { user: SessionUser }) {
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader>
-        <div className="flex items-center gap-2 px-1 py-1.5">
-          <span className="bg-primary text-primary-foreground grid size-8 shrink-0 place-items-center rounded-lg">
-            <Wallet className="size-4" aria-hidden />
-          </span>
-          <span className="truncate font-semibold tracking-tight group-data-[collapsible=icon]:hidden">
-            Casa &amp; Finanzas
-          </span>
-        </div>
+        <BrandLockup className="px-1 py-1.5 group-data-[collapsible=icon]:[&>span]:hidden" />
       </SidebarHeader>
       <SidebarContent>
         {NAV.map((group) => {

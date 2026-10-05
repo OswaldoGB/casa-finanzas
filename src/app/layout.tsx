@@ -13,23 +13,19 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: { default: "Casa & Finanzas", template: "%s · Casa & Finanzas" },
-  description: "Finanzas e inventario del hogar",
+  description: "El sistema compartido para ordenar las finanzas de tu hogar.",
   applicationName: "Casa & Finanzas",
   appleWebApp: {
     capable: true,
     title: "Casa & Finanzas",
     statusBarStyle: "default",
   },
-  icons: {
-    icon: "/icons/app-192.png",
-    apple: "/icons/apple-touch-icon.png",
-  },
 };
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#fcfbfa" },
-    { media: "(prefers-color-scheme: dark)", color: "#141210" },
+    { media: "(prefers-color-scheme: light)", color: "#f8f7ff" },
+    { media: "(prefers-color-scheme: dark)", color: "#11111a" },
   ],
 };
 
