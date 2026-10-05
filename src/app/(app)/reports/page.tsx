@@ -25,18 +25,18 @@ function AmountTable({
   empty: string;
 }) {
   return (
-    <section className="bg-card rounded-2xl border p-5">
+    <section className="bg-card min-w-0 rounded-2xl border p-5">
       <h2 className="text-base font-semibold">{title}</h2>
       {rows.length ? (
         <div className="mt-4 overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full table-fixed text-sm">
             <caption className="sr-only">{title}</caption>
             <thead>
               <tr className="border-b">
                 <th scope="col" className="py-2 text-left font-medium">
                   Nombre
                 </th>
-                <th scope="col" className="py-2 text-right font-medium">
+                <th scope="col" className="w-24 py-2 text-right font-medium">
                   Gastos
                 </th>
               </tr>
@@ -45,9 +45,9 @@ function AmountTable({
               {rows.map((item) => (
                 <tr key={item.id} className="border-b last:border-0">
                   <th scope="row" className="py-3 text-left font-normal">
-                    {item.name}
+                    <span className="block truncate">{item.name}</span>
                   </th>
-                  <td className="py-3 text-right tabular-nums">
+                  <td className="w-24 py-3 text-right whitespace-nowrap tabular-nums">
                     {money.format(item.amount)}
                   </td>
                 </tr>
@@ -74,7 +74,7 @@ export default async function ReportsPage({
     typeof params.to === "string" ? params.to : undefined,
   );
   return (
-    <div className="mx-auto max-w-6xl space-y-6">
+    <div className="mx-auto w-full max-w-6xl min-w-0 space-y-6">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Reportes</h1>
@@ -143,13 +143,13 @@ export default async function ReportsPage({
           </div>
         ))}
       </div>
-      <section className="bg-card rounded-2xl border p-5">
+      <section className="bg-card min-w-0 rounded-2xl border p-5">
         <h2 className="text-base font-semibold">Gastos por categoría</h2>
-        <div className="mt-3 grid items-center gap-6 lg:grid-cols-2">
+        <div className="mt-3 grid min-w-0 items-center gap-6 lg:grid-cols-2">
           <CategoryDonut categories={data.categories} />
           {data.categories.length ? (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+            <div className="min-w-0">
+              <table className="w-full table-fixed text-sm">
                 <caption className="sr-only">
                   Gastos por categoría en el rango seleccionado
                 </caption>
@@ -158,7 +158,10 @@ export default async function ReportsPage({
                     <th scope="col" className="py-2 text-left font-medium">
                       Categoría
                     </th>
-                    <th scope="col" className="py-2 text-right font-medium">
+                    <th
+                      scope="col"
+                      className="w-24 py-2 text-right font-medium"
+                    >
                       Monto
                     </th>
                   </tr>
@@ -167,20 +170,22 @@ export default async function ReportsPage({
                   {data.categories.map((item) => (
                     <tr key={item.id} className="border-b last:border-0">
                       <th scope="row" className="py-3 text-left font-normal">
-                        <span
-                          aria-hidden
-                          className="mr-2 inline-grid size-6 place-items-center rounded-md align-middle"
-                          style={{ backgroundColor: `${item.color}20` }}
-                        >
-                          <CategoryIcon
-                            icon={item.icon}
-                            color={item.color}
-                            className="size-3.5"
-                          />
+                        <span className="flex min-w-0 items-center gap-2">
+                          <span
+                            aria-hidden
+                            className="grid size-6 shrink-0 place-items-center rounded-md"
+                            style={{ backgroundColor: `${item.color}20` }}
+                          >
+                            <CategoryIcon
+                              icon={item.icon}
+                              color={item.color}
+                              className="size-3.5"
+                            />
+                          </span>
+                          <span className="truncate">{item.name}</span>
                         </span>
-                        {item.name}
                       </th>
-                      <td className="py-3 text-right tabular-nums">
+                      <td className="w-24 py-3 text-right whitespace-nowrap tabular-nums">
                         {money.format(item.amount)}
                       </td>
                     </tr>

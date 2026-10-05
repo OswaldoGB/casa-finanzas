@@ -59,7 +59,7 @@ export function CategoryDonut({
       </p>
     );
   return (
-    <div className="mx-auto w-full max-w-md">
+    <div className="mx-auto w-full max-w-md min-w-0">
       <ChartContainer
         config={{ amount: { label: "Gastos" } }}
         className="h-64 w-full"
@@ -81,7 +81,7 @@ export function CategoryDonut({
           />
         </PieChart>
       </ChartContainer>
-      <ul className="mt-1 grid grid-cols-2 gap-x-3 gap-y-2 text-xs">
+      <ul className="mt-1 grid min-w-0 grid-cols-1 gap-x-3 gap-y-2 text-xs sm:grid-cols-2">
         {data.map((item) => (
           <li key={item.id} className="flex min-w-0 items-center gap-1.5">
             <span

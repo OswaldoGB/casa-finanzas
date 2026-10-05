@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Pencil, Plus } from "lucide-react";
 import { toast } from "sonner";
@@ -32,11 +32,21 @@ export function TransactionDialog({
   const router = useRouter();
   const editing = Boolean(transaction);
 
-  const saved = useCallback((message: string) => {
-    toast.success(message);
-    setOpen(false);
-    router.refresh();
-  }, [router]);
+  useEffect(() => {
+    if (!defaultOpen) return;
+
+    const frame = requestAnimationFrame(() => setOpen(true));
+    return () => cancelAnimationFrame(frame);
+  }, [defaultOpen]);
+
+  const saved = useCallback(
+    (message: string) => {
+      toast.success(message);
+      setOpen(false);
+      router.refresh();
+    },
+    [router],
+  );
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -51,7 +61,11 @@ export function TransactionDialog({
               : "bg-primary text-primary-foreground inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium shadow-sm transition hover:-translate-y-0.5 hover:shadow"
           }
         >
-          {editing ? <Pencil className="size-4" /> : <Plus className="size-4" />}
+          {editing ? (
+            <Pencil className="size-4" />
+          ) : (
+            <Plus className="size-4" />
+          )}
           {!compact && (editing ? "Editar movimiento" : "Nuevo movimiento")}
         </button>
       </DialogTrigger>
