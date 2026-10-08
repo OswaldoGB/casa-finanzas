@@ -3,7 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { requireModule } from "../permissions/queries";
 import type { FormState } from "../auth/schemas";
-import { installmentSchema, cardPaymentSchema } from "./card-schemas";
+import {
+  installmentSchema,
+  cardPaymentSchema,
+  cardStatementSchema,
+} from "./card-schemas";
 import { accountIdSchema } from "./schemas";
 
 function refresh(card: string) {
@@ -64,6 +68,21 @@ export async function payCard(
   await requireModule("transactions", "edit");
   const ids = form.getAll("source_id");
   const amounts = form.getAll("source_amount");
+  const allocations = form
+    .getAll("allocation")
+    .map((value) => {
+      try {
+        return JSON.parse(String(value)) as {
+          statement_id: string;
+          amount: number;
+        };
+      } catch {
+        return null;
+      }
+    })
+    .filter((value): value is { statement_id: string; amount: number } =>
+      Boolean(value),
+    );
   const parsed = cardPaymentSchema.safeParse({
     card_id: form.get("card_id"),
     date: form.get("date"),
@@ -87,10 +106,46 @@ export async function payCard(
     p_sources: parsed.data.sources,
   });
   if (error) return { error: error.message };
+  if (allocations.length) {
+    const { error: allocationError } = await supabase.rpc(
+      "allocate_card_payment",
+      {
+        p_card_payment_id: requestId.data,
+        p_allocations: allocations,
+      },
+    );
+    if (allocationError)
+      return {
+        error: `El pago fue registrado, pero no se pudo conciliar: ${allocationError.message}`,
+      };
+  }
   refresh(parsed.data.card_id);
   return {
     ok: "Pago registrado. Se actualizaron la tarjeta y las cuentas de origen.",
   };
+}
+export async function saveCardStatement(
+  _: FormState,
+  form: FormData,
+): Promise<FormState> {
+  const { supabase } = await requireModule("accounts", "edit");
+  const parsed = cardStatementSchema.safeParse(Object.fromEntries(form));
+  const requestId = accountIdSchema.safeParse(form.get("request_id"));
+  if (!parsed.success)
+    return { fieldErrors: parsed.error.flatten().fieldErrors };
+  if (!requestId.success)
+    return { error: "Solicitud inválida. Recarga la página." };
+  const { error } = await supabase.rpc("upsert_card_statement", {
+    p_id: requestId.data,
+    p_card_id: parsed.data.card_id,
+    p_closes_on: parsed.data.closes_on,
+    p_due_on: parsed.data.due_on,
+    p_bank_cash_due: parsed.data.bank_cash_due,
+    p_note: parsed.data.note,
+  });
+  if (error) return { error: error.message };
+  refresh(parsed.data.card_id);
+  return { ok: "Estado de cuenta del banco guardado." };
 }
 export async function removeInstallment(
   _: FormState,

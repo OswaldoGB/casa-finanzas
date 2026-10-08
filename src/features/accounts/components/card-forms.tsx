@@ -3,6 +3,7 @@
 import { useActionState, useState } from "react";
 import { saveInstallment, payCard, removeInstallment } from "../card-actions";
 import { installmentAmounts } from "../card-schemas";
+import { allocatePayment } from "../card-statements";
 import type { AccountWithBalance } from "../queries";
 import type { FormState } from "../../auth/schemas";
 
@@ -249,12 +250,19 @@ export function CardPaymentForm({
   requestId,
   accounts,
   due,
+  statements = [],
 }: {
   cardId: string;
   today: string;
   requestId: string;
   accounts: AccountWithBalance[];
   due: number;
+  statements?: {
+    id: string;
+    dueOn: string;
+    closesOn: string;
+    unpaid: number;
+  }[];
 }) {
   const [rows, setRows] = useState([{ id: "", amount: "" }]);
   const [state, action, pending] = useActionState(
@@ -270,6 +278,7 @@ export function CardPaymentForm({
       (sum, row) => sum + Math.round((Number(row.amount) || 0) * 100),
       0,
     ) / 100;
+  const allocations = allocatePayment(total, statements);
   if (!accounts.length)
     return (
       <p className="text-muted-foreground text-sm">
@@ -379,6 +388,22 @@ export function CardPaymentForm({
       <p className="text-sm font-medium">
         Total del pago: {money.format(total)}
       </p>
+      {allocations.map((allocation) => (
+        <input
+          key={allocation.statementId}
+          type="hidden"
+          name="allocation"
+          value={JSON.stringify({
+            statement_id: allocation.statementId,
+            amount: allocation.amount,
+          })}
+        />
+      ))}
+      {allocations.length > 0 && (
+        <p className="text-muted-foreground bg-muted rounded-lg p-3 text-xs">
+          Se aplicará primero a los estados más próximos a vencer.
+        </p>
+      )}
       <p className="text-muted-foreground text-xs">
         Se registra una transferencia desde cada cuenta. El pago no se cuenta
         como otro gasto y se guarda completo o no se guarda.

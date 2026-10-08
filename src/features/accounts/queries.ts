@@ -103,6 +103,15 @@ export async function getAccount(id: string) {
   let schedule: Database["public"]["Functions"]["card_installment_schedule"]["Returns"] =
     [];
   let categories: { id: string; name: string }[] = [];
+  let statements: {
+    id: string;
+    closes_on: string;
+    due_on: string;
+    app_total: number;
+    bank_cash_due: number;
+    note: string;
+    allocated: number;
+  }[] = [];
   const canTransact = canAccess(
     profile.role,
     permissions,
@@ -121,57 +130,82 @@ export async function getAccount(id: string) {
       p_date: cycle.closesOn,
     });
     if (error) throw new Error("No se pudo calcular el estado de cuenta.");
-    const [unpaid, unbilled, loadedPlans, loadedSchedule, categoryResult] =
-      await Promise.all([
-        supabase.rpc("card_statement_unpaid", {
-          p_account_id: id,
-          p_close: cycle.closesOn,
-          p_today: today,
-        }),
-        supabase.rpc("card_unbilled_installments", {
-          p_card_id: id,
-          p_date: cycle.closesOn,
-        }),
-        collectPages(async (offset, size) => {
-          const result = await supabase
-            .from("card_installment_plans")
-            .select("*")
-            .eq("card_id", id)
-            .order("created_at")
-            .order("id")
-            .range(offset, offset + size - 1);
-          if (result.error)
-            throw new Error("No se pudieron cargar los planes.");
-          return result.data;
-        }),
-        collectPages(async (offset, size) => {
-          const result = await supabase
-            .rpc("card_installment_schedule", {
-              p_card_id: id,
-              p_after: "0001-01-01",
-              p_until: "9999-12-31",
-            })
-            .order("plan_id")
-            .order("installment")
-            .range(offset, offset + size - 1);
-          if (result.error)
-            throw new Error("No se pudieron cargar las cuotas.");
-          return result.data;
-        }),
-        canTransact
-          ? supabase
-              .from("categories")
-              .select("id,name")
-              .eq("type", "expense")
-              .eq("is_archived", false)
-              .order("name")
-          : null,
-      ]);
-    if (unpaid.error || unbilled.error || categoryResult?.error)
+    const [
+      unpaid,
+      unbilled,
+      loadedPlans,
+      loadedSchedule,
+      categoryResult,
+      statementResult,
+    ] = await Promise.all([
+      supabase.rpc("card_statement_unpaid", {
+        p_account_id: id,
+        p_close: cycle.closesOn,
+        p_today: today,
+      }),
+      supabase.rpc("card_unbilled_installments", {
+        p_card_id: id,
+        p_date: cycle.closesOn,
+      }),
+      collectPages(async (offset, size) => {
+        const result = await supabase
+          .from("card_installment_plans")
+          .select("*")
+          .eq("card_id", id)
+          .order("created_at")
+          .order("id")
+          .range(offset, offset + size - 1);
+        if (result.error) throw new Error("No se pudieron cargar los planes.");
+        return result.data;
+      }),
+      collectPages(async (offset, size) => {
+        const result = await supabase
+          .rpc("card_installment_schedule", {
+            p_card_id: id,
+            p_after: "0001-01-01",
+            p_until: "9999-12-31",
+          })
+          .order("plan_id")
+          .order("installment")
+          .range(offset, offset + size - 1);
+        if (result.error) throw new Error("No se pudieron cargar las cuotas.");
+        return result.data;
+      }),
+      canTransact
+        ? supabase
+            .from("categories")
+            .select("id,name")
+            .eq("type", "expense")
+            .eq("is_archived", false)
+            .order("name")
+        : null,
+      supabase
+        .from("card_statements")
+        .select(
+          "id,closes_on,due_on,app_total,bank_cash_due,note,card_statement_allocations(amount)",
+        )
+        .eq("card_id", id)
+        .order("due_on"),
+    ]);
+    if (
+      unpaid.error ||
+      unbilled.error ||
+      categoryResult?.error ||
+      statementResult.error
+    )
       throw new Error("No se pudo calcular el pago mensual.");
     plans = loadedPlans;
     schedule = loadedSchedule;
     categories = categoryResult?.data ?? [];
+    statements = (statementResult.data ?? []).map((item) => ({
+      ...item,
+      app_total: Number(item.app_total),
+      bank_cash_due: Number(item.bank_cash_due),
+      allocated: (item.card_statement_allocations ?? []).reduce(
+        (sum, allocation) => sum + Number(allocation.amount),
+        0,
+      ),
+    }));
     statement = {
       ...cycle,
       balance: Math.max(0, Number(balance ?? 0) - Number(unbilled.data ?? 0)),
@@ -213,6 +247,7 @@ export async function getAccount(id: string) {
     plans,
     schedule,
     categories,
+    statements,
     canTransact,
     paymentAccounts: accounts.filter(
       (item) => !item.is_archived && item.type !== "credit_card",

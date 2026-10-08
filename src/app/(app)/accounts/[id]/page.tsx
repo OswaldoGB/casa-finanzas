@@ -10,6 +10,7 @@ import {
   RemoveInstallmentForm,
 } from "@/features/accounts/components/card-forms";
 import { CategoryIcon } from "@/features/catalogs/components/category-icon";
+import { CardStatementForm } from "@/features/accounts/components/card-statement-form";
 
 export const metadata = { title: "Detalle de cuenta" };
 const money = new Intl.NumberFormat("en-US", {
@@ -72,6 +73,7 @@ export default async function AccountPage({
     categories,
     canTransact,
     paymentAccounts,
+    statements,
   } = result;
   const card = account.type === "credit_card";
   const categoryById = new Map(
@@ -169,6 +171,41 @@ export default async function AccountPage({
               </p>
             </div>
           )}
+          {statements.length > 0 && (
+            <div className="space-y-2 border-t pt-4 text-sm">
+              <p className="font-medium">Estados conciliados</p>
+              {statements.map((item) => {
+                const pending = Math.max(
+                  0,
+                  item.bank_cash_due - item.allocated,
+                );
+                return (
+                  <div
+                    key={item.id}
+                    className="bg-muted/60 grid gap-1 rounded-lg p-3 sm:grid-cols-4"
+                  >
+                    <span>Corte {item.closes_on}</span>
+                    <span>
+                      Banco <strong>{money.format(item.bank_cash_due)}</strong>
+                    </span>
+                    <span
+                      className={
+                        item.bank_cash_due === item.app_total
+                          ? ""
+                          : "text-warning"
+                      }
+                    >
+                      App {money.format(item.app_total)} ·{" "}
+                      {money.format(item.bank_cash_due - item.app_total)}
+                    </span>
+                    <span>
+                      Pendiente <strong>{money.format(pending)}</strong>
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </section>
       )}
       {card && plans.length > 0 && (
@@ -176,21 +213,45 @@ export default async function AccountPage({
           <h2 className="text-lg font-semibold">Compras a plazos</h2>
           {plans.map((plan) => {
             const rows = schedule.filter((row) => row.plan_id === plan.id);
-            const future = rows.filter(
-              (row) => row.close_date > (statement?.closesOn ?? today),
-            );
             const totalInstallments =
               plan.installments + plan.paid_installments;
+            const next = rows.find((row) => row.close_date >= today) ?? rows[0];
+            const progress = totalInstallments
+              ? Math.round((plan.paid_installments / totalInstallments) * 100)
+              : 0;
             return (
               <article
                 key={plan.id}
                 className="bg-card space-y-3 rounded-xl border p-4"
               >
-                <h3 className="font-medium">{plan.name}</h3>
-                <p className="text-sm">
-                  {money.format(Number(plan.amount))} pendientes en{" "}
-                  {plan.installments} cuotas · {future.length} por facturar
-                </p>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <h3 className="font-medium">{plan.name}</h3>
+                  <span className="bg-primary/10 text-primary rounded-full px-2.5 py-1 text-xs font-medium">
+                    Cuota {next?.installment ?? totalInstallments} de{" "}
+                    {totalInstallments}
+                  </span>
+                </div>
+                <div className="bg-muted h-2 overflow-hidden rounded-full">
+                  <div
+                    className="bg-primary h-full rounded-full"
+                    style={{ width: `${progress}%` }}
+                  />
+                </div>
+                <div className="grid gap-2 text-sm sm:grid-cols-3">
+                  <p>
+                    Saldo pendiente{" "}
+                    <strong>{money.format(Number(plan.amount))}</strong>
+                  </p>
+                  <p>
+                    Próxima cuota{" "}
+                    <strong>
+                      {next ? money.format(Number(next.amount)) : "—"}
+                    </strong>
+                  </p>
+                  <p>
+                    Próximo pago <strong>{next?.due_date ?? "—"}</strong>
+                  </p>
+                </div>
                 {plan.paid_installments > 0 && (
                   <p className="text-muted-foreground text-xs">
                     Registrado con {plan.paid_installments} de{" "}
@@ -245,6 +306,17 @@ export default async function AccountPage({
       {card && canEdit && !account.is_archived && statement && (
         <>
           <section className="bg-card space-y-4 rounded-2xl border p-5 sm:p-6">
+            <h2 className="text-lg font-semibold">
+              Registrar estado del banco
+            </h2>
+            <CardStatementForm
+              cardId={account.id}
+              closesOn={statement.closesOn}
+              appTotal={statement.balance}
+              requestId={randomUUID()}
+            />
+          </section>
+          <section className="bg-card space-y-4 rounded-2xl border p-5 sm:p-6">
             <h2 className="text-lg font-semibold">Pagar tarjeta</h2>
             {canTransact ? (
               <CardPaymentForm
@@ -253,6 +325,12 @@ export default async function AccountPage({
                 requestId={randomUUID()}
                 accounts={paymentAccounts}
                 due={statement.unpaid}
+                statements={statements.map((item) => ({
+                  id: item.id,
+                  dueOn: item.due_on,
+                  closesOn: item.closes_on,
+                  unpaid: Math.max(0, item.bank_cash_due - item.allocated),
+                }))}
               />
             ) : (
               <p className="text-muted-foreground text-sm">
