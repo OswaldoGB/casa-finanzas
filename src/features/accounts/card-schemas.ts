@@ -91,6 +91,19 @@ export const installmentSchema = z
         message: "Elige la categoría del gasto",
       });
   });
+
+export const cardStatementSchema = z
+  .object({
+    card_id: id,
+    closes_on: date,
+    due_on: date,
+    bank_cash_due: amount,
+    note: z.string().trim().max(500),
+  })
+  .refine((value) => value.due_on > value.closes_on, {
+    path: ["due_on"],
+    message: "La fecha límite debe ser posterior al corte",
+  });
 export const cardPaymentSchema = z
   .object({
     card_id: id,

@@ -347,6 +347,122 @@ export type Database = {
           },
         ]
       }
+      card_statement_allocations: {
+        Row: {
+          amount: number
+          card_payment_id: string
+          created_at: string
+          household_id: string
+          id: string
+          statement_id: string
+        }
+        Insert: {
+          amount: number
+          card_payment_id: string
+          created_at?: string
+          household_id: string
+          id?: string
+          statement_id: string
+        }
+        Update: {
+          amount?: number
+          card_payment_id?: string
+          created_at?: string
+          household_id?: string
+          id?: string
+          statement_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "card_statement_allocations_card_payment_id_household_id_fkey"
+            columns: ["card_payment_id", "household_id"]
+            isOneToOne: false
+            referencedRelation: "card_payments"
+            referencedColumns: ["id", "household_id"]
+          },
+          {
+            foreignKeyName: "card_statement_allocations_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "card_statement_allocations_statement_id_household_id_fkey"
+            columns: ["statement_id", "household_id"]
+            isOneToOne: false
+            referencedRelation: "card_statements"
+            referencedColumns: ["id", "household_id"]
+          },
+        ]
+      }
+      card_statements: {
+        Row: {
+          app_total: number
+          bank_cash_due: number
+          card_id: string
+          closes_on: string
+          created_at: string
+          created_by: string
+          due_on: string
+          household_id: string
+          id: string
+          note: string
+          starts_on: string
+          updated_at: string
+        }
+        Insert: {
+          app_total: number
+          bank_cash_due: number
+          card_id: string
+          closes_on: string
+          created_at?: string
+          created_by: string
+          due_on: string
+          household_id: string
+          id: string
+          note?: string
+          starts_on: string
+          updated_at?: string
+        }
+        Update: {
+          app_total?: number
+          bank_cash_due?: number
+          card_id?: string
+          closes_on?: string
+          created_at?: string
+          created_by?: string
+          due_on?: string
+          household_id?: string
+          id?: string
+          note?: string
+          starts_on?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "card_statements_card_id_household_id_fkey"
+            columns: ["card_id", "household_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id", "household_id"]
+          },
+          {
+            foreignKeyName: "card_statements_created_by_household_id_fkey"
+            columns: ["created_by", "household_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id", "household_id"]
+          },
+          {
+            foreignKeyName: "card_statements_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       categories: {
         Row: {
           color: string
@@ -1389,6 +1505,10 @@ export type Database = {
           balance: number
         }[]
       }
+      allocate_card_payment: {
+        Args: { p_allocations: Json; p_card_payment_id: string }
+        Returns: undefined
+      }
       analytics_snapshot: {
         Args: {
           p_from: string
@@ -1600,6 +1720,17 @@ export type Database = {
           p_payment_method_id?: string
         }
         Returns: Json
+      }
+      upsert_card_statement: {
+        Args: {
+          p_bank_cash_due: number
+          p_card_id: string
+          p_closes_on: string
+          p_due_on: string
+          p_id: string
+          p_note?: string
+        }
+        Returns: string
       }
       validate_purchase_refs: {
         Args: {
