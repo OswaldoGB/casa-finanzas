@@ -20,25 +20,38 @@ export async function getAnalytics(
   to?: string,
 ) {
   const { supabase, profile } = await requireModule(module);
-  const [household, catalog, categoryCatalog] = await Promise.all([
-    supabase
-      .from("households")
-      .select("timezone")
-      .eq("id", profile.household_id)
-      .single(),
-    supabase
-      .from("accounts")
-      .select(
-        "id,name,type,color,is_archived,statement_closing_day,payment_due_day",
-      )
-      .eq("household_id", profile.household_id)
-      .order("name"),
-    supabase
-      .from("categories")
-      .select("id,icon")
-      .eq("household_id", profile.household_id),
-  ]);
-  if (household.error || catalog.error || categoryCatalog.error)
+  const [household, catalog, categoryCatalog, statementCatalog] =
+    await Promise.all([
+      supabase
+        .from("households")
+        .select("timezone")
+        .eq("id", profile.household_id)
+        .single(),
+      supabase
+        .from("accounts")
+        .select(
+          "id,name,type,color,is_archived,statement_closing_day,payment_due_day",
+        )
+        .eq("household_id", profile.household_id)
+        .order("name"),
+      supabase
+        .from("categories")
+        .select("id,icon")
+        .eq("household_id", profile.household_id),
+      supabase
+        .from("card_statements")
+        .select(
+          "card_id,due_on,bank_cash_due,card_statement_allocations(amount)",
+        )
+        .eq("household_id", profile.household_id)
+        .order("due_on"),
+    ]);
+  if (
+    household.error ||
+    catalog.error ||
+    categoryCatalog.error ||
+    statementCatalog.error
+  )
     throw new Error("No se pudo cargar el resumen financiero.");
   const today = todayInTimeZone(new Date(), household.data.timezone);
   const datedBalances = await Promise.all(
@@ -78,6 +91,21 @@ export async function getAnalytics(
   horizon.setUTCDate(horizon.getUTCDate() + 14);
   const lastDate = horizon.toISOString().slice(0, 10);
   const upcoming: UpcomingPayment[] = [...snapshot.upcoming];
+  const bankStatements = new Map<string, { dueOn: string; unpaid: number }>();
+  for (const item of statementCatalog.data ?? []) {
+    if (bankStatements.has(item.card_id)) continue;
+    bankStatements.set(item.card_id, {
+      dueOn: item.due_on,
+      unpaid: Math.max(
+        0,
+        Number(item.bank_cash_due) -
+          (item.card_statement_allocations ?? []).reduce(
+            (sum, allocation) => sum + Number(allocation.amount),
+            0,
+          ),
+      ),
+    });
+  }
   for (const card of catalog.data.filter(
     (account) => account.type === "credit_card" && !account.is_archived,
   )) {
@@ -86,7 +114,9 @@ export async function getAnalytics(
       card.statement_closing_day!,
       card.payment_due_day!,
     );
-    if (cycle.dueOn < today || cycle.dueOn > lastDate) continue;
+    const bank = bankStatements.get(card.id);
+    const dueOn = bank?.dueOn ?? cycle.dueOn;
+    if (dueOn < today || dueOn > lastDate) continue;
     const { data: unpaid, error: unpaidError } = await supabase.rpc(
       "card_statement_unpaid",
       {
@@ -97,16 +127,16 @@ export async function getAnalytics(
     );
     if (unpaidError) throw new Error("No se pudo calcular el pago de tarjeta.");
     const debt = remainingCardPayment(
-      Number(unpaid ?? 0),
+      bank?.unpaid ?? Number(unpaid ?? 0),
       card.id,
-      cycle.dueOn,
+      dueOn,
       snapshot.upcoming,
     );
     if (debt > 0)
       upcoming.push({
         id: card.id,
         name: card.name,
-        date: cycle.dueOn,
+        date: dueOn,
         amount: -debt,
         cashImpact: -debt,
         kind: "card",

@@ -15,6 +15,8 @@ export type ProjectionInput = {
     statement_close: string | null;
     statement_unpaid: number;
     installment_future?: number;
+    reconciled_due_on?: string | null;
+    reconciled_unpaid?: number | null;
   }[];
   installments?: {
     card_id: string;
@@ -112,12 +114,16 @@ export function projectCash(
     const close =
       account.statement_close ??
       monthDate(input.today, -1, account.statement_closing_day);
-    const due = monthDate(
+    const estimatedDue = monthDate(
       close,
       monthDate(close, 0, account.payment_due_day) > close ? 0 : 1,
       account.payment_due_day,
     );
-    const unpaid = Math.max(0, cents(account.statement_unpaid));
+    const due = account.reconciled_due_on ?? estimatedDue;
+    const unpaid = Math.max(
+      0,
+      cents(account.reconciled_unpaid ?? account.statement_unpaid),
+    );
     const scheduledFuture = Math.max(0, cents(account.installment_future ?? 0));
     const future = Math.min(
       Math.max(0, cents(account.balance) - unpaid),

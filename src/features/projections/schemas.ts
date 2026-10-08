@@ -15,6 +15,8 @@ export const projectionInputSchema = z.object({
         .nullable()
         .transform((value) => value ?? 0),
       installment_future: z.number().default(0),
+      reconciled_due_on: z.string().date().nullable().default(null),
+      reconciled_unpaid: z.number().nullable().default(null),
     }),
   ),
   installments: z
