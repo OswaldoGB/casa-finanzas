@@ -99,26 +99,14 @@ export async function payCard(
       error:
         "Indica al menos una cuenta y un importe válido. No repitas cuentas.",
     };
-  const { error } = await supabase.rpc("pay_credit_card", {
+  const { error } = await supabase.rpc("pay_credit_card_with_allocations", {
     p_id: requestId.data,
     p_card_id: parsed.data.card_id,
     p_date: parsed.data.date,
     p_sources: parsed.data.sources,
+    p_allocations: allocations,
   });
   if (error) return { error: error.message };
-  if (allocations.length) {
-    const { error: allocationError } = await supabase.rpc(
-      "allocate_card_payment",
-      {
-        p_card_payment_id: requestId.data,
-        p_allocations: allocations,
-      },
-    );
-    if (allocationError)
-      return {
-        error: `El pago fue registrado, pero no se pudo conciliar: ${allocationError.message}`,
-      };
-  }
   refresh(parsed.data.card_id);
   return {
     ok: "Pago registrado. Se actualizaron la tarjeta y las cuentas de origen.",

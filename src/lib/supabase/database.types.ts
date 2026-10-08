@@ -1688,6 +1688,16 @@ export type Database = {
         }
         Returns: string
       }
+      pay_credit_card_with_allocations: {
+        Args: {
+          p_allocations?: Json
+          p_card_id: string
+          p_date: string
+          p_id: string
+          p_sources: Json
+        }
+        Returns: string
+      }
       project_snapshot: { Args: never; Returns: Json }
       projection_inputs: { Args: { p_months?: number }; Returns: Json }
       projection_inputs_without_installments: {
