@@ -392,7 +392,7 @@ export default async function DashboardPage() {
           className="bg-card min-w-0 rounded-2xl border p-5 sm:p-6"
         >
           <h2 id="balances-title" className="font-semibold">
-            Tus cuentas
+            Tu billetera
           </h2>
           <div className="text-muted-foreground mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs">
             <span>Disponible: {money.format(liquidBalance)}</span>
@@ -437,7 +437,7 @@ export default async function DashboardPage() {
               href="/accounts"
               className="text-primary mt-3 inline-flex items-center gap-1 text-xs font-medium"
             >
-              Ver cuentas y tarjetas{" "}
+              Ver billetera{" "}
               <ChevronRight className="size-3.5" aria-hidden />
             </Link>
           )}

@@ -31,7 +31,7 @@ export async function getAnalytics(
       supabase
         .from("accounts")
         .select(
-          "id,name,type,color,is_archived,statement_closing_day,payment_due_day",
+          "id,name,type,color,is_archived,statement_closing_day,payment_due_day,institution,card_network,card_product,card_last_four",
         )
         .eq("household_id", profile.household_id)
         .order("name"),
@@ -86,6 +86,10 @@ export async function getAnalytics(
     name: account.name,
     type: account.type,
     color: account.color,
+    institution: account.institution,
+    card_network: account.card_network,
+    card_product: account.card_product,
+    card_last_four: account.card_last_four,
     balance: balances.get(account.id) ?? 0,
   }));
   const horizon = new Date(`${today}T00:00:00Z`);
