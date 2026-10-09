@@ -21,6 +21,7 @@ import { dashboardPriorities } from "@/features/dashboard/priorities";
 import { getDashboardBudgets } from "@/features/budgets/queries";
 import { budgetProgress } from "@/features/budgets/schemas";
 import { getDashboardSavings } from "@/features/dashboard/queries";
+import { CardArtwork } from "@/features/accounts/components/card-artwork";
 
 export const metadata = { title: "Inicio" };
 const money = new Intl.NumberFormat("en-US", {
@@ -406,10 +407,14 @@ export default async function DashboardPage() {
             <ul className="divide-border mt-4 divide-y">
               {data.accounts.slice(0, 6).map((account) => (
                 <li key={account.id} className="flex items-center gap-3 py-3">
-                  <span
-                    className="size-2 shrink-0 rounded-full"
-                    style={{ backgroundColor: account.color }}
-                  />
+                  {account.type === "credit_card" ? (
+                    <CardArtwork account={account} compact />
+                  ) : (
+                    <span
+                      className="size-2 shrink-0 rounded-full"
+                      style={{ backgroundColor: account.color }}
+                    />
+                  )}
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium">
                       {account.name}

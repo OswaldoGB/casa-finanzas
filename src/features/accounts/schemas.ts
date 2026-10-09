@@ -24,6 +24,29 @@ const optionalMoney = z
 const optionalDay = z
   .union([z.literal(""), z.coerce.number().int().min(1).max(31)])
   .transform((value) => (value === "" ? null : value));
+const institution = z
+  .enum([
+    "banco_agricola",
+    "bac",
+    "cuscatlan",
+    "davivienda",
+    "promerica",
+    "azul",
+    "hipotecario",
+    "atlantida",
+    "siman",
+    "other",
+  ])
+  .default("other");
+const network = z
+  .enum(["visa", "mastercard", "amex", "siman", "other"])
+  .default("other");
+const lastFour = z
+  .string()
+  .trim()
+  .regex(/^$|^\d{4}$/, "Escribe solo los últimos 4 dígitos")
+  .transform((value) => value || null)
+  .default("");
 
 export const accountSchema = z
   .object({
@@ -43,6 +66,10 @@ export const accountSchema = z
       "chart-no-axes-combined",
       "circle-dollar-sign",
     ]),
+    institution,
+    card_network: network,
+    card_product: z.string().trim().max(80).default(""),
+    card_last_four: lastFour,
     credit_limit: optionalMoney,
     statement_closing_day: optionalDay,
     payment_due_day: optionalDay,
@@ -76,6 +103,9 @@ export const accountSchema = z
           credit_limit: null,
           statement_closing_day: null,
           payment_due_day: null,
+          card_network: null,
+          card_product: null,
+          card_last_four: null,
         },
   );
 

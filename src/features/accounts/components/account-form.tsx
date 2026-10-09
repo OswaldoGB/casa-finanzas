@@ -1,10 +1,15 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { saveAccount } from "../actions";
 import type { Account } from "../queries";
 import type { FormState } from "../../auth/schemas";
 import { FormSelect } from "@/components/ui/form-select";
+import {
+  cardProductOptions,
+  institutions,
+  networks,
+} from "../card-appearance";
 
 const types = [
   ["cash", "Efectivo"],
@@ -30,6 +35,16 @@ export function AccountForm({
   account?: Account;
   onSuccess?: (message: string) => void;
 }) {
+  const [selectedInstitution, setSelectedInstitution] = useState(
+    account?.institution ?? "other",
+  );
+  const [selectedProduct, setSelectedProduct] = useState(
+    account?.card_product ?? "",
+  );
+  function changeInstitution(institution: string) {
+    setSelectedInstitution(institution);
+    setSelectedProduct(cardProductOptions(institution)[0]?.value ?? "");
+  }
   const [state, action, pending] = useActionState(
     async (previous: FormState, data: FormData) => {
       const result = await saveAccount(previous, data);
@@ -126,6 +141,22 @@ export function AccountForm({
           />
         </div>
       </div>
+      <div className="grid gap-1.5">
+        <label htmlFor="account-institution" className="text-sm font-medium">
+          Banco o emisor
+        </label>
+        <FormSelect
+          id="account-institution"
+          name="institution"
+          value={selectedInstitution}
+          onValueChange={changeInstitution}
+          placeholder="Selecciona un emisor"
+          options={institutions.map(({ value, label }) => ({ value, label }))}
+        />
+        <p className="text-muted-foreground text-xs">
+          Sirve para reconocer tu cuenta y mostrar su marca.
+        </p>
+      </div>
       <fieldset className="grid gap-4 rounded-xl border p-4">
         <legend className="px-1 text-sm font-medium">
           Solo para tarjetas de crédito
@@ -150,6 +181,54 @@ export function AccountForm({
           />
           {error("credit_limit") && (
             <p className="text-destructive text-xs">{error("credit_limit")}</p>
+          )}
+        </div>
+        <div className="grid gap-1.5 sm:grid-cols-2">
+          <div className="grid gap-1.5">
+            <label htmlFor="card-network" className="text-sm font-medium">
+              Red de tarjeta
+            </label>
+            <FormSelect
+              id="card-network"
+              name="card_network"
+              defaultValue={account?.card_network ?? "other"}
+              placeholder="Red"
+              options={networks.map(({ value, label }) => ({ value, label }))}
+            />
+          </div>
+          <div className="grid gap-1.5">
+            <label htmlFor="card-product" className="text-sm font-medium">
+              Variante
+            </label>
+            <FormSelect
+              id="card-product"
+              name="card_product"
+              value={selectedProduct}
+              onValueChange={setSelectedProduct}
+              placeholder="Variante"
+              options={cardProductOptions(selectedInstitution).map(
+                ({ value, label }) => ({ value, label }),
+              )}
+            />
+          </div>
+        </div>
+        <div className="grid gap-1.5">
+          <label htmlFor="card-last-four" className="text-sm font-medium">
+            Últimos cuatro dígitos <span className="text-muted-foreground font-normal">(opcional)</span>
+          </label>
+          <input
+            id="card-last-four"
+            name="card_last_four"
+            inputMode="numeric"
+            pattern="[0-9]{4}"
+            maxLength={4}
+            defaultValue={account?.card_last_four ?? ""}
+            placeholder="Ej. 2541"
+            className="border-input bg-background h-11 rounded-lg border px-3 text-sm tabular-nums"
+            aria-invalid={Boolean(error("card_last_four"))}
+          />
+          {error("card_last_four") && (
+            <p className="text-destructive text-xs">{error("card_last_four")}</p>
           )}
         </div>
         <div className="grid grid-cols-2 gap-4">

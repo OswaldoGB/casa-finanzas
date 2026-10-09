@@ -35,6 +35,7 @@ import {
 import { CardStatementForm } from "./card-statement-form";
 import { AccountForm } from "./account-form";
 import { archiveAccount } from "../actions";
+import { CardArtwork } from "./card-artwork";
 
 const money = new Intl.NumberFormat("en-US", {
   style: "currency",
@@ -301,6 +302,9 @@ export function CreditCardDetail(props: Props) {
               <Settings2 className="size-5" />
             </button>
           )}
+        </div>
+        <div className="relative mt-5">
+          <CardArtwork account={account} />
         </div>
         <div className="relative mt-6 grid gap-5 sm:grid-cols-3">
           <div>

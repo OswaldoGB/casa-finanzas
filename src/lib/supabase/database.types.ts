@@ -42,12 +42,16 @@ export type Database = {
       accounts: {
         Row: {
           color: string
+          card_last_four: string | null
+          card_network: string | null
+          card_product: string | null
           created_at: string
           created_by: string
           credit_limit: number | null
           household_id: string
           icon: string
           id: string
+          institution: string
           is_archived: boolean
           name: string
           opening_balance: number
@@ -58,12 +62,16 @@ export type Database = {
         }
         Insert: {
           color?: string
+          card_last_four?: string | null
+          card_network?: string | null
+          card_product?: string | null
           created_at?: string
           created_by: string
           credit_limit?: number | null
           household_id: string
           icon?: string
           id?: string
+          institution?: string
           is_archived?: boolean
           name: string
           opening_balance?: number
@@ -74,12 +82,16 @@ export type Database = {
         }
         Update: {
           color?: string
+          card_last_four?: string | null
+          card_network?: string | null
+          card_product?: string | null
           created_at?: string
           created_by?: string
           credit_limit?: number | null
           household_id?: string
           icon?: string
           id?: string
+          institution?: string
           is_archived?: boolean
           name?: string
           opening_balance?: number

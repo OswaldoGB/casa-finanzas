@@ -2,6 +2,7 @@ import { ExportButtons } from "@/features/exports/components/export-buttons";
 import Link from "next/link";
 import { CreditCard, Landmark, PiggyBank, Wallet } from "lucide-react";
 import { getAccounts } from "@/features/accounts/queries";
+import { CardArtwork } from "@/features/accounts/components/card-artwork";
 
 export const metadata = { title: "Cuentas y tarjetas" };
 
@@ -78,15 +79,19 @@ export default async function AccountsPage() {
                   className="bg-card focus-visible:ring-ring hover:bg-accent/40 block rounded-2xl border p-5 transition-colors focus-visible:ring-2 focus-visible:outline-none"
                 >
                   <span className="flex items-center gap-3">
-                    <span
-                      className="grid size-10 place-items-center rounded-xl"
-                      style={{
-                        backgroundColor: `${account.color}22`,
-                        color: account.color,
-                      }}
-                    >
-                      <Icon className="size-5" aria-hidden />
-                    </span>
+                    {account.type === "credit_card" ? (
+                      <CardArtwork account={account} compact />
+                    ) : (
+                      <span
+                        className="grid size-10 place-items-center rounded-xl"
+                        style={{
+                          backgroundColor: `${account.color}22`,
+                          color: account.color,
+                        }}
+                      >
+                        <Icon className="size-5" aria-hidden />
+                      </span>
+                    )}
                     <span className="min-w-0">
                       <span className="block truncate font-medium">
                         {account.name}
