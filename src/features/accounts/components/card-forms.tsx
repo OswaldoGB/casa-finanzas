@@ -3,7 +3,7 @@
 import { useActionState, useState } from "react";
 import { saveInstallment, payCard, removeInstallment } from "../card-actions";
 import { installmentAmounts } from "../card-schemas";
-import { allocatePayment } from "../card-statements";
+import { paymentPreview } from "../card-payment-preview";
 import type { AccountWithBalance } from "../queries";
 import type { FormState } from "../../auth/schemas";
 
@@ -278,7 +278,10 @@ export function CardPaymentForm({
       (sum, row) => sum + Math.round((Number(row.amount) || 0) * 100),
       0,
     ) / 100;
-  const allocations = allocatePayment(total, statements);
+  const totalDue = statements.reduce(
+    (sum, statement) => sum + statement.unpaid,
+    0,
+  );
   if (!accounts.length)
     return (
       <p className="text-muted-foreground text-sm">
@@ -290,9 +293,10 @@ export function CardPaymentForm({
       <input type="hidden" name="card_id" value={cardId} />
       <input type="hidden" name="request_id" value={requestId} />
       <p className="text-muted-foreground text-sm">
-        Pendiente del último corte:{" "}
-        <strong className="text-foreground">{money.format(due)}</strong>. Puedes
-        hacer un abono parcial o pagar más para reducir la deuda total.
+        Pendiente del próximo corte:{" "}
+        <strong className="text-foreground">{money.format(due)}</strong>. Total
+        conciliado pendiente:{" "}
+        <strong className="text-foreground">{money.format(totalDue)}</strong>.
       </p>
       <label className="grid gap-1.5 text-sm font-medium">
         Fecha del pago
@@ -388,20 +392,10 @@ export function CardPaymentForm({
       <p className="text-sm font-medium">
         Total del pago: {money.format(total)}
       </p>
-      {allocations.map((allocation) => (
-        <input
-          key={allocation.statementId}
-          type="hidden"
-          name="allocation"
-          value={JSON.stringify({
-            statement_id: allocation.statementId,
-            amount: allocation.amount,
-          })}
-        />
-      ))}
-      {allocations.length > 0 && (
+      {statements.length > 0 && total > 0 && (
         <p className="text-muted-foreground bg-muted rounded-lg p-3 text-xs">
-          Se aplicará primero a los estados más próximos a vencer.
+          {paymentPreview(total, statements)} Se aplicará automáticamente del
+          corte más antiguo al más reciente.
         </p>
       )}
       <p className="text-muted-foreground text-xs">

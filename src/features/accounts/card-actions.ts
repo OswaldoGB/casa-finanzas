@@ -68,21 +68,6 @@ export async function payCard(
   await requireModule("transactions", "edit");
   const ids = form.getAll("source_id");
   const amounts = form.getAll("source_amount");
-  const allocations = form
-    .getAll("allocation")
-    .map((value) => {
-      try {
-        return JSON.parse(String(value)) as {
-          statement_id: string;
-          amount: number;
-        };
-      } catch {
-        return null;
-      }
-    })
-    .filter((value): value is { statement_id: string; amount: number } =>
-      Boolean(value),
-    );
   const parsed = cardPaymentSchema.safeParse({
     card_id: form.get("card_id"),
     date: form.get("date"),
@@ -99,12 +84,11 @@ export async function payCard(
       error:
         "Indica al menos una cuenta y un importe válido. No repitas cuentas.",
     };
-  const { error } = await supabase.rpc("pay_credit_card_with_allocations", {
+  const { error } = await supabase.rpc("pay_credit_card_and_settle", {
     p_id: requestId.data,
     p_card_id: parsed.data.card_id,
     p_date: parsed.data.date,
     p_sources: parsed.data.sources,
-    p_allocations: allocations,
   });
   if (error) return { error: error.message };
   refresh(parsed.data.card_id);
@@ -123,14 +107,17 @@ export async function saveCardStatement(
     return { fieldErrors: parsed.error.flatten().fieldErrors };
   if (!requestId.success)
     return { error: "Solicitud inválida. Recarga la página." };
-  const { error } = await supabase.rpc("upsert_card_statement", {
-    p_id: requestId.data,
-    p_card_id: parsed.data.card_id,
-    p_closes_on: parsed.data.closes_on,
-    p_due_on: parsed.data.due_on,
-    p_bank_cash_due: parsed.data.bank_cash_due,
-    p_note: parsed.data.note,
-  });
+  const { error } = await supabase.rpc(
+    "save_card_statement_with_installments",
+    {
+      p_id: requestId.data,
+      p_card_id: parsed.data.card_id,
+      p_closes_on: parsed.data.closes_on,
+      p_due_on: parsed.data.due_on,
+      p_bank_cash_due: parsed.data.bank_cash_due,
+      p_note: parsed.data.note,
+    },
+  );
   if (error) return { error: error.message };
   refresh(parsed.data.card_id);
   return { ok: "Estado de cuenta del banco guardado." };

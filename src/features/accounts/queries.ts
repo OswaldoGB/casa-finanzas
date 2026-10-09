@@ -6,6 +6,11 @@ import { todayInTimeZone } from "@/features/recurring/processing";
 import type { Database } from "@/lib/supabase/database.types";
 import { accountIdSchema } from "./schemas";
 import { collectPages } from "../exports/format";
+import {
+  installmentSettlementStatus,
+  statementSettlementStatus,
+  type CardStatementSummary,
+} from "./card-settlement";
 
 export type Account = Database["public"]["Tables"]["accounts"]["Row"];
 export type AccountWithBalance = Account & { balance: number };
@@ -103,15 +108,7 @@ export async function getAccount(id: string) {
   let schedule: Database["public"]["Functions"]["card_installment_schedule"]["Returns"] =
     [];
   let categories: { id: string; name: string }[] = [];
-  let statements: {
-    id: string;
-    closes_on: string;
-    due_on: string;
-    app_total: number;
-    bank_cash_due: number;
-    note: string;
-    allocated: number;
-  }[] = [];
+  let statements: CardStatementSummary[] = [];
   const canTransact = canAccess(
     profile.role,
     permissions,
@@ -182,7 +179,7 @@ export async function getAccount(id: string) {
       supabase
         .from("card_statements")
         .select(
-          "id,closes_on,due_on,app_total,bank_cash_due,note,card_statement_allocations(amount)",
+          "id,closes_on,due_on,app_total,bank_cash_due,note,card_statement_allocations(amount),card_statement_installments(id,plan_id,installment,close_date,due_date,amount,card_installment_payment_allocations(amount))",
         )
         .eq("card_id", id)
         .order("due_on"),
@@ -197,15 +194,40 @@ export async function getAccount(id: string) {
     plans = loadedPlans;
     schedule = loadedSchedule;
     categories = categoryResult?.data ?? [];
-    statements = (statementResult.data ?? []).map((item) => ({
-      ...item,
-      app_total: Number(item.app_total),
-      bank_cash_due: Number(item.bank_cash_due),
-      allocated: (item.card_statement_allocations ?? []).reduce(
+    statements = (statementResult.data ?? []).map((item) => {
+      const paid = (item.card_statement_allocations ?? []).reduce(
         (sum, allocation) => sum + Number(allocation.amount),
         0,
-      ),
-    }));
+      );
+      const bankDue = Number(item.bank_cash_due);
+      return {
+        id: item.id,
+        closesOn: item.closes_on,
+        dueOn: item.due_on,
+        appTotal: Number(item.app_total),
+        bankDue,
+        paid,
+        unpaid: Math.max(0, bankDue - paid),
+        note: item.note,
+        status: statementSettlementStatus({ bankDue, paid }),
+        installments: (item.card_statement_installments ?? []).map((line) => {
+          const linePaid = (
+            line.card_installment_payment_allocations ?? []
+          ).reduce((sum, allocation) => sum + Number(allocation.amount), 0);
+          const amount = Number(line.amount);
+          return {
+            id: line.id,
+            planId: line.plan_id,
+            installment: line.installment,
+            closeOn: line.close_date,
+            dueOn: line.due_date,
+            amount,
+            paid: linePaid,
+            status: installmentSettlementStatus({ amount, paid: linePaid }),
+          };
+        }),
+      };
+    });
     statement = {
       ...cycle,
       balance: Math.max(0, Number(balance ?? 0) - Number(unbilled.data ?? 0)),

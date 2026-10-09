@@ -8,6 +8,7 @@ create table public.card_statement_installments (
   due_date date not null,
   amount numeric(14,2) not null check (amount > 0),
   created_at timestamptz not null default now(),
+  unique (id, household_id),
   unique (statement_id, plan_id, installment),
   unique (plan_id, installment),
   foreign key (statement_id, household_id) references public.card_statements(id, household_id) on delete cascade,

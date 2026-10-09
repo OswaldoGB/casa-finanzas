@@ -11,6 +11,7 @@ import {
 } from "@/features/accounts/components/card-forms";
 import { CategoryIcon } from "@/features/catalogs/components/category-icon";
 import { CardStatementForm } from "@/features/accounts/components/card-statement-form";
+import { CardStatementCards } from "@/features/accounts/components/card-statement-cards";
 
 export const metadata = { title: "Detalle de cuenta" };
 const money = new Intl.NumberFormat("en-US", {
@@ -171,41 +172,11 @@ export default async function AccountPage({
               </p>
             </div>
           )}
-          {statements.length > 0 && (
-            <div className="space-y-2 border-t pt-4 text-sm">
-              <p className="font-medium">Estados conciliados</p>
-              {statements.map((item) => {
-                const pending = Math.max(
-                  0,
-                  item.bank_cash_due - item.allocated,
-                );
-                return (
-                  <div
-                    key={item.id}
-                    className="bg-muted/60 grid gap-1 rounded-lg p-3 sm:grid-cols-4"
-                  >
-                    <span>Corte {item.closes_on}</span>
-                    <span>
-                      Banco <strong>{money.format(item.bank_cash_due)}</strong>
-                    </span>
-                    <span
-                      className={
-                        item.bank_cash_due === item.app_total
-                          ? ""
-                          : "text-warning"
-                      }
-                    >
-                      App {money.format(item.app_total)} ·{" "}
-                      {money.format(item.bank_cash_due - item.app_total)}
-                    </span>
-                    <span>
-                      Pendiente <strong>{money.format(pending)}</strong>
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          )}
+          <CardStatementCards
+            statements={statements}
+            balance={account.balance}
+            future={statement?.future ?? 0}
+          />
         </section>
       )}
       {card && plans.length > 0 && (
@@ -327,9 +298,9 @@ export default async function AccountPage({
                 due={statement.unpaid}
                 statements={statements.map((item) => ({
                   id: item.id,
-                  dueOn: item.due_on,
-                  closesOn: item.closes_on,
-                  unpaid: Math.max(0, item.bank_cash_due - item.allocated),
+                  dueOn: item.dueOn,
+                  closesOn: item.closesOn,
+                  unpaid: item.unpaid,
                 }))}
               />
             ) : (
