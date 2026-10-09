@@ -1,10 +1,10 @@
 import { ExportButtons } from "@/features/exports/components/export-buttons";
 import Link from "next/link";
-import { CreditCard, Landmark, PiggyBank, Wallet } from "lucide-react";
+import { Landmark, PiggyBank, Wallet } from "lucide-react";
 import { getAccounts } from "@/features/accounts/queries";
 import { CardArtwork } from "@/features/accounts/components/card-artwork";
 
-export const metadata = { title: "Cuentas y tarjetas" };
+export const metadata = { title: "Billetera" };
 
 const money = new Intl.NumberFormat("en-US", {
   style: "currency",
@@ -22,13 +22,17 @@ const typeLabel: Record<string, string> = {
 export default async function AccountsPage() {
   const { accounts, canEdit } = await getAccounts();
   const active = accounts.filter((account) => !account.is_archived);
+  const cards = active.filter((account) => account.type === "credit_card");
+  const liquidAccounts = active.filter(
+    (account) => account.type !== "credit_card",
+  );
   const archived = accounts.filter((account) => account.is_archived);
   return (
     <div className="mx-auto max-w-5xl space-y-6">
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">
-            Cuentas y tarjetas
+            Billetera
           </h1>
           <p className="text-muted-foreground mt-1 text-sm">
             Tus saldos en un solo lugar.
@@ -62,12 +66,59 @@ export default async function AccountsPage() {
           )}
         </div>
       ) : (
-        <ul className="grid gap-3 sm:grid-cols-2">
-          {active.map((account) => {
+        <div className="space-y-8">
+          {cards.length > 0 && (
+            <section className="space-y-3">
+              <div>
+                <h2 className="text-lg font-semibold">Tus tarjetas</h2>
+                <p className="text-muted-foreground mt-1 text-sm">
+                  Deuda, disponible y próximos cortes.
+                </p>
+              </div>
+              <ul className="grid gap-4 sm:grid-cols-2">
+                {cards.map((account) => (
+                  <li key={account.id}>
+                    <Link
+                      href={`/accounts/${account.id}`}
+                      className="bg-card focus-visible:ring-ring block overflow-hidden rounded-3xl border p-3 transition-transform hover:-translate-y-0.5 hover:shadow-lg focus-visible:ring-2 focus-visible:outline-none"
+                    >
+                      <CardArtwork account={account} />
+                      <span className="flex items-end justify-between gap-3 px-1 pt-4 pb-1">
+                        <span className="min-w-0">
+                          <span className="block truncate font-semibold">
+                            {account.name}
+                          </span>
+                          <span className="text-muted-foreground mt-0.5 block text-xs">
+                            Tarjeta de crédito
+                          </span>
+                        </span>
+                        <span className="shrink-0 text-right">
+                          <span className="block text-lg font-semibold tabular-nums">
+                            {money.format(account.balance)}
+                          </span>
+                          <span className="text-muted-foreground block text-xs">
+                            Deuda actual
+                          </span>
+                        </span>
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+          {liquidAccounts.length > 0 && (
+            <section className="space-y-3">
+              <div>
+                <h2 className="text-lg font-semibold">Tus cuentas</h2>
+                <p className="text-muted-foreground mt-1 text-sm">
+                  Efectivo, bancos, ahorros e inversiones.
+                </p>
+              </div>
+              <ul className="grid gap-3 sm:grid-cols-2">
+                {liquidAccounts.map((account) => {
             const Icon =
-              account.type === "credit_card"
-                ? CreditCard
-                : account.type === "savings"
+              account.type === "savings"
                   ? PiggyBank
                   : account.type === "checking"
                     ? Landmark
@@ -79,19 +130,15 @@ export default async function AccountsPage() {
                   className="bg-card focus-visible:ring-ring hover:bg-accent/40 block rounded-2xl border p-5 transition-colors focus-visible:ring-2 focus-visible:outline-none"
                 >
                   <span className="flex items-center gap-3">
-                    {account.type === "credit_card" ? (
-                      <CardArtwork account={account} compact />
-                    ) : (
-                      <span
-                        className="grid size-10 place-items-center rounded-xl"
-                        style={{
-                          backgroundColor: `${account.color}22`,
-                          color: account.color,
-                        }}
-                      >
-                        <Icon className="size-5" aria-hidden />
-                      </span>
-                    )}
+                    <span
+                      className="grid size-10 place-items-center rounded-xl"
+                      style={{
+                        backgroundColor: `${account.color}22`,
+                        color: account.color,
+                      }}
+                    >
+                      <Icon className="size-5" aria-hidden />
+                    </span>
                     <span className="min-w-0">
                       <span className="block truncate font-medium">
                         {account.name}
@@ -104,16 +151,14 @@ export default async function AccountsPage() {
                   <span className="mt-5 block text-2xl font-semibold tabular-nums">
                     {money.format(account.balance)}
                   </span>
-                  {account.type === "credit_card" && (
-                    <span className="text-muted-foreground mt-1 block text-xs">
-                      Deuda actual
-                    </span>
-                  )}
                 </Link>
               </li>
             );
-          })}
-        </ul>
+                })}
+              </ul>
+            </section>
+          )}
+        </div>
       )}
       {archived.length > 0 && (
         <section className="space-y-2">

@@ -161,7 +161,7 @@ export default async function AccountPage({
         href="/accounts"
         className="text-muted-foreground hover:text-foreground text-sm"
       >
-        ← Cuentas y tarjetas
+        ← Billetera
       </Link>
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div>

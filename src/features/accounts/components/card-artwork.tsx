@@ -1,7 +1,6 @@
 "use client";
 
 import Image from "next/image";
-import { CreditCard } from "lucide-react";
 import { useState } from "react";
 import { cardAppearance, institutions } from "../card-appearance";
 
@@ -59,26 +58,6 @@ export function CardArtwork({
           className="object-cover"
           onError={() => setImageFailed(true)}
         />
-      )}
-      {!compact && (
-        <>
-          <div className="absolute inset-0 bg-linear-to-br from-black/5 via-transparent to-black/25" />
-          <div className="absolute inset-x-4 top-4 flex items-start justify-between gap-3 text-xs font-semibold tracking-wide">
-            <span className="max-w-[68%] truncate">{issuer}</span>
-            <span className="rounded bg-black/15 px-2 py-1 backdrop-blur-sm">
-              {appearance.networkLabel}
-            </span>
-          </div>
-          <div className="absolute inset-x-4 bottom-4 flex items-end justify-between gap-3">
-            <div>
-              <p className="text-xs opacity-85">{appearance.label}</p>
-              <p className="mt-1 font-mono text-sm tracking-[0.18em]">
-                {account.card_last_four ? `•••• ${account.card_last_four}` : "••••"}
-              </p>
-            </div>
-            <CreditCard className="size-7 opacity-70" aria-hidden />
-          </div>
-        </>
       )}
     </div>
   );

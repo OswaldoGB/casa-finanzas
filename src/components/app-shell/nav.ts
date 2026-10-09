@@ -36,7 +36,7 @@ export const NAV: { label: string; items: NavItem[] }[] = [
       {
         module: "accounts",
         href: "/accounts",
-        label: "Cuentas",
+        label: "Billetera",
         icon: Landmark,
       },
       {

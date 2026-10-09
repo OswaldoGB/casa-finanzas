@@ -12,7 +12,7 @@ export default async function NewAccountPage() {
         href="/accounts"
         className="text-muted-foreground hover:text-foreground text-sm"
       >
-        ← Cuentas y tarjetas
+        ← Billetera
       </Link>
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Nueva cuenta</h1>
