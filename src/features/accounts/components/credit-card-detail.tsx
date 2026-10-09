@@ -303,10 +303,12 @@ export function CreditCardDetail(props: Props) {
             </button>
           )}
         </div>
-        <div className="relative mt-6 grid gap-6 lg:grid-cols-[minmax(0,24rem)_1fr] lg:items-center">
-          <CardArtwork account={account} />
+        <div className="relative mt-5 grid gap-6 md:grid-cols-[14rem_minmax(0,1fr)] md:items-center">
+          <div className="w-52 sm:w-56">
+            <CardArtwork account={account} />
+          </div>
           <div>
-            <div className="grid gap-5 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
+            <div className="grid gap-5 sm:grid-cols-3">
               <div>
                 <p className="text-muted-foreground text-sm">
                   {account.balance < 0

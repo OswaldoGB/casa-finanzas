@@ -31,9 +31,7 @@ export default async function AccountsPage() {
     <div className="mx-auto max-w-5xl space-y-6">
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">
-            Billetera
-          </h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Billetera</h1>
           <p className="text-muted-foreground mt-1 text-sm">
             Tus saldos en un solo lugar.
           </p>
@@ -80,12 +78,12 @@ export default async function AccountsPage() {
                   <li key={account.id}>
                     <Link
                       href={`/accounts/${account.id}`}
-                      className="bg-card focus-visible:ring-ring block overflow-hidden rounded-3xl border p-3 transition-transform hover:-translate-y-0.5 hover:shadow-lg focus-visible:ring-2 focus-visible:outline-none"
+                      className="bg-card focus-visible:ring-ring hover:bg-accent/40 flex items-center gap-4 overflow-hidden rounded-2xl border p-5 transition-colors focus-visible:ring-2 focus-visible:outline-none"
                     >
-                      <div className="mx-auto max-w-64 sm:max-w-72">
+                      <div className="w-28 shrink-0 sm:w-36">
                         <CardArtwork account={account} />
                       </div>
-                      <span className="flex items-end justify-between gap-3 px-1 pt-4 pb-1">
+                      <span className="flex min-w-0 flex-1 flex-col gap-3">
                         <span className="min-w-0">
                           <span className="block truncate font-semibold">
                             {account.name}
@@ -94,7 +92,7 @@ export default async function AccountsPage() {
                             Tarjeta de crédito
                           </span>
                         </span>
-                        <span className="shrink-0 text-right">
+                        <span>
                           <span className="block text-lg font-semibold tabular-nums">
                             {money.format(account.balance)}
                           </span>
@@ -119,43 +117,43 @@ export default async function AccountsPage() {
               </div>
               <ul className="grid gap-3 sm:grid-cols-2">
                 {liquidAccounts.map((account) => {
-            const Icon =
-              account.type === "savings"
-                  ? PiggyBank
-                  : account.type === "checking"
-                    ? Landmark
-                    : Wallet;
-            return (
-              <li key={account.id}>
-                <Link
-                  href={`/accounts/${account.id}`}
-                  className="bg-card focus-visible:ring-ring hover:bg-accent/40 block rounded-2xl border p-5 transition-colors focus-visible:ring-2 focus-visible:outline-none"
-                >
-                  <span className="flex items-center gap-3">
-                    <span
-                      className="grid size-10 place-items-center rounded-xl"
-                      style={{
-                        backgroundColor: `${account.color}22`,
-                        color: account.color,
-                      }}
-                    >
-                      <Icon className="size-5" aria-hidden />
-                    </span>
-                    <span className="min-w-0">
-                      <span className="block truncate font-medium">
-                        {account.name}
-                      </span>
-                      <span className="text-muted-foreground block text-xs">
-                        {typeLabel[account.type]}
-                      </span>
-                    </span>
-                  </span>
-                  <span className="mt-5 block text-2xl font-semibold tabular-nums">
-                    {money.format(account.balance)}
-                  </span>
-                </Link>
-              </li>
-            );
+                  const Icon =
+                    account.type === "savings"
+                      ? PiggyBank
+                      : account.type === "checking"
+                        ? Landmark
+                        : Wallet;
+                  return (
+                    <li key={account.id}>
+                      <Link
+                        href={`/accounts/${account.id}`}
+                        className="bg-card focus-visible:ring-ring hover:bg-accent/40 block rounded-2xl border p-5 transition-colors focus-visible:ring-2 focus-visible:outline-none"
+                      >
+                        <span className="flex items-center gap-3">
+                          <span
+                            className="grid size-10 place-items-center rounded-xl"
+                            style={{
+                              backgroundColor: `${account.color}22`,
+                              color: account.color,
+                            }}
+                          >
+                            <Icon className="size-5" aria-hidden />
+                          </span>
+                          <span className="min-w-0">
+                            <span className="block truncate font-medium">
+                              {account.name}
+                            </span>
+                            <span className="text-muted-foreground block text-xs">
+                              {typeLabel[account.type]}
+                            </span>
+                          </span>
+                        </span>
+                        <span className="mt-5 block text-2xl font-semibold tabular-nums">
+                          {money.format(account.balance)}
+                        </span>
+                      </Link>
+                    </li>
+                  );
                 })}
               </ul>
             </section>
