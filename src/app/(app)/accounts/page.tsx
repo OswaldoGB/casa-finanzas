@@ -82,7 +82,9 @@ export default async function AccountsPage() {
                       href={`/accounts/${account.id}`}
                       className="bg-card focus-visible:ring-ring block overflow-hidden rounded-3xl border p-3 transition-transform hover:-translate-y-0.5 hover:shadow-lg focus-visible:ring-2 focus-visible:outline-none"
                     >
-                      <CardArtwork account={account} />
+                      <div className="mx-auto max-w-64 sm:max-w-72">
+                        <CardArtwork account={account} />
+                      </div>
                       <span className="flex items-end justify-between gap-3 px-1 pt-4 pb-1">
                         <span className="min-w-0">
                           <span className="block truncate font-semibold">
