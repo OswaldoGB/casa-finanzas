@@ -109,7 +109,7 @@ it("proyecta deuda financiada por cuotas, sin cobrar todo el principal en el sig
   expect(projectCash(input, 3).map((row) => row.expense)).toEqual([
     100, 100, 100,
   ]);
-  const prepaid = {
+  const ledgerChange = {
     ...input,
     accounts: input.accounts.map((account) =>
       account.id === card
@@ -117,7 +117,17 @@ it("proyecta deuda financiada por cuotas, sin cobrar todo el principal en el sig
         : account,
     ),
   };
-  expect(projectCash(prepaid, 3).map((row) => row.expense)).toEqual([
+  expect(projectCash(ledgerChange, 3).map((row) => row.expense)).toEqual([
+    0, 100, 100,
+  ]);
+  const coveredQuota = {
+    ...ledgerChange,
+    accounts: ledgerChange.accounts.map((account) =>
+      account.id === card ? { ...account, installment_future: 100 } : account,
+    ),
+    installments: input.installments.slice(1),
+  };
+  expect(projectCash(coveredQuota, 3).map((row) => row.expense)).toEqual([
     0, 0, 100,
   ]);
 });

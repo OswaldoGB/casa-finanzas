@@ -17,6 +17,7 @@ export type ProjectionInput = {
     installment_future?: number;
     reconciled_due_on?: string | null;
     reconciled_unpaid?: number | null;
+    reconciled_payments?: { dueOn: string; unpaid: number }[];
   }[];
   installments?: {
     card_id: string;
@@ -122,21 +123,22 @@ export function projectCash(
     const due = account.reconciled_due_on ?? estimatedDue;
     const unpaid = Math.max(
       0,
-      cents(account.reconciled_unpaid ?? account.statement_unpaid),
+      cents(
+        account.reconciled_payments
+          ? account.reconciled_payments.reduce(
+              (sum, item) => sum + item.unpaid,
+              0,
+            )
+          : (account.reconciled_unpaid ?? account.statement_unpaid),
+      ),
     );
     const scheduledFuture = Math.max(0, cents(account.installment_future ?? 0));
-    const future = Math.min(
-      Math.max(0, cents(account.balance) - unpaid),
-      scheduledFuture,
-    );
+    const future = scheduledFuture;
     let remaining = future;
-    let prepaid = scheduledFuture - future;
     for (const installment of (input.installments ?? [])
       .filter((row) => row.card_id === account.id)
       .sort((a, b) => a.due_date.localeCompare(b.due_date))) {
-      const covered = Math.min(prepaid, cents(installment.amount));
-      prepaid -= covered;
-      const amount = Math.min(remaining, cents(installment.amount) - covered);
+      const amount = Math.min(remaining, cents(installment.amount));
       if (amount > 0)
         cardPayments.push({
           card: account.id,
@@ -148,17 +150,24 @@ export function projectCash(
         });
       remaining -= amount;
     }
-    if (account.balance < 0)
+    if (
+      account.balance < 0 &&
+      !future &&
+      account.reconciled_payments === undefined
+    )
       credits.push({
         card: account.id,
         date: input.today,
         amount: -cents(account.balance),
       });
-    cardPayments.push({
-      card: account.id,
-      date: due < input.today ? input.today : due,
-      amount: unpaid,
-    });
+    for (const payment of account.reconciled_payments ?? [
+      { dueOn: due, unpaid: unpaid / 100 },
+    ])
+      cardPayments.push({
+        card: account.id,
+        date: payment.dueOn < input.today ? input.today : payment.dueOn,
+        amount: cents(payment.unpaid),
+      });
     cardPayments.push({
       card: account.id,
       date: chargeDue(

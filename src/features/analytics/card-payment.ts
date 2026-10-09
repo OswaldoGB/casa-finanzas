@@ -9,9 +9,13 @@ export function remainingCardPayment(
     date: string;
     amount: number;
   }[],
+  today = dueOn,
 ) {
+  const effectiveDue = dueOn < today ? today : dueOn;
   const repayments = planned
-    .filter((item) => item.repaymentCardId === cardId && item.date <= dueOn)
+    .filter(
+      (item) => item.repaymentCardId === cardId && item.date <= effectiveDue,
+    )
     .reduce((sum, item) => sum + Math.abs(decimalToCents(item.amount)), 0);
   return Math.max(0, decimalToCents(unpaid) - repayments) / 100;
 }

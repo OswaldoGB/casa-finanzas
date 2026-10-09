@@ -26,7 +26,7 @@ export async function saveTransaction(
     ? await supabase
         .from("transactions")
         .select(
-          "status,type,account_id,destination_account_id,category_id,payment_method_id,project_id",
+          "status,type,account_id,destination_account_id,category_id,payment_method_id,project_id,card_payment_id",
         )
         .eq("id", id)
         .eq("household_id", profile.household_id)
@@ -34,6 +34,10 @@ export async function saveTransaction(
     : null;
   if (id && (existing?.error || !existing?.data))
     return { error: "Movimiento no encontrado." };
+  if (existing?.data?.card_payment_id)
+    return {
+      error: "Corrige el pago completo desde el historial de la tarjeta.",
+    };
   if (existing?.data?.status === "pending")
     return { error: "Confirma el movimiento pendiente antes de editarlo." };
   if (
@@ -148,6 +152,17 @@ export async function deleteTransaction(formData: FormData) {
   const { supabase, profile } = await requireModule("transactions", "edit");
   const parsed = transactionIdSchema.safeParse(formData.get("id"));
   if (!parsed.success) throw new Error("Movimiento inválido.");
+  const payment = await supabase
+    .from("transactions")
+    .select("card_payment_id")
+    .eq("id", parsed.data)
+    .eq("household_id", profile.household_id)
+    .maybeSingle();
+  if (payment.error) throw new Error("No se pudo revisar el movimiento.");
+  if (payment.data?.card_payment_id)
+    throw new Error(
+      "Corrige el pago completo desde el historial de la tarjeta.",
+    );
   const { data: attachments, error: attachmentsError } = await supabase
     .from("attachments")
     .select("storage_path")
@@ -202,11 +217,16 @@ export async function bulkTransactions(
     return { error: "Acción inválida." };
   const selected = await supabase
     .from("transactions")
-    .select("id,type,status")
+    .select("id,type,status,card_payment_id")
     .eq("household_id", profile.household_id)
     .in("id", ids.data);
   if (selected.error || selected.data?.length !== ids.data.length)
     return { error: "Algunos movimientos ya no están disponibles." };
+  if (mode === "delete" && selected.data.some((item) => item.card_payment_id))
+    return {
+      error:
+        "La selección contiene pagos de tarjeta. Corrígelos completos desde el historial de la tarjeta.",
+    };
 
   if (mode === "recategorize") {
     const categoryId = transactionIdSchema.safeParse(

@@ -97,7 +97,11 @@ export const cardStatementSchema = z
     card_id: id,
     closes_on: date,
     due_on: date,
-    bank_cash_due: amount,
+    bank_cash_due: z
+      .string()
+      .trim()
+      .regex(/^(?:0|[1-9]\d{0,11})(?:\.\d{1,2})?$/, "Monto inválido")
+      .transform(Number),
     note: z.string().trim().max(500),
   })
   .refine((value) => value.due_on > value.closes_on, {

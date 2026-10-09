@@ -14,6 +14,14 @@ import {
 
 export type Account = Database["public"]["Tables"]["accounts"]["Row"];
 export type AccountWithBalance = Account & { balance: number };
+export type CardPaymentSummary = {
+  id: string;
+  date: string;
+  amount: number;
+  canCorrect: boolean;
+  sources: { id: string; name: string; amount: number }[];
+  allocations: { statementId: string; amount: number }[];
+};
 
 export async function getAccounts() {
   const { supabase, profile, permissions } = await requireModule(
@@ -61,7 +69,9 @@ export async function getAccount(id: string) {
   const historyPromise = canViewTransactions
     ? supabase
         .from("transactions")
-        .select("id,date,type,status,amount,description,category_id")
+        .select(
+          "id,date,type,status,amount,description,category_id,card_payment_id",
+        )
         .eq("household_id", profile.household_id)
         .or(`account_id.eq.${id},destination_account_id.eq.${id}`)
         .order("date", { ascending: false })
@@ -109,6 +119,7 @@ export async function getAccount(id: string) {
     [];
   let categories: { id: string; name: string }[] = [];
   let statements: CardStatementSummary[] = [];
+  let payments: CardPaymentSummary[] = [];
   const canTransact = canAccess(
     profile.role,
     permissions,
@@ -182,7 +193,7 @@ export async function getAccount(id: string) {
           "id,closes_on,due_on,app_total,bank_cash_due,note,card_statement_allocations(amount),card_statement_installments(id,plan_id,installment,close_date,due_date,amount,card_installment_payment_allocations(amount))",
         )
         .eq("card_id", id)
-        .order("due_on"),
+        .order("closes_on"),
     ]);
     if (
       unpaid.error ||
@@ -220,10 +231,20 @@ export async function getAccount(id: string) {
             planId: line.plan_id,
             installment: line.installment,
             closeOn: line.close_date,
-            dueOn: line.due_date,
+            dueOn: item.due_on,
             amount,
             paid: linePaid,
-            status: installmentSettlementStatus({ amount, paid: linePaid }),
+            needsReview: line.close_date !== item.closes_on,
+            status:
+              line.close_date !== item.closes_on
+                ? "included"
+                : installmentSettlementStatus({
+                    amount,
+                    paid: linePaid,
+                    statementSettled:
+                      statementSettlementStatus({ bankDue, paid }) ===
+                      "settled",
+                  }),
           };
         }),
       };
@@ -232,12 +253,9 @@ export async function getAccount(id: string) {
       ...cycle,
       balance: Math.max(0, Number(balance ?? 0) - Number(unbilled.data ?? 0)),
       unpaid: Number(unpaid.data ?? 0),
-      future: Math.min(
-        Math.max(0, account.balance),
-        schedule
-          .filter((row) => row.close_date > cycle.closesOn)
-          .reduce((sum, row) => sum + Number(row.amount), 0),
-      ),
+      future: schedule
+        .filter((row) => row.close_date > cycle.closesOn)
+        .reduce((sum, row) => sum + Number(row.amount), 0),
     };
     const monthEnd = new Date(`${today.slice(0, 7)}-01T00:00:00Z`);
     monthEnd.setUTCMonth(monthEnd.getUTCMonth() + 1);
@@ -257,6 +275,42 @@ export async function getAccount(id: string) {
         account.payment_due_day!,
       ).closesOn;
     }
+    if (canViewTransactions) {
+      const loadedPayments = await supabase
+        .from("card_payments")
+        .select(
+          "id,date,created_by,transactions(account_id,amount),card_statement_allocations(statement_id,amount)",
+        )
+        .eq("card_id", id)
+        .order("date", { ascending: false })
+        .order("created_at", { ascending: false })
+        .limit(50);
+      if (loadedPayments.error)
+        throw new Error("No se pudo cargar el historial de pagos.");
+      payments = (loadedPayments.data ?? []).map((payment) => ({
+        id: payment.id,
+        date: payment.date,
+        amount: payment.transactions.reduce(
+          (sum, tx) => sum + Number(tx.amount),
+          0,
+        ),
+        canCorrect:
+          canEdit &&
+          canTransact &&
+          (profile.role === "admin" || payment.created_by === profile.id),
+        sources: payment.transactions.map((tx) => ({
+          id: tx.account_id!,
+          name:
+            accounts.find((item) => item.id === tx.account_id)?.name ??
+            "Cuenta",
+          amount: Number(tx.amount),
+        })),
+        allocations: payment.card_statement_allocations.map((line) => ({
+          statementId: line.statement_id,
+          amount: Number(line.amount),
+        })),
+      }));
+    }
   }
   return {
     account,
@@ -270,6 +324,7 @@ export async function getAccount(id: string) {
     schedule,
     categories,
     statements,
+    payments,
     canTransact,
     paymentAccounts: accounts.filter(
       (item) => !item.is_archived && item.type !== "credit_card",

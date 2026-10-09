@@ -3,6 +3,7 @@ import { requireModule } from "@/features/permissions/queries";
 import { todayInTimeZone } from "@/features/recurring/processing";
 import { cardStatementCycle } from "@/features/finance/card-cycle";
 import { remainingCardPayment } from "./card-payment";
+import { cardObligations } from "../accounts/card-settlement";
 import { analyticsSnapshotSchema, reportDateRange } from "./schemas";
 
 export type UpcomingPayment = {
@@ -41,7 +42,7 @@ export async function getAnalytics(
       supabase
         .from("card_statements")
         .select(
-          "card_id,due_on,bank_cash_due,card_statement_allocations(amount)",
+          "card_id,closes_on,due_on,bank_cash_due,card_statement_allocations(amount)",
         )
         .eq("household_id", profile.household_id)
         .order("due_on"),
@@ -91,21 +92,6 @@ export async function getAnalytics(
   horizon.setUTCDate(horizon.getUTCDate() + 14);
   const lastDate = horizon.toISOString().slice(0, 10);
   const upcoming: UpcomingPayment[] = [...snapshot.upcoming];
-  const bankStatements = new Map<string, { dueOn: string; unpaid: number }>();
-  for (const item of statementCatalog.data ?? []) {
-    if (bankStatements.has(item.card_id)) continue;
-    bankStatements.set(item.card_id, {
-      dueOn: item.due_on,
-      unpaid: Math.max(
-        0,
-        Number(item.bank_cash_due) -
-          (item.card_statement_allocations ?? []).reduce(
-            (sum, allocation) => sum + Number(allocation.amount),
-            0,
-          ),
-      ),
-    });
-  }
   for (const card of catalog.data.filter(
     (account) => account.type === "credit_card" && !account.is_archived,
   )) {
@@ -114,9 +100,6 @@ export async function getAnalytics(
       card.statement_closing_day!,
       card.payment_due_day!,
     );
-    const bank = bankStatements.get(card.id);
-    const dueOn = bank?.dueOn ?? cycle.dueOn;
-    if (dueOn < today || dueOn > lastDate) continue;
     const { data: unpaid, error: unpaidError } = await supabase.rpc(
       "card_statement_unpaid",
       {
@@ -126,21 +109,50 @@ export async function getAnalytics(
       },
     );
     if (unpaidError) throw new Error("No se pudo calcular el pago de tarjeta.");
-    const debt = remainingCardPayment(
-      bank?.unpaid ?? Number(unpaid ?? 0),
-      card.id,
-      dueOn,
-      snapshot.upcoming,
-    );
-    if (debt > 0)
-      upcoming.push({
-        id: card.id,
-        name: card.name,
-        date: dueOn,
-        amount: -debt,
-        cashImpact: -debt,
-        kind: "card",
-      });
+    const bank = (statementCatalog.data ?? [])
+      .filter((item) => item.card_id === card.id)
+      .map((item) => ({
+        closesOn: item.closes_on,
+        dueOn: item.due_on,
+        unpaid: Math.max(
+          0,
+          Number(item.bank_cash_due) -
+            item.card_statement_allocations.reduce(
+              (sum, line) => sum + Number(line.amount),
+              0,
+            ),
+        ),
+      }));
+    let cumulative = 0,
+      emitted = 0;
+    for (const cut of cardObligations(
+      { ...cycle, unpaid: Number(unpaid ?? 0) },
+      bank,
+      today,
+    ).sort((a, b) => a.dueOn.localeCompare(b.dueOn))) {
+      if (cut.dueOn > lastDate) continue;
+      cumulative += cut.unpaid;
+      const debt = Math.max(
+        0,
+        remainingCardPayment(
+          cumulative,
+          card.id,
+          cut.dueOn,
+          snapshot.upcoming,
+          today,
+        ) - emitted,
+      );
+      emitted += debt;
+      if (debt > 0)
+        upcoming.push({
+          id: card.id + ":" + cut.closesOn,
+          name: card.name,
+          date: cut.dueOn,
+          amount: -debt,
+          cashImpact: -debt,
+          kind: "card",
+        });
+    }
   }
   upcoming.sort((a, b) => a.date.localeCompare(b.date));
   return {

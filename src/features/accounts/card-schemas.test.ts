@@ -13,6 +13,11 @@ describe("estado de cuenta conciliado", () => {
   it("acepta el pago de contado y una fecha límite posterior al corte", () => {
     expect(cardStatementSchema.safeParse(base).success).toBe(true);
   });
+  it("accepts an official zero amount without leaving the cut unconfirmed", () => {
+    expect(
+      cardStatementSchema.safeParse({ ...base, bank_cash_due: "0.00" }).success,
+    ).toBe(true);
+  });
 
   it("rechaza una fecha límite igual o anterior al corte", () => {
     expect(

@@ -1,5 +1,7 @@
 "use client";
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
+import type { FormState } from "../../auth/schemas";
+import type { CardStatementSummary } from "../card-settlement";
 import { saveCardStatement } from "../card-actions";
 const input =
   "border-input bg-background h-11 w-full rounded-lg border px-3 text-sm";
@@ -8,13 +10,27 @@ export function CardStatementForm({
   closesOn,
   appTotal,
   requestId,
+  today,
+  existing,
+  onSuccess,
 }: {
   cardId: string;
   closesOn: string;
   appTotal: number;
   requestId: string;
+  today: string;
+  existing?: CardStatementSummary;
+  onSuccess?: (message: string) => void;
 }) {
-  const [state, action, pending] = useActionState(saveCardStatement, undefined);
+  const [close, setClose] = useState(existing?.closesOn ?? closesOn);
+  const [state, action, pending] = useActionState(
+    async (previous: FormState, data: FormData) => {
+      const result = await saveCardStatement(previous, data);
+      if (result?.ok) onSuccess?.(result.ok);
+      return result;
+    },
+    undefined,
+  );
   const error =
     state?.error ??
     Object.values(state?.fieldErrors ?? {})
@@ -23,20 +39,36 @@ export function CardStatementForm({
   return (
     <form action={action} className="grid gap-3 sm:grid-cols-2">
       <input type="hidden" name="card_id" value={cardId} />
-      <input type="hidden" name="closes_on" value={closesOn} />
       <input type="hidden" name="request_id" value={requestId} />
       <p className="bg-muted rounded-lg p-3 text-sm sm:col-span-2">
-        Calculado por la app: <strong>${appTotal.toFixed(2)}</strong>
+        App al corte {closesOn}: <strong>${appTotal.toFixed(2)}</strong>.
+        {close !== closesOn &&
+          " El importe de ese otro corte se calculará al guardar."}{" "}
+        El monto del banco ya incluye las cuotas. No las sumes otra vez.
       </p>
+      <label className="grid gap-1 text-sm sm:col-span-2">
+        Fecha de corte
+        <input
+          name="closes_on"
+          type="date"
+          required
+          max={today}
+          value={close}
+          onChange={(event) => setClose(event.target.value)}
+          readOnly={Boolean(existing)}
+          className={input}
+        />
+      </label>
       <label className="grid gap-1 text-sm">
         Pago de contado según el banco
         <input
           required
           name="bank_cash_due"
           type="number"
-          min="0.01"
+          min="0"
           step="0.01"
           className={input}
+          defaultValue={existing?.bankDue}
         />
       </label>
       <label className="grid gap-1 text-sm">
@@ -45,7 +77,8 @@ export function CardStatementForm({
           required
           name="due_on"
           type="date"
-          min={closesOn}
+          min={close}
+          defaultValue={existing?.dueOn}
           className={input}
         />
       </label>
@@ -56,6 +89,7 @@ export function CardStatementForm({
           maxLength={500}
           className="border-input bg-background min-h-20 rounded-lg border p-3 text-sm"
           placeholder="Ej. Compra pendiente de procesamiento"
+          defaultValue={existing?.note}
         />
       </label>
       {error && (

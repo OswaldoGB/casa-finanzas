@@ -6,6 +6,7 @@ import { installmentAmounts } from "../card-schemas";
 import { paymentPreview } from "../card-payment-preview";
 import type { AccountWithBalance } from "../queries";
 import type { FormState } from "../../auth/schemas";
+import { FormSelect } from "@/components/ui/form-select";
 
 const money = new Intl.NumberFormat("en-US", {
   style: "currency",
@@ -37,6 +38,7 @@ export function InstallmentForm({
   requestId,
   categories,
   canPurchase,
+  onSuccess,
 }: {
   cardId: string;
   today: string;
@@ -45,8 +47,16 @@ export function InstallmentForm({
   requestId: string;
   categories: { id: string; name: string }[];
   canPurchase: boolean;
+  onSuccess?: (message: string) => void;
 }) {
-  const [state, action, pending] = useActionState(saveInstallment, undefined);
+  const [state, action, pending] = useActionState(
+    async (previous: FormState, form: FormData) => {
+      const result = await saveInstallment(previous, form);
+      if (result?.ok) onSuccess?.(result.ok);
+      return result;
+    },
+    undefined,
+  );
   const [mode, setMode] = useState(canPurchase ? "new" : "existing");
   const [amountMode, setAmountMode] = useState<"remaining" | "original">(
     "remaining",
@@ -74,20 +84,21 @@ export function InstallmentForm({
       <input type="hidden" name="request_id" value={requestId} />
       <label className="grid gap-1.5 text-sm font-medium">
         Qué vas a registrar
-        <select
+        <FormSelect
           name="mode"
-          className={input}
+          placeholder="Qué vas a registrar"
           value={mode}
-          onChange={(event) => {
-            setMode(event.target.value);
-            if (event.target.value === "new") setPaidInstallments("0");
+          onValueChange={(value) => {
+            setMode(value);
+            if (value === "new") setPaidInstallments("0");
           }}
-        >
-          {canPurchase && (
-            <option value="new">Compra nueva: sumar gasto y deuda</option>
-          )}
-          <option value="existing">Plan ya incluido en mi deuda</option>
-        </select>
+          options={[
+            ...(canPurchase
+              ? [{ value: "new", label: "Compra nueva: sumar gasto y deuda" }]
+              : []),
+            { value: "existing", label: "Plan ya incluido en mi deuda" },
+          ]}
+        />
       </label>
       <p className="text-muted-foreground text-sm">
         {mode === "existing"
@@ -142,17 +153,18 @@ export function InstallmentForm({
           <>
             <label className="grid gap-1.5 text-sm font-medium">
               Tipo de monto
-              <select
+              <FormSelect
                 name="amount_mode"
-                className={input}
+                placeholder="Tipo de monto"
                 value={amountMode}
-                onChange={(event) =>
-                  setAmountMode(event.target.value as "remaining" | "original")
+                onValueChange={(value) =>
+                  setAmountMode(value as "remaining" | "original")
                 }
-              >
-                <option value="remaining">Saldo pendiente</option>
-                <option value="original">Monto original de la compra</option>
-              </select>
+                options={[
+                  { value: "remaining", label: "Saldo pendiente" },
+                  { value: "original", label: "Monto original de la compra" },
+                ]}
+              />
             </label>
             <label className="grid gap-1.5 text-sm font-medium">
               Cuotas ya pagadas
@@ -214,16 +226,14 @@ export function InstallmentForm({
       {mode === "new" ? (
         <label className="grid gap-1.5 text-sm font-medium">
           Categoría del gasto
-          <select name="category_id" required className={input} defaultValue="">
-            <option value="" disabled>
-              Elige una categoría
-            </option>
-            {categories.map((category) => (
-              <option key={category.id} value={category.id}>
-                {category.name}
-              </option>
-            ))}
-          </select>
+          <FormSelect
+            name="category_id"
+            placeholder="Elige una categoría"
+            options={categories.map((category) => ({
+              value: category.id,
+              label: category.name,
+            }))}
+          />
         </label>
       ) : (
         <input type="hidden" name="category_id" value="" />
@@ -251,6 +261,9 @@ export function CardPaymentForm({
   accounts,
   due,
   statements = [],
+  payment,
+  onSuccess,
+  cardBalance,
 }: {
   cardId: string;
   today: string;
@@ -263,12 +276,25 @@ export function CardPaymentForm({
     closesOn: string;
     unpaid: number;
   }[];
+  payment?: {
+    id: string;
+    date: string;
+    sources: { id: string; amount: number }[];
+  };
+  onSuccess?: (message: string) => void;
+  cardBalance: number;
 }) {
-  const [rows, setRows] = useState([{ id: "", amount: "" }]);
+  const [rows, setRows] = useState(
+    payment?.sources.map((item) => ({
+      id: item.id,
+      amount: String(item.amount),
+    })) ?? [{ id: "", amount: due > 0 ? due.toFixed(2) : "" }],
+  );
+  const [date, setDate] = useState(payment?.date ?? today);
   const [state, action, pending] = useActionState(
     async (previous: FormState, data: FormData) => {
       const result = await payCard(previous, data);
-      if (result?.ok) setRows([{ id: "", amount: "" }]);
+      if (result?.ok) onSuccess?.(result.ok);
       return result;
     },
     undefined,
@@ -292,10 +318,15 @@ export function CardPaymentForm({
     <form action={action} className="space-y-4">
       <input type="hidden" name="card_id" value={cardId} />
       <input type="hidden" name="request_id" value={requestId} />
+      {payment && <input type="hidden" name="payment_id" value={payment.id} />}
       <p className="text-muted-foreground text-sm">
-        Pendiente del próximo corte:{" "}
-        <strong className="text-foreground">{money.format(due)}</strong>. Total
-        conciliado pendiente:{" "}
+        {payment
+          ? "Corrige el pago completo: sus aportes y la conciliación se actualizarán juntos. "
+          : "Pendiente del corte: "}
+        {!payment && (
+          <strong className="text-foreground">{money.format(due)}</strong>
+        )}
+        . Total según estados del banco:{" "}
         <strong className="text-foreground">{money.format(totalDue)}</strong>.
       </p>
       <label className="grid gap-1.5 text-sm font-medium">
@@ -304,7 +335,8 @@ export function CardPaymentForm({
           name="date"
           type="date"
           max={today}
-          defaultValue={today}
+          value={date}
+          onChange={(event) => setDate(event.target.value)}
           required
           className={input}
         />
@@ -316,34 +348,25 @@ export function CardPaymentForm({
         >
           <label className="grid gap-1.5 text-sm font-medium">
             Cuenta de origen {index + 1}
-            <select
+            <FormSelect
               name="source_id"
-              required
-              className={input}
+              placeholder="Selecciona una cuenta"
               value={row.id}
-              onChange={(event) =>
+              onValueChange={(value) =>
                 setRows(
                   rows.map((item, i) =>
-                    i === index ? { ...item, id: event.target.value } : item,
+                    i === index ? { ...item, id: value } : item,
                   ),
                 )
               }
-            >
-              <option value="" disabled>
-                Selecciona una cuenta
-              </option>
-              {accounts.map((account) => (
-                <option
-                  key={account.id}
-                  value={account.id}
-                  disabled={rows.some(
-                    (other, i) => i !== index && other.id === account.id,
-                  )}
-                >
-                  {account.name} · {money.format(account.balance)}
-                </option>
-              ))}
-            </select>
+              options={accounts.map((account) => ({
+                value: account.id,
+                label: `${account.name} · ${money.format(account.balance)}`,
+                disabled: rows.some(
+                  (other, i) => i !== index && other.id === account.id,
+                ),
+              }))}
+            />
           </label>
           <label className="grid gap-1.5 text-sm font-medium">
             Aporte (USD)
@@ -392,10 +415,25 @@ export function CardPaymentForm({
       <p className="text-sm font-medium">
         Total del pago: {money.format(total)}
       </p>
-      {statements.length > 0 && total > 0 && (
+      {total > 0 && (
+        <p className="text-muted-foreground text-xs">
+          Saldo contable después del pago:{" "}
+          {money.format(
+            cardBalance +
+              (payment?.sources.reduce(
+                (sum, source) => sum + source.amount,
+                0,
+              ) ?? 0) -
+              total,
+          )}
+          . Si queda negativo, la App conserva ese saldo a favor; no añade un
+          gasto para igualarlo al banco.
+        </p>
+      )}
+      {!payment && total > 0 && (
         <p className="text-muted-foreground bg-muted rounded-lg p-3 text-xs">
-          {paymentPreview(total, statements)} Se aplicará automáticamente del
-          corte más antiguo al más reciente.
+          {paymentPreview(total, statements, date)} Se aplicará automáticamente
+          del corte más antiguo al más reciente.
         </p>
       )}
       <p className="text-muted-foreground text-xs">
@@ -404,10 +442,18 @@ export function CardPaymentForm({
       </p>
       <Result state={state} />
       <button
-        disabled={pending || total <= 0}
+        disabled={
+          pending ||
+          total <= 0 ||
+          rows.some((row) => !row.id || Number(row.amount) <= 0)
+        }
         className="bg-primary text-primary-foreground h-11 rounded-lg px-4 text-sm font-medium disabled:opacity-50"
       >
-        {pending ? "Registrando…" : "Registrar pago de tarjeta"}
+        {pending
+          ? "Guardando…"
+          : payment
+            ? "Guardar corrección del pago"
+            : "Registrar pago de tarjeta"}
       </button>
     </form>
   );

@@ -17,4 +17,15 @@ describe("pago de tarjeta previsto", () => {
       ]),
     ).toBe(0);
   });
+  it("does not count today's scheduled payment twice for an overdue cut", () => {
+    expect(
+      remainingCardPayment(
+        40,
+        "card",
+        "2026-09-30",
+        [{ repaymentCardId: "card", date: "2026-10-09", amount: -40 }],
+        "2026-10-09",
+      ),
+    ).toBe(0);
+  });
 });

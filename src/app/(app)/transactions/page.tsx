@@ -293,6 +293,7 @@ export default async function TransactionsPage({
                         </div>
                         <div className="flex shrink-0 items-center gap-3">
                           {options.canEdit &&
+                            !item.card_payment_id &&
                             item.status === "posted" &&
                             ["income", "expense", "transfer"].includes(
                               item.type,

@@ -84,16 +84,27 @@ export async function payCard(
       error:
         "Indica al menos una cuenta y un importe válido. No repitas cuentas.",
     };
-  const { error } = await supabase.rpc("pay_credit_card_and_settle", {
+  const paymentId = form.get("payment_id");
+  if (paymentId && !accountIdSchema.safeParse(paymentId).success)
+    return { error: "Pago original inválido." };
+  const args = {
     p_id: requestId.data,
     p_card_id: parsed.data.card_id,
     p_date: parsed.data.date,
     p_sources: parsed.data.sources,
-  });
+  };
+  const { error } = paymentId
+    ? await supabase.rpc("replace_card_payment", {
+        ...args,
+        p_payment_id: String(paymentId),
+      })
+    : await supabase.rpc("pay_credit_card_and_settle", args);
   if (error) return { error: error.message };
   refresh(parsed.data.card_id);
   return {
-    ok: "Pago registrado. Se actualizaron la tarjeta y las cuentas de origen.",
+    ok: paymentId
+      ? "Pago corregido. Se actualizaron sus cuentas y el corte."
+      : "Pago registrado. Se actualizaron la tarjeta y las cuentas de origen.",
   };
 }
 export async function saveCardStatement(

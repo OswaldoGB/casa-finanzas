@@ -3,6 +3,8 @@
 import { useActionState } from "react";
 import { saveAccount } from "../actions";
 import type { Account } from "../queries";
+import type { FormState } from "../../auth/schemas";
+import { FormSelect } from "@/components/ui/form-select";
 
 const types = [
   ["cash", "Efectivo"],
@@ -21,8 +23,21 @@ const icons = [
   ["circle-dollar-sign", "Dinero"],
 ] as const;
 
-export function AccountForm({ account }: { account?: Account }) {
-  const [state, action, pending] = useActionState(saveAccount, undefined);
+export function AccountForm({
+  account,
+  onSuccess,
+}: {
+  account?: Account;
+  onSuccess?: (message: string) => void;
+}) {
+  const [state, action, pending] = useActionState(
+    async (previous: FormState, data: FormData) => {
+      const result = await saveAccount(previous, data);
+      if (result?.ok) onSuccess?.(result.ok);
+      return result;
+    },
+    undefined,
+  );
   const error = (field: string) => state?.fieldErrors?.[field]?.[0];
   return (
     <form action={action} className="grid gap-5" noValidate>
@@ -49,20 +64,14 @@ export function AccountForm({ account }: { account?: Account }) {
         <label htmlFor="account-type" className="text-sm font-medium">
           Tipo
         </label>
-        <select
+        <FormSelect
           id="account-type"
           name="type"
           disabled={Boolean(account)}
           defaultValue={account?.type ?? "checking"}
-          className="border-input bg-background h-11 rounded-lg border px-3 text-sm"
-        >
-          {types.map(([value, label]) => (
-            <option key={value} value={value}>
-              {label}
-            </option>
-          ))}
-        </select>
-        {account && <input type="hidden" name="type" value={account.type} />}
+          placeholder="Tipo de cuenta"
+          options={types.map(([value, label]) => ({ value, label }))}
+        />
         {error("type") && (
           <p className="text-destructive text-xs">{error("type")}</p>
         )}
@@ -108,18 +117,13 @@ export function AccountForm({ account }: { account?: Account }) {
           <label htmlFor="account-icon" className="text-sm font-medium">
             Ícono
           </label>
-          <select
+          <FormSelect
             id="account-icon"
             name="icon"
             defaultValue={account?.icon ?? "wallet"}
-            className="border-input bg-background h-11 rounded-lg border px-3 text-sm"
-          >
-            {icons.map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </select>
+            placeholder="Ícono"
+            options={icons.map(([value, label]) => ({ value, label }))}
+          />
         </div>
       </div>
       <fieldset className="grid gap-4 rounded-xl border p-4">
@@ -172,7 +176,7 @@ export function AccountForm({ account }: { account?: Account }) {
           </div>
           <div className="grid gap-1.5">
             <label htmlFor="due-day" className="text-sm font-medium">
-              Día de pago
+              Día de pago estimado
             </label>
             <input
               id="due-day"

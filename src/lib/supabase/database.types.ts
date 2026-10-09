@@ -114,6 +114,7 @@ export type Database = {
           mime_type: string
           size_bytes: number
           storage_path: string
+          storage_transaction_id: string | null
           transaction_id: string
           updated_at: string
         }
@@ -125,6 +126,7 @@ export type Database = {
           mime_type: string
           size_bytes: number
           storage_path: string
+          storage_transaction_id?: string | null
           transaction_id: string
           updated_at?: string
         }
@@ -136,6 +138,7 @@ export type Database = {
           mime_type?: string
           size_bytes?: number
           storage_path?: string
+          storage_transaction_id?: string | null
           transaction_id?: string
           updated_at?: string
         }
@@ -1649,6 +1652,17 @@ export type Database = {
           plan_id: string
         }[]
       }
+      card_installment_schedule_internal: {
+        Args: { p_after: string; p_card_id: string; p_until: string }
+        Returns: {
+          amount: number
+          card_id: string
+          close_date: string
+          due_date: string
+          installment: number
+          plan_id: string
+        }[]
+      }
       card_statement_settlement_snapshot: {
         Args: { p_statement_id: string }
         Returns: undefined
@@ -1824,7 +1838,25 @@ export type Database = {
         Args: { p_months?: number }
         Returns: Json
       }
+      rebuild_card_installment_allocations: {
+        Args: { p_statement_id: string }
+        Returns: undefined
+      }
       remove_card_installment: { Args: { p_id: string }; Returns: undefined }
+      repair_unpaid_card_installment_links: {
+        Args: { p_card_id: string }
+        Returns: undefined
+      }
+      replace_card_payment: {
+        Args: {
+          p_card_id: string
+          p_date: string
+          p_id: string
+          p_payment_id: string
+          p_sources: Json
+        }
+        Returns: string
+      }
       save_card_statement_with_installments: {
         Args: {
           p_bank_cash_due: number
@@ -1849,6 +1881,10 @@ export type Database = {
       savings_snapshot: {
         Args: { p_module?: Database["public"]["Enums"]["module_name"] }
         Returns: Json
+      }
+      settle_existing_card_payment: {
+        Args: { p_id: string }
+        Returns: undefined
       }
       shopping_buy: {
         Args: {

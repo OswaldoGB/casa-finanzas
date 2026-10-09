@@ -1,6 +1,10 @@
 import "server-only";
 import { requireModule } from "@/features/permissions/queries";
+import { cardObligations } from "@/features/accounts/card-settlement";
+import { cardStatementCycle } from "@/features/finance/card-cycle";
 import { projectionInputSchema } from "./schemas";
+import { collectPages } from "../exports/format";
+
 export async function getProjectionInputs() {
   const { supabase, profile } = await requireModule("projections");
   const { data, error } = await supabase.rpc("projection_inputs", {
@@ -11,50 +15,95 @@ export async function getProjectionInputs() {
   const { data: statements, error: statementError } = await supabase
     .from("card_statements")
     .select(
-      "card_id,due_on,bank_cash_due,card_statement_allocations(amount),card_statement_installments(close_date,amount)",
+      "card_id,closes_on,due_on,bank_cash_due,card_statement_allocations(amount),card_statement_installments(plan_id,installment,close_date)",
     )
     .eq("household_id", profile.household_id)
-    .gte("due_on", parsed.today)
-    .order("due_on");
+    .lte("closes_on", parsed.today)
+    .order("closes_on");
   if (statementError)
     throw new Error("No se pudieron cargar los estados de tarjeta.");
-  const next = new Map<string, { due: string; unpaid: number }>();
-  const reconciledInstallments = new Set<string>();
-  for (const item of statements ?? []) {
-    for (const installment of item.card_statement_installments ?? [])
-      reconciledInstallments.add(
-        `${item.card_id}:${installment.close_date}:${Number(installment.amount).toFixed(2)}`,
-      );
-    if (next.has(item.card_id)) continue;
-    next.set(item.card_id, {
-      due: item.due_on,
-      unpaid: Math.max(
-        0,
-        Number(item.bank_cash_due) -
-          (item.card_statement_allocations ?? []).reduce(
-            (sum, allocation) => sum + Number(allocation.amount),
-            0,
-          ),
-      ),
-    });
-  }
+  const reconciledInstallments = new Set(
+    (statements ?? []).flatMap((item) =>
+      item.card_statement_installments
+        .filter((line) => line.close_date === item.closes_on)
+        .map((line) => `${line.plan_id}:${line.installment}`),
+    ),
+  );
+  const schedules = await Promise.all(
+    parsed.accounts
+      .filter((account) => account.type === "credit_card")
+      .map(async (account) => {
+        const rows = await collectPages(async (offset, size) => {
+          const result = await supabase
+            .rpc("card_installment_schedule", {
+              p_card_id: account.id,
+              p_after: account.statement_close ?? parsed.today,
+              p_until: "9999-12-31",
+            })
+            .order("plan_id")
+            .order("installment")
+            .range(offset, offset + size - 1);
+          if (result.error)
+            throw new Error(
+              "No se pudieron cargar las cuotas de la proyección.",
+            );
+          return result.data;
+        });
+        return rows.filter(
+          (row) =>
+            !reconciledInstallments.has(`${row.plan_id}:${row.installment}`),
+        );
+      }),
+  );
+  const installments = schedules.flat();
   return {
     ...parsed,
-    installments: parsed.installments.filter(
-      (installment) =>
-        !reconciledInstallments.has(
-          `${installment.card_id}:${installment.close_date}:${Number(installment.amount).toFixed(2)}`,
-        ),
-    ),
+    installments,
     accounts: parsed.accounts.map((account) => {
-      const statement = next.get(account.id);
-      return statement
-        ? {
-            ...account,
-            reconciled_due_on: statement.due,
-            reconciled_unpaid: statement.unpaid,
-          }
-        : account;
+      if (
+        account.type !== "credit_card" ||
+        !account.statement_closing_day ||
+        !account.payment_due_day
+      )
+        return account;
+      const cycle = cardStatementCycle(
+        parsed.today,
+        account.statement_closing_day,
+        account.payment_due_day,
+      );
+      const known = (statements ?? [])
+        .filter((item) => item.card_id === account.id)
+        .map((item) => ({
+          closesOn: item.closes_on,
+          dueOn: item.due_on,
+          unpaid:
+            Math.max(
+              0,
+              Math.round(
+                (Number(item.bank_cash_due) -
+                  item.card_statement_allocations.reduce(
+                    (sum, line) => sum + Number(line.amount),
+                    0,
+                  )) *
+                  100,
+              ),
+            ) / 100,
+        }));
+      return {
+        ...account,
+        installment_future: installments
+          .filter((row) => row.card_id === account.id)
+          .reduce((sum, row) => sum + Number(row.amount), 0),
+        reconciled_payments: cardObligations(
+          {
+            closesOn: account.statement_close ?? cycle.closesOn,
+            dueOn: cycle.dueOn,
+            unpaid: account.statement_unpaid,
+          },
+          known,
+          parsed.today,
+        ),
+      };
     }),
   };
 }

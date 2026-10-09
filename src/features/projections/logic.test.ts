@@ -34,6 +34,103 @@ const rule = {
   mode: "auto" as const,
 };
 describe("proyección de efectivo", () => {
+  it.each([60, -20])(
+    "does not prepay future quotas from a bank/app ledger difference (%s)",
+    (balance) => {
+      const card = {
+        ...base.accounts[0],
+        id: "card",
+        type: "credit_card",
+        balance,
+        statement_closing_day: 15,
+        payment_due_day: 25,
+        statement_close: "2026-01-15",
+        statement_unpaid: 0,
+        reconciled_payments: [],
+        installment_future: 80,
+      };
+      const installments = ["2026-02", "2026-03", "2026-04", "2026-05"].map(
+        (month) => ({
+          card_id: "card",
+          close_date: `${month}-15`,
+          due_date: `${month}-25`,
+          amount: 20,
+        }),
+      );
+      expect(
+        projectCash(
+          { ...base, accounts: [...base.accounts, card], installments },
+          6,
+        ).map((row) => row.balance),
+      ).toEqual([1000, 980, 960, 940, 920, 920]);
+    },
+  );
+  it("keeps debt outside the projection horizon in its original monthly plan", () => {
+    const card = {
+      ...base.accounts[0],
+      id: "card",
+      type: "credit_card",
+      balance: 1200,
+      statement_closing_day: 15,
+      payment_due_day: 25,
+      statement_close: "2026-01-15",
+      statement_unpaid: 0,
+      reconciled_payments: [],
+      installment_future: 1200,
+    };
+    const installments = ["2026-02", "2026-03"].map((month) => ({
+      card_id: "card",
+      close_date: `${month}-15`,
+      due_date: `${month}-25`,
+      amount: 50,
+    }));
+    expect(
+      projectCash(
+        { ...base, accounts: [...base.accounts, card], installments },
+        3,
+      ).map((row) => row.balance),
+    ).toEqual([1000, 950, 900]);
+  });
+  it("includes overdue and current bank cuts without inferring another copy of the same debt", () => {
+    const card = {
+      ...base.accounts[0],
+      id: "card",
+      type: "credit_card",
+      balance: 100,
+      statement_closing_day: 15,
+      payment_due_day: 25,
+      statement_close: "2026-01-15",
+      statement_unpaid: 999,
+      reconciled_payments: [
+        { dueOn: "2026-01-10", unpaid: 40 },
+        { dueOn: "2026-02-05", unpaid: 60 },
+      ],
+    };
+    expect(
+      projectCash({ ...base, accounts: [...base.accounts, card] }, 3).map(
+        (row) => row.balance,
+      ),
+    ).toEqual([960, 900, 900]);
+  });
+  it("keeps the app/bank difference as a future estimate when the current bank cut is settled", () => {
+    const card = {
+      ...base.accounts[0],
+      id: "card",
+      type: "credit_card",
+      balance: 40,
+      statement_closing_day: 15,
+      payment_due_day: 25,
+      statement_close: "2026-01-15",
+      statement_unpaid: 40,
+      reconciled_unpaid: 0,
+      reconciled_due_on: "2026-01-26",
+    };
+    expect(
+      projectCash({ ...base, accounts: [...base.accounts, card] }, 3).map(
+        (row) => row.balance,
+      ),
+    ).toEqual([1000, 960, 960]);
+  });
   it("incluye abonos por cobrar y apartados hacia inversiones, omitiendo apartados virtuales", () => {
     const result = projectCash(
       {

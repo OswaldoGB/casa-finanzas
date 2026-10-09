@@ -99,13 +99,25 @@ export default async function TransactionPage({
         <h1 className="text-2xl font-semibold">Movimiento</h1>
         <div className="flex items-center gap-2">
           {result.canEdit &&
+            !transaction.card_payment_id &&
             transaction.status === "posted" &&
             ["income", "expense", "transfer"].includes(transaction.type) && (
               <TransactionDialog options={options} transaction={transaction} />
             )}
-          {result.canEdit && <DeleteButton id={id} />}
+          {result.canEdit && !transaction.card_payment_id && (
+            <DeleteButton id={id} />
+          )}
         </div>
       </div>
+      {transaction.card_payment_id && (
+        <Link
+          href={`/accounts/${transaction.destination_account_id}?section=history`}
+          className="text-primary block rounded-xl border p-4 text-sm"
+        >
+          Este movimiento es parte de un pago de tarjeta. Consulta sus cuentas,
+          cortes y corrige el pago completo en el historial de la tarjeta →
+        </Link>
+      )}
       {transaction.status === "pending" && (
         <p className="rounded-lg border px-3 py-2 text-sm">
           Este movimiento recurrente está pendiente. Confírmalo en la lista para
@@ -113,47 +125,47 @@ export default async function TransactionPage({
         </p>
       )}
       <dl className="bg-card grid grid-cols-2 gap-3 rounded-xl border p-4 text-sm">
-          <dt>Tipo</dt>
-          <dd>{transactionTypeLabel(transaction.type)}</dd>
-          <dt>Monto</dt>
-          <dd>{formatUSD(Number(transaction.amount))}</dd>
-          <dt>Fecha</dt>
-          <dd>{transaction.date}</dd>
-          <dt>Descripción</dt>
-          <dd>{transaction.description}</dd>
-          {repayment && (
-            <>
-              <dt>Préstamo original</dt>
-              <dd>
-                <Link
-                  className="text-primary underline"
-                  href={`/loans#${transaction.loan_id}`}
-                >
-                  Préstamo a {repayment.debtor}
-                </Link>
-              </dd>
-              <dt>Monto prestado</dt>
-              <dd>{formatUSD(repayment.lent)}</dd>
-              <dt>Recuperado hasta hoy</dt>
-              <dd>{formatUSD(repayment.recovered)}</dd>
-              <dt>Saldo pendiente</dt>
-              <dd>{formatUSD(repayment.pending)}</dd>
-              <dt>Fecha del préstamo</dt>
-              <dd>{repayment.date}</dd>
-              {repayment.expectedPaymentDate && (
-                <>
-                  <dt>Pago esperado</dt>
-                  <dd>{repayment.expectedPaymentDate}</dd>
-                </>
-              )}
-              {depositAccount && (
-                <>
-                  <dt>Depositado en</dt>
-                  <dd>{depositAccount.name}</dd>
-                </>
-              )}
-            </>
-          )}
+        <dt>Tipo</dt>
+        <dd>{transactionTypeLabel(transaction.type)}</dd>
+        <dt>Monto</dt>
+        <dd>{formatUSD(Number(transaction.amount))}</dd>
+        <dt>Fecha</dt>
+        <dd>{transaction.date}</dd>
+        <dt>Descripción</dt>
+        <dd>{transaction.description}</dd>
+        {repayment && (
+          <>
+            <dt>Préstamo original</dt>
+            <dd>
+              <Link
+                className="text-primary underline"
+                href={`/loans#${transaction.loan_id}`}
+              >
+                Préstamo a {repayment.debtor}
+              </Link>
+            </dd>
+            <dt>Monto prestado</dt>
+            <dd>{formatUSD(repayment.lent)}</dd>
+            <dt>Recuperado hasta hoy</dt>
+            <dd>{formatUSD(repayment.recovered)}</dd>
+            <dt>Saldo pendiente</dt>
+            <dd>{formatUSD(repayment.pending)}</dd>
+            <dt>Fecha del préstamo</dt>
+            <dd>{repayment.date}</dd>
+            {repayment.expectedPaymentDate && (
+              <>
+                <dt>Pago esperado</dt>
+                <dd>{repayment.expectedPaymentDate}</dd>
+              </>
+            )}
+            {depositAccount && (
+              <>
+                <dt>Depositado en</dt>
+                <dd>{depositAccount.name}</dd>
+              </>
+            )}
+          </>
+        )}
       </dl>
       <section
         className="bg-card rounded-xl border p-4 text-sm"

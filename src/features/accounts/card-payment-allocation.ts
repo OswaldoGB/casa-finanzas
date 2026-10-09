@@ -9,7 +9,8 @@ type Statement = {
 export function planCardPayment(payment: number, statements: Statement[]) {
   let remaining = Math.max(0, Math.round(payment * 100));
   const statementAllocations: { statementId: string; amount: number }[] = [];
-  const installmentAllocations: { installmentId: string; amount: number }[] = [];
+  const installmentAllocations: { installmentId: string; amount: number }[] =
+    [];
   for (const statement of [...statements].sort(
     (a, b) => a.closesOn.localeCompare(b.closesOn) || a.id.localeCompare(b.id),
   )) {
@@ -38,5 +39,8 @@ export function planCardPayment(payment: number, statements: Statement[]) {
     }
     remaining -= statementAmount;
   }
-  return { statements: statementAllocations, installments: installmentAllocations };
+  return {
+    statements: statementAllocations,
+    installments: installmentAllocations,
+  };
 }
