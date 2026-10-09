@@ -103,6 +103,13 @@ function CategoryForm({
   const [type, setType] = useState<"income" | "expense">(
     current?.type ?? "expense",
   );
+  const parents = categories.filter(
+    (item) =>
+      !item.parent_id &&
+      item.type === type &&
+      item.id !== current?.id &&
+      !item.is_archived,
+  );
   return (
     <form action={formAction} className="grid gap-3 sm:grid-cols-2">
       {current && <input type="hidden" name="id" value={current.id} />}
@@ -131,32 +138,33 @@ function CategoryForm({
           <option value="income">Ingreso</option>
         </select>
       </div>
-      <div className="grid gap-1.5">
-        <Label htmlFor={`cat-parent-${current?.id ?? "new"}`}>
-          Categoría principal
-        </Label>
-        <select
-          id={`cat-parent-${current?.id ?? "new"}`}
-          name="parentId"
-          defaultValue={current?.parent_id ?? ""}
-          className="bg-background h-9 rounded-md border px-3 text-sm"
-        >
-          <option value="">Ninguna</option>
-          {categories
-            .filter(
-              (item) =>
-                !item.parent_id &&
-                item.type === type &&
-                item.id !== current?.id &&
-                !item.is_archived,
-            )
-            .map((item) => (
+      {parents.length > 0 ? (
+        <div className="grid gap-1.5">
+          <Label htmlFor={`cat-parent-${current?.id ?? "new"}`}>
+            Categoría principal
+          </Label>
+          <select
+            key={type}
+            id={`cat-parent-${current?.id ?? "new"}`}
+            name="parentId"
+            defaultValue={
+              parents.some((item) => item.id === current?.parent_id)
+                ? (current?.parent_id ?? "")
+                : ""
+            }
+            className="bg-background h-9 rounded-md border px-3 text-sm"
+          >
+            <option value="">Ninguna</option>
+            {parents.map((item) => (
               <option key={item.id} value={item.id}>
                 {item.name}
               </option>
             ))}
-        </select>
-      </div>
+          </select>
+        </div>
+      ) : (
+        <input type="hidden" name="parentId" value="" />
+      )}
       <div className="grid gap-1.5">
         <Label htmlFor={`cat-color-${current?.id ?? "new"}`}>Color</Label>
         <Input

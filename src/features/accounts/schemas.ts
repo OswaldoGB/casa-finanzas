@@ -20,9 +20,11 @@ const money = z
   .transform(Number);
 const optionalMoney = z
   .union([z.literal(""), money])
+  .default("")
   .transform((value) => (value === "" ? null : value));
 const optionalDay = z
   .union([z.literal(""), z.coerce.number().int().min(1).max(31)])
+  .default("")
   .transform((value) => (value === "" ? null : value));
 const institution = z
   .enum([

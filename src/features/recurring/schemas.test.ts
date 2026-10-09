@@ -47,3 +47,15 @@ it("requires a different destination for transfers and valid date range", () => 
       .success,
   ).toBe(false);
 });
+
+it("clears payment methods for transfers even when an old rule supplies one", () => {
+  expect(
+    recurringRuleSchema.parse({
+      ...income,
+      type: "transfer",
+      categoryId: "",
+      destinationAccountId: "c1c2c3c4-3333-4333-8333-123456789abc",
+      paymentMethodId: income.categoryId,
+    }).paymentMethodId,
+  ).toBeNull();
+});

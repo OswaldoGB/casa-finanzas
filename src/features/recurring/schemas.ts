@@ -61,4 +61,7 @@ export const recurringRuleSchema = z
         path: ["endDate"],
         message: "La fecha final debe ser posterior al inicio",
       });
-  });
+  })
+  .transform((value) =>
+    value.type === "transfer" ? { ...value, paymentMethodId: null } : value,
+  );

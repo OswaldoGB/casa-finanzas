@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { FormSelect } from "@/components/ui/form-select";
 import type { Database } from "@/lib/supabase/database.types";
 import {
   deactivateRecurringRule,
@@ -37,6 +38,11 @@ function RuleForm({
       ? current.type
       : "expense",
   );
+  const [accountId, setAccountId] = useState(current?.account_id ?? "");
+  const [destinationId, setDestinationId] = useState(
+    current?.destination_account_id ?? "",
+  );
+  const [categoryId, setCategoryId] = useState(current?.category_id ?? "");
   const prefix = current?.id ?? "new";
   const fields = [
     {
@@ -86,7 +92,10 @@ function RuleForm({
           name="type"
           className={selectClass}
           value={type}
-          onChange={(event) => setType(event.target.value as typeof type)}
+          onChange={(event) => {
+            setType(event.target.value as typeof type);
+            setCategoryId("");
+          }}
         >
           <option value="expense">Gasto</option>
           <option value="income">Ingreso</option>
@@ -94,12 +103,18 @@ function RuleForm({
         </select>
       </div>
       <div className="grid gap-1.5">
-        <Label htmlFor={`${prefix}-account`}>Cuenta origen</Label>
+        <Label htmlFor={`${prefix}-account`}>
+          {type === "transfer" ? "Cuenta origen" : "Cuenta"}
+        </Label>
         <select
           id={`${prefix}-account`}
           name="accountId"
           className={selectClass}
-          defaultValue={current?.account_id ?? ""}
+          value={accountId}
+          onChange={(event) => {
+            setAccountId(event.target.value);
+            if (event.target.value === destinationId) setDestinationId("");
+          }}
           required
         >
           <option value="">Selecciona una cuenta</option>
@@ -115,22 +130,16 @@ function RuleForm({
       {type === "transfer" ? (
         <div className="grid gap-1.5">
           <Label htmlFor={`${prefix}-destination`}>Cuenta destino</Label>
-          <select
+          <FormSelect
             id={`${prefix}-destination`}
             name="destinationAccountId"
-            className={selectClass}
-            defaultValue={current?.destination_account_id ?? ""}
-            required
-          >
-            <option value="">Selecciona una cuenta</option>
-            {accounts
-              .filter((item) => !item.is_archived)
-              .map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.name}
-                </option>
-              ))}
-          </select>
+            value={destinationId}
+            onValueChange={setDestinationId}
+            placeholder="Selecciona otra cuenta"
+            options={accounts
+              .filter((item) => !item.is_archived && item.id !== accountId)
+              .map((item) => ({ value: item.id, label: item.name }))}
+          />
           <input type="hidden" name="categoryId" value="" />
         </div>
       ) : (
@@ -140,7 +149,8 @@ function RuleForm({
             id={`${prefix}-category`}
             name="categoryId"
             className={selectClass}
-            defaultValue={current?.category_id ?? ""}
+            value={categoryId}
+            onChange={(event) => setCategoryId(event.target.value)}
             required
           >
             <option value="">Selecciona una categoría</option>
@@ -155,24 +165,28 @@ function RuleForm({
           <input type="hidden" name="destinationAccountId" value="" />
         </div>
       )}
-      <div className="grid gap-1.5">
-        <Label htmlFor={`${prefix}-method`}>Método de pago</Label>
-        <select
-          id={`${prefix}-method`}
-          name="paymentMethodId"
-          className={selectClass}
-          defaultValue={current?.payment_method_id ?? ""}
-        >
-          <option value="">Ninguno</option>
-          {methods
-            .filter((item) => !item.is_archived)
-            .map((item) => (
-              <option key={item.id} value={item.id}>
-                {item.name}
-              </option>
-            ))}
-        </select>
-      </div>
+      {type !== "transfer" ? (
+        <div className="grid gap-1.5">
+          <Label htmlFor={`${prefix}-method`}>Método de pago</Label>
+          <select
+            id={`${prefix}-method`}
+            name="paymentMethodId"
+            className={selectClass}
+            defaultValue={current?.payment_method_id ?? ""}
+          >
+            <option value="">Ninguno</option>
+            {methods
+              .filter((item) => !item.is_archived)
+              .map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.name}
+                </option>
+              ))}
+          </select>
+        </div>
+      ) : (
+        <input type="hidden" name="paymentMethodId" value="" />
+      )}
       <div className="grid gap-1.5">
         <Label htmlFor={`${prefix}-frequency`}>Frecuencia</Label>
         <select

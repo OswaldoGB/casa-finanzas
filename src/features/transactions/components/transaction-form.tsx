@@ -42,6 +42,9 @@ export function TransactionForm({
       : "expense",
   );
   const [accountId, setAccountId] = useState(transaction?.account_id ?? "");
+  const [destinationId, setDestinationId] = useState(
+    transaction?.destination_account_id ?? "",
+  );
   const [categoryId, setCategoryId] = useState(transaction?.category_id ?? "");
   const [methodId, setMethodId] = useState(
     transaction?.payment_method_id ?? "",
@@ -190,7 +193,10 @@ export function TransactionForm({
           id="transaction-account"
           name="account_id"
           value={accountId}
-          onValueChange={setAccountId}
+          onValueChange={(value) => {
+            setAccountId(value);
+            if (value === destinationId) setDestinationId("");
+          }}
           placeholder="Seleccionar cuenta"
           options={accounts.map((item) => ({
             value: item.id,
@@ -212,12 +218,15 @@ export function TransactionForm({
           <FormSelect
             id="transaction-destination"
             name="destination_account_id"
-            defaultValue={transaction?.destination_account_id ?? ""}
+            value={destinationId}
+            onValueChange={setDestinationId}
             placeholder="Seleccionar cuenta"
-            options={accounts.map((item) => ({
-              value: item.id,
-              label: item.name,
-            }))}
+            options={accounts
+              .filter((item) => item.id !== accountId)
+              .map((item) => ({
+                value: item.id,
+                label: item.name,
+              }))}
           />
           {error("destination_account_id") && (
             <p className="text-destructive text-xs">

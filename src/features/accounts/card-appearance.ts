@@ -52,6 +52,20 @@ const products: Record<Institution, Product[]> = {
   ],
   cuscatlan: [
     { value: "clasica", label: "Clásica", fallback: "cuscatlan" },
+    {
+      value: "uno",
+      label: "UNO Cuscatlán Visa",
+      imageUrl:
+        "https://multimedia.bancocuscatlan.com/strapi-media/U_No_clasica_369c77188d.jpg",
+      fallback: "cuscatlan",
+    },
+    {
+      value: "uno_oro",
+      label: "UNO Oro Cuscatlán Visa",
+      imageUrl:
+        "https://multimedia.bancocuscatlan.com/strapi-media/U_No_Oro_75560d5e09.jpg",
+      fallback: "cuscatlan",
+    },
     { value: "oro", label: "Oro", fallback: "cuscatlan" },
     { value: "platinum", label: "Platinum", fallback: "cuscatlan" },
     { value: "cashback", label: "Cash Back", fallback: "cuscatlan" },
@@ -88,7 +102,9 @@ const products: Record<Institution, Product[]> = {
     { value: "premier", label: "CREDISIMAN Premier", fallback: "siman" },
     { value: "diamante", label: "CREDISIMAN Diamante", fallback: "siman" },
   ],
-  other: [{ value: "custom", label: "Producto personalizado", fallback: "other" }],
+  other: [
+    { value: "custom", label: "Producto personalizado", fallback: "other" },
+  ],
 };
 
 export function cardProductOptions(institution: string) {

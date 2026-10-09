@@ -39,8 +39,10 @@ export function FormSelect({
   className?: string;
 }) {
   const [uncontrolledValue, setUncontrolledValue] = useState(defaultValue);
-  const selectedValue = value ?? uncontrolledValue;
-  const selected = options.find((option) => option.value === selectedValue);
+  const selected = options.find(
+    (option) => option.value === (value ?? uncontrolledValue),
+  );
+  const selectedValue = selected?.value ?? "";
 
   function update(nextValue: string) {
     if (value === undefined) setUncontrolledValue(nextValue);

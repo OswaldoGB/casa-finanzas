@@ -13,6 +13,31 @@ const valid = {
 };
 
 describe("accountSchema", () => {
+  it.each(["cash", "checking", "savings", "investment", "other"])(
+    "accepts %s without hidden credit fields",
+    (type) => {
+      const {
+        credit_limit,
+        statement_closing_day,
+        payment_due_day,
+        ...visible
+      } = valid;
+      void credit_limit;
+      void statement_closing_day;
+      void payment_due_day;
+      expect(accountSchema.parse({ ...visible, type })).toMatchObject({
+        credit_limit: null,
+        statement_closing_day: null,
+        payment_due_day: null,
+        card_network: null,
+        card_product: null,
+        card_last_four: null,
+      });
+      expect(
+        accountSchema.safeParse({ ...visible, type: "credit_card" }).success,
+      ).toBe(false);
+    },
+  );
   it("accepts a regular account and clears card-only fields", () => {
     expect(accountSchema.parse(valid)).toMatchObject({
       opening_balance: 125.5,

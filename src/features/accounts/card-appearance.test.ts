@@ -1,13 +1,23 @@
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createElement } from "react";
-import {
-  cardAppearance,
-  cardProductOptions,
-} from "./card-appearance";
+import { cardAppearance, cardProductOptions } from "./card-appearance";
 import { CardArtwork } from "./components/card-artwork";
 
 describe("card appearance catalog", () => {
+  it.each(["uno", "uno_oro"])(
+    "offers %s with official Cuscatlán artwork",
+    (product) => {
+      expect(
+        cardProductOptions("cuscatlan").some((item) => item.value === product),
+      ).toBe(true);
+      expect(
+        cardAppearance({ institution: "cuscatlan", product }).imageUrl,
+      ).toMatch(
+        /^https:\/\/multimedia\.bancocuscatlan\.com\/strapi-media\/U_No_/,
+      );
+    },
+  );
   it("uses Banco Agrícola's official image for its Dorada Visa", () => {
     expect(
       cardAppearance({

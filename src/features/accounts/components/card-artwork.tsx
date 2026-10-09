@@ -33,7 +33,7 @@ export function CardArtwork({
   account: CardIdentity;
   compact?: boolean;
 }) {
-  const [imageFailed, setImageFailed] = useState(false);
+  const [failedImage, setFailedImage] = useState<string | null>(null);
   const appearance = cardAppearance({
     institution: account.institution,
     network: account.card_network,
@@ -42,7 +42,8 @@ export function CardArtwork({
   const issuer =
     institutions.find((item) => item.value === account.institution)?.label ??
     "Tarjeta";
-  const imageUrl = imageFailed ? null : appearance.imageUrl;
+  const imageUrl =
+    failedImage === appearance.imageUrl ? null : appearance.imageUrl;
 
   return (
     <div
@@ -56,7 +57,7 @@ export function CardArtwork({
           src={imageUrl}
           alt=""
           className="object-cover"
-          onError={() => setImageFailed(true)}
+          onError={() => setFailedImage(imageUrl)}
         />
       )}
     </div>
