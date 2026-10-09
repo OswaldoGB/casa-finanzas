@@ -423,7 +423,7 @@ export function CreditCardDetail(props: Props) {
                   aria-label="Pago del corte"
                   max={Math.max(1, cut.bank.bankDue)}
                   value={cut.bank.paid}
-                  className="accent-primary mt-3 h-2 w-full"
+                  className={`bg-muted mt-3 h-2 w-full overflow-hidden rounded-full appearance-none [&::-webkit-progress-bar]:bg-muted ${settled ? "accent-income [&::-moz-progress-bar]:bg-income [&::-webkit-progress-value]:bg-income" : "accent-primary [&::-moz-progress-bar]:bg-primary [&::-webkit-progress-value]:bg-primary"}`}
                 />
               </>
             )}
