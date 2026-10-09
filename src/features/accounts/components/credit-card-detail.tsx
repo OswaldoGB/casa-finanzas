@@ -191,7 +191,11 @@ export function CreditCardDetail(props: Props) {
               )}
               {plan.paid_installments > 0 && (
                 <p className="text-muted-foreground text-xs">
-                  {plan.paid_installments} cuotas pagadas antes del registro.
+                  {plan.paid_installments}{" "}
+                  {plan.paid_installments === 1
+                    ? "cuota pagada"
+                    : "cuotas pagadas"}{" "}
+                  antes del registro.
                   {plan.original_amount
                     ? ` Original: ${money.format(Number(plan.original_amount))}.`
                     : ""}
@@ -494,7 +498,7 @@ export function CreditCardDetail(props: Props) {
       </section>
       <nav
         aria-label="Secciones de la tarjeta"
-        className="bg-muted/40 flex gap-1 overflow-x-auto rounded-2xl p-1.5"
+        className="bg-muted/40 grid grid-cols-2 gap-1 rounded-2xl p-1.5 sm:flex"
       >
         {[
           ["summary", "Resumen"],

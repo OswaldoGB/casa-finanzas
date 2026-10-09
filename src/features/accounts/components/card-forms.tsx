@@ -321,12 +321,12 @@ export function CardPaymentForm({
       {payment && <input type="hidden" name="payment_id" value={payment.id} />}
       <p className="text-muted-foreground text-sm">
         {payment
-          ? "Corrige el pago completo: sus aportes y la conciliación se actualizarán juntos. "
+          ? "El pago anterior se revierte antes de aplicar los nuevos aportes. Sus cuentas y la conciliación se actualizarán juntas."
           : "Pendiente del corte: "}
         {!payment && (
           <strong className="text-foreground">{money.format(due)}</strong>
         )}
-        . Total según estados del banco:{" "}
+        {!payment && "."} Pendiente total según el banco:{" "}
         <strong className="text-foreground">{money.format(totalDue)}</strong>.
       </p>
       <label className="grid gap-1.5 text-sm font-medium">
