@@ -1,4 +1,7 @@
 "use client";
+
+import { MoneyInput } from "@/components/ui/money-input";
+
 import { useState } from "react";
 import {
   Area,
@@ -232,7 +235,7 @@ export function ProjectionView({ input }: { input: ProjectionInput }) {
           </label>
           <label className="text-sm">
             Importe
-            <input
+            <MoneyInput
               name="amount"
               className={field + " mt-1"}
               type="number"

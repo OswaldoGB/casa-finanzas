@@ -1,3 +1,4 @@
+import { MoneyInput } from "@/components/ui/money-input";
 import { ActionForm } from "./action-form";
 import { saveProject } from "../actions";
 import { projectStatus, inputClass } from "../schemas";
@@ -37,7 +38,7 @@ export function ProjectForm({ project }: { project?: Project }) {
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="block space-y-1 text-sm">
           Presupuesto ($)
-          <input
+          <MoneyInput
             name="budget"
             type="number"
             min="0"

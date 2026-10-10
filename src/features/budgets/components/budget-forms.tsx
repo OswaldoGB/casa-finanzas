@@ -1,5 +1,7 @@
 "use client";
 
+import { MoneyInput } from "@/components/ui/money-input";
+
 import { useActionState } from "react";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { copyPreviousBudgets, deleteBudget, saveBudget } from "../actions";
@@ -81,7 +83,7 @@ export function BudgetForm({
         <label htmlFor={`${prefix}-amount`} className="text-sm font-medium">
           Presupuesto base (USD)
         </label>
-        <input
+        <MoneyInput
           id={`${prefix}-amount`}
           name="amount"
           type="number"

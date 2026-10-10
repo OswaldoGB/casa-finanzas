@@ -1,5 +1,7 @@
 "use client";
 
+import { MoneyInput } from "@/components/ui/money-input";
+
 import { useActionState, useEffect, useRef } from "react";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
@@ -65,7 +67,7 @@ export function ListForm({ list }: { list?: ShoppingList }) {
       </label>
       <label className="grid gap-1.5 text-sm font-medium">
         Tope de compra (USD, opcional)
-        <input
+        <MoneyInput
           name="budget"
           type="number"
           inputMode="decimal"
@@ -162,7 +164,7 @@ export function ItemForm({
       <div className="grid grid-cols-2 gap-3">
         <label className="grid gap-1.5 text-sm font-medium">
           Precio estimado
-          <input
+          <MoneyInput
             name="estimated_price"
             type="number"
             inputMode="decimal"
@@ -174,7 +176,7 @@ export function ItemForm({
         </label>
         <label className="grid gap-1.5 text-sm font-medium">
           Precio real
-          <input
+          <MoneyInput
             name="real_price"
             type="number"
             inputMode="decimal"

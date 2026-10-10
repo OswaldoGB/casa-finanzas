@@ -1,5 +1,7 @@
 "use client";
 
+import { MoneyInput } from "@/components/ui/money-input";
+
 import { useEffect, useOptimistic, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -180,7 +182,7 @@ export function ShoppingCart({
                   >
                     Precio real c/u
                   </label>
-                  <input
+                  <MoneyInput
                     key={`${item.id}-${item.real_price ?? "empty"}`}
                     id={`price-${item.id}`}
                     type="number"
@@ -192,6 +194,7 @@ export function ShoppingCart({
                     disabled={!editable}
                     placeholder="0.00"
                     className={`${fieldClass} max-w-36 tabular-nums`}
+                    wrapperClassName="max-w-36"
                     onBlur={(event) => {
                       const text = event.target.value;
                       const value = text === "" ? null : Number(text);

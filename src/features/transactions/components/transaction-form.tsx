@@ -1,5 +1,7 @@
 "use client";
 
+import { MoneyInput } from "@/components/ui/money-input";
+
 import { useActionState, useEffect, useRef, useState } from "react";
 import type { Transaction } from "../queries";
 import { saveTransaction } from "../actions";
@@ -133,7 +135,7 @@ export function TransactionForm({
         <label htmlFor="transaction-amount" className="text-sm font-medium">
           Monto (USD)
         </label>
-        <input
+        <MoneyInput
           id="transaction-amount"
           name="amount"
           type="number"

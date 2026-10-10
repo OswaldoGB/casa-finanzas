@@ -4,6 +4,7 @@ import { useActionState, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
+import { MoneyInput } from "@/components/ui/money-input";
 import { Label } from "@/components/ui/label";
 import { FormSelect } from "@/components/ui/form-select";
 import type { Database } from "@/lib/supabase/database.types";
@@ -71,20 +72,23 @@ function RuleForm({
   return (
     <form action={action} className="grid gap-3 sm:grid-cols-2">
       {current && <input type="hidden" name="id" value={current.id} />}
-      {fields.map((field) => (
-        <div key={field.name} className="grid gap-1.5">
-          <Label htmlFor={`${prefix}-${field.name}`}>{field.label}</Label>
-          <Input
-            id={`${prefix}-${field.name}`}
-            name={field.name}
-            type={field.type ?? "text"}
-            step={field.step}
-            min={field.min}
-            defaultValue={field.value}
-            required={field.required}
-          />
-        </div>
-      ))}
+      {fields.map((field) => {
+        const FieldInput = field.name === "amount" ? MoneyInput : Input;
+        return (
+          <div key={field.name} className="grid gap-1.5">
+            <Label htmlFor={`${prefix}-${field.name}`}>{field.label}</Label>
+            <FieldInput
+              id={`${prefix}-${field.name}`}
+              name={field.name}
+              type={field.type ?? "text"}
+              step={field.step}
+              min={field.min}
+              defaultValue={field.value}
+              required={field.required}
+            />
+          </div>
+        );
+      })}
       <div className="grid gap-1.5">
         <Label htmlFor={`${prefix}-type`}>Tipo</Label>
         <select

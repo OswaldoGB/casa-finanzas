@@ -1,5 +1,7 @@
 "use client";
 
+import { MoneyInput } from "@/components/ui/money-input";
+
 import { useActionState, useState } from "react";
 import { saveInstallment, payCard, removeInstallment } from "../card-actions";
 import { installmentAmounts } from "../card-schemas";
@@ -123,7 +125,7 @@ export function InstallmentForm({
               ? "Saldo pendiente incluido en la deuda"
               : "Importe total financiado"}{" "}
           (USD)
-          <input
+          <MoneyInput
             name="amount"
             required
             type="number"
@@ -370,7 +372,7 @@ export function CardPaymentForm({
           </label>
           <label className="grid gap-1.5 text-sm font-medium">
             Aporte (USD)
-            <input
+            <MoneyInput
               name="source_amount"
               type="number"
               min="0.01"

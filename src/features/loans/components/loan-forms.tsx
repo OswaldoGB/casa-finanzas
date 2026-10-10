@@ -1,4 +1,7 @@
 "use client";
+
+import { MoneyInput } from "@/components/ui/money-input";
+
 import { useActionState } from "react";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import type { FormState } from "@/features/auth/schemas";
@@ -41,7 +44,7 @@ function MoneyDateAccount({
     <>
       <label className="grid gap-1.5 text-sm" htmlFor={`${prefix}-amount`}>
         Monto (USD)
-        <input
+        <MoneyInput
           id={`${prefix}-amount`}
           name="amount"
           type="number"
@@ -217,7 +220,7 @@ export function EditLoanForm({
         htmlFor={`edit-${loan.id}-amount`}
       >
         Monto prestado (USD)
-        <input
+        <MoneyInput
           id={`edit-${loan.id}-amount`}
           name="amount"
           type="number"

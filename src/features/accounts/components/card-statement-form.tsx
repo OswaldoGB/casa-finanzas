@@ -1,4 +1,7 @@
 "use client";
+
+import { MoneyInput } from "@/components/ui/money-input";
+
 import { useActionState, useState } from "react";
 import type { FormState } from "../../auth/schemas";
 import type { CardStatementSummary } from "../card-settlement";
@@ -61,7 +64,7 @@ export function CardStatementForm({
       </label>
       <label className="grid gap-1 text-sm">
         Pago de contado según el banco
-        <input
+        <MoneyInput
           required
           name="bank_cash_due"
           type="number"

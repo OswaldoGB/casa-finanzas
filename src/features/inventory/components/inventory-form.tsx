@@ -1,3 +1,4 @@
+import { MoneyInput } from "@/components/ui/money-input";
 import { ActionForm } from "@/features/projects/components/action-form";
 import { inputClass } from "@/features/projects/schemas";
 import { saveInventory } from "../actions";
@@ -64,7 +65,7 @@ export function InventoryForm({
         </label>
         <label className="block space-y-1 text-sm">
           Precio por unidad ($)
-          <input
+          <MoneyInput
             name="purchase_price"
             type="number"
             min="0"

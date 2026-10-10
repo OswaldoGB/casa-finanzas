@@ -1,5 +1,7 @@
 "use client";
 
+import { MoneyInput } from "@/components/ui/money-input";
+
 import { useActionState, useState } from "react";
 import { saveAccount } from "../actions";
 import type { Account } from "../queries";
@@ -96,7 +98,7 @@ export function AccountForm({
         <label htmlFor="account-balance" className="text-sm font-medium">
           {isCard ? "Deuda inicial (USD)" : "Saldo inicial (USD)"}
         </label>
-        <input
+        <MoneyInput
           id="account-balance"
           name="opening_balance"
           type="number"
@@ -171,7 +173,7 @@ export function AccountForm({
             <label htmlFor="credit-limit" className="text-sm font-medium">
               Límite de crédito (USD)
             </label>
-            <input
+            <MoneyInput
               id="credit-limit"
               name="credit_limit"
               type="number"

@@ -1,3 +1,4 @@
+import { MoneyInput } from "@/components/ui/money-input";
 import { ActionForm } from "@/features/projects/components/action-form";
 import { inputClass } from "@/features/projects/schemas";
 import { saveShopping, buyShopping } from "../actions";
@@ -20,7 +21,7 @@ export function ShoppingForm({ item }: { item?: ShoppingItem }) {
       </label>
       <label className="block space-y-1 text-sm">
         Precio estimado ($)
-        <input
+        <MoneyInput
           name="estimated_price"
           type="number"
           min="0"
@@ -99,7 +100,7 @@ export function BuyForm({
       <input type="hidden" name="id" value={item.id} />
       <label className="block space-y-1 text-sm">
         Precio pagado ($, impuesto incluido)
-        <input
+        <MoneyInput
           name="amount"
           type="number"
           required

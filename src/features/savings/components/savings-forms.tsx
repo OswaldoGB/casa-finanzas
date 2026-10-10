@@ -1,4 +1,7 @@
 "use client";
+
+import { MoneyInput } from "@/components/ui/money-input";
+
 import { useActionState } from "react";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import type { FormState } from "@/features/auth/schemas";
@@ -68,7 +71,7 @@ export function GoalForm({
       </label>
       <label className="grid gap-1.5 text-sm" htmlFor={`${prefix}-target`}>
         Objetivo (USD)
-        <input
+        <MoneyInput
           id={`${prefix}-target`}
           name="target_amount"
           type="number"
@@ -172,7 +175,7 @@ export function GoalOperationForm({
       </label>
       <label className="grid gap-1.5 text-sm" htmlFor={`${goal.id}-amount`}>
         Monto (USD)
-        <input
+        <MoneyInput
           id={`${goal.id}-amount`}
           name="amount"
           type="number"
