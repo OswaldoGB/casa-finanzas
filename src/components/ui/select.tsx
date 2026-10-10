@@ -4,11 +4,51 @@ import * as React from "react"
 import { cn } from "cn"
 import { Select as SelectPrimitive } from "radix-ui"
 import { ChevronDownIcon, CheckIcon, ChevronUpIcon } from "lucide-react"
+import { afterKeyboardDismiss } from "@/lib/select-keyboard"
+
+const KeyboardDismissContext = React.createContext<(() => void) | undefined>(undefined)
 
 function Select({
+  open: controlledOpen,
+  defaultOpen = false,
+  onOpenChange,
   ...props
 }: React.ComponentProps<typeof SelectPrimitive.Root>) {
-  return <SelectPrimitive.Root data-slot="select" {...props} />
+  const [open, setOpen] = React.useState(defaultOpen)
+  const keyboardFocused = React.useRef(false)
+  const cancelPending = React.useRef<(() => void) | undefined>(undefined)
+  React.useEffect(() => () => cancelPending.current?.(), [])
+
+  function prepareTouchOpen() {
+    const active = document.activeElement
+    keyboardFocused.current = active instanceof HTMLElement && (
+      active.isContentEditable || active.matches("textarea, input:not([type=hidden]):not([type=checkbox]):not([type=radio]):not([type=button]):not([type=submit])")
+    )
+  }
+
+  function changeOpen(next: boolean) {
+    cancelPending.current?.()
+    const commit = () => {
+      setOpen(next)
+      onOpenChange?.(next)
+    }
+    if (next && keyboardFocused.current) {
+      keyboardFocused.current = false
+      const trigger = document.activeElement
+      cancelPending.current = afterKeyboardDismiss(() => {
+        if (document.activeElement === trigger) commit()
+      }, window, window.visualViewport)
+    } else {
+      keyboardFocused.current = false
+      commit()
+    }
+  }
+
+  return (
+    <KeyboardDismissContext.Provider value={prepareTouchOpen}>
+      <SelectPrimitive.Root data-slot="select" {...props} open={controlledOpen ?? open} onOpenChange={changeOpen} />
+    </KeyboardDismissContext.Provider>
+  )
 }
 
 function SelectGroup({
@@ -34,10 +74,12 @@ function SelectTrigger({
   className,
   size = "default",
   children,
+  onPointerDown,
   ...props
 }: React.ComponentProps<typeof SelectPrimitive.Trigger> & {
   size?: "sm" | "default"
 }) {
+  const prepareTouchOpen = React.useContext(KeyboardDismissContext)
   return (
     <SelectPrimitive.Trigger
       data-slot="select-trigger"
@@ -47,6 +89,10 @@ function SelectTrigger({
         className
       )}
       {...props}
+      onPointerDown={(event) => {
+        onPointerDown?.(event)
+        if (!event.defaultPrevented && event.pointerType !== "mouse") prepareTouchOpen?.()
+      }}
     >
       {children}
       <SelectPrimitive.Icon asChild>
