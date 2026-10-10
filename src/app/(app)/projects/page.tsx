@@ -18,7 +18,7 @@ export default async function ProjectsPage() {
       </header>
       <ExportButtons target="projects" />
       <div className="grid items-start gap-6 lg:grid-cols-[1fr_360px]">
-        <section className="grid gap-4 sm:grid-cols-2">
+        <section className="stagger grid gap-4 sm:grid-cols-2">
           {projects.length === 0 && (
             <p className="text-muted-foreground rounded-2xl border p-6 text-sm">
               Todavía no hay proyectos. Crea uno y vincula sus gastos desde
@@ -47,7 +47,7 @@ export default async function ProjectsPage() {
                 </span>
               </p>
               <progress
-                className="h-2 w-full"
+                className="accent-primary h-2 w-full"
                 max={project.budget || 1}
                 value={Math.min(project.spent, project.budget || 1)}
                 aria-label={`Gasto de ${project.name}`}

@@ -141,7 +141,7 @@ export function ShoppingCart({
             optimistic.map((item) => (
               <article
                 key={item.id}
-                className={`bg-card rounded-2xl border p-4 ${item.checked ? "border-primary/40" : ""}`}
+                className={`bg-card rounded-2xl border p-4 transition-colors duration-300 ${item.checked ? "border-primary/40" : ""}`}
               >
                 <div className="flex items-start gap-3">
                   <input
@@ -152,7 +152,7 @@ export function ShoppingCart({
                     onChange={(event) =>
                       update(item.id, { checked: event.target.checked })
                     }
-                    className="accent-primary mt-1 size-5 shrink-0"
+                    className="check-pop accent-primary mt-1 size-5 shrink-0"
                   />
                   <div className="min-w-0 flex-1">
                     <h2 className="font-medium">{item.name}</h2>
@@ -319,7 +319,7 @@ export function ShoppingCart({
           {list.budget != null && list.budget > 0 && (
             <div className="bg-muted mt-2 h-1.5 overflow-hidden rounded-full">
               <div
-                className={`h-full ${budgetPercent >= 100 ? "bg-destructive" : budgetPercent >= 90 ? "bg-amber-500" : "bg-primary"}`}
+                className={`grow-x h-full ${budgetPercent >= 100 ? "bg-destructive" : budgetPercent >= 90 ? "bg-warning" : "bg-primary"}`}
                 style={{ width: `${Math.min(100, budgetPercent)}%` }}
               />
             </div>

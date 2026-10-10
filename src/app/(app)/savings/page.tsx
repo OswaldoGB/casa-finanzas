@@ -21,7 +21,7 @@ export default async function SavingsPage() {
       <ExportButtons target="savings" />
       <div className="grid items-start gap-6 lg:grid-cols-[1fr_340px]">
         <section
-          className="grid gap-4 sm:grid-cols-2"
+          className="stagger grid gap-4 sm:grid-cols-2"
           aria-label="Metas y provisiones"
         >
           {data.goals.length ? (

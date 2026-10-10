@@ -55,23 +55,45 @@ export async function getAnalytics(
   )
     throw new Error("No se pudo cargar el resumen financiero.");
   const today = todayInTimeZone(new Date(), household.data.timezone);
-  const datedBalances = await Promise.all(
-    catalog.data.map(async (account) => {
-      const result = await supabase.rpc("account_balance_on", {
-        p_account_id: account.id,
-        p_date: today,
-      });
-      if (result.error)
-        throw new Error("No se pudieron calcular los saldos de hoy.");
-      return [account.id, Number(result.data ?? 0)] as const;
-    }),
-  );
   const range = reportDateRange(today, from, to);
-  const { data, error } = await supabase.rpc("analytics_snapshot", {
-    p_from: range.from,
-    p_to: range.to,
-    p_module: module,
-  });
+  const activeCards = catalog.data.filter(
+    (account) => account.type === "credit_card" && !account.is_archived,
+  );
+  // Saldos, snapshot y pendientes de tarjeta no dependen entre sí: una sola etapa.
+  const [datedBalances, { data, error }, unpaidByCard] = await Promise.all([
+    Promise.all(
+      catalog.data.map(async (account) => {
+        const result = await supabase.rpc("account_balance_on", {
+          p_account_id: account.id,
+          p_date: today,
+        });
+        if (result.error)
+          throw new Error("No se pudieron calcular los saldos de hoy.");
+        return [account.id, Number(result.data ?? 0)] as const;
+      }),
+    ),
+    supabase.rpc("analytics_snapshot", {
+      p_from: range.from,
+      p_to: range.to,
+      p_module: module,
+    }),
+    Promise.all(
+      activeCards.map(async (card) => {
+        const cycle = cardStatementCycle(
+          today,
+          card.statement_closing_day!,
+          card.payment_due_day!,
+        );
+        const { data: unpaid, error: unpaidError } = await supabase.rpc(
+          "card_statement_unpaid",
+          { p_account_id: card.id, p_close: cycle.closesOn, p_today: today },
+        );
+        if (unpaidError)
+          throw new Error("No se pudo calcular el pago de tarjeta.");
+        return { card, cycle, unpaid: Number(unpaid ?? 0) };
+      }),
+    ),
+  ]);
   if (error) throw new Error("No se pudieron cargar los reportes.");
   const snapshot = analyticsSnapshotSchema.parse(data);
   const categoryIcons = new Map(
@@ -96,23 +118,7 @@ export async function getAnalytics(
   horizon.setUTCDate(horizon.getUTCDate() + 14);
   const lastDate = horizon.toISOString().slice(0, 10);
   const upcoming: UpcomingPayment[] = [...snapshot.upcoming];
-  for (const card of catalog.data.filter(
-    (account) => account.type === "credit_card" && !account.is_archived,
-  )) {
-    const cycle = cardStatementCycle(
-      today,
-      card.statement_closing_day!,
-      card.payment_due_day!,
-    );
-    const { data: unpaid, error: unpaidError } = await supabase.rpc(
-      "card_statement_unpaid",
-      {
-        p_account_id: card.id,
-        p_close: cycle.closesOn,
-        p_today: today,
-      },
-    );
-    if (unpaidError) throw new Error("No se pudo calcular el pago de tarjeta.");
+  for (const { card, cycle, unpaid } of unpaidByCard) {
     const bank = (statementCatalog.data ?? [])
       .filter((item) => item.card_id === card.id)
       .map((item) => ({
@@ -130,7 +136,7 @@ export async function getAnalytics(
     let cumulative = 0,
       emitted = 0;
     for (const cut of cardObligations(
-      { ...cycle, unpaid: Number(unpaid ?? 0) },
+      { ...cycle, unpaid },
       bank,
       today,
     ).sort((a, b) => a.dueOn.localeCompare(b.dueOn))) {

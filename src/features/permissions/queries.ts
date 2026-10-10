@@ -1,9 +1,11 @@
 import "server-only";
 import { redirect } from "next/navigation";
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { canAccess, type ModuleName, type PermissionMap } from "./modules";
 
-export async function getAccess() {
+// cache(): layout, página y cada query comparten una sola resolución por request.
+export const getAccess = cache(async function getAccess() {
   const supabase = await createClient();
   const { data: claims, error: authError } = await supabase.auth.getClaims();
   if (authError || !claims?.claims.sub) redirect("/login");
@@ -25,8 +27,9 @@ export async function getAccess() {
       (data ?? []).map(({ module, level }) => [module, level]),
     );
   }
-  return { supabase, profile, permissions };
-}
+  const accent: unknown = claims.claims.user_metadata?.accent;
+  return { supabase, profile, permissions, accent };
+});
 
 export async function requireAdmin() {
   const access = await getAccess();

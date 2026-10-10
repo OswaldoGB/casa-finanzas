@@ -110,7 +110,7 @@ export default async function BudgetsPage({
                 progress.status === "exceeded" || progress.status === "danger"
                   ? "bg-destructive"
                   : progress.status === "warning"
-                    ? "bg-amber-500"
+                    ? "bg-warning"
                     : "bg-primary";
               return (
                 <article
@@ -142,7 +142,7 @@ export default async function BudgetsPage({
                     aria-valuetext={`${formatUSD(budget.spent)} de ${formatUSD(budget.available)}`}
                   >
                     <div
-                      className={`${barColor} h-full rounded-full transition-all`}
+                      className={`${barColor} h-full rounded-full grow-x`}
                       style={{ width: `${Math.min(100, progress.percent)}%` }}
                     />
                   </div>

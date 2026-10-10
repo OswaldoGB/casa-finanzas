@@ -215,7 +215,7 @@ export default async function TransactionsPage({
           )}
         </div>
       ) : (
-        <div className="space-y-5">
+        <div className="stagger space-y-5">
           {[...days].map(([day, items]) => {
             const income = items
               .filter(

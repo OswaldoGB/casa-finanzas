@@ -73,7 +73,7 @@ export default async function AccountsPage() {
                   Deuda, disponible y próximos cortes.
                 </p>
               </div>
-              <ul className="grid gap-4 sm:grid-cols-2">
+              <ul className="stagger grid gap-4 sm:grid-cols-2">
                 {cards.map((account) => (
                   <li key={account.id}>
                     <Link
@@ -115,7 +115,7 @@ export default async function AccountsPage() {
                   Efectivo, bancos, ahorros e inversiones.
                 </p>
               </div>
-              <ul className="grid gap-3 sm:grid-cols-2">
+              <ul className="stagger grid gap-3 sm:grid-cols-2">
                 {liquidAccounts.map((account) => {
                   const Icon =
                     account.type === "savings"

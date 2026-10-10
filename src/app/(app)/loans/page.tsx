@@ -114,7 +114,7 @@ export default async function LoansPage({ searchParams }: LoansPageProps) {
         </p>
       </header>
       <ExportButtons target="loans" />
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="stagger grid gap-3 sm:grid-cols-3">
         {[
           {
             name: "Prestado",

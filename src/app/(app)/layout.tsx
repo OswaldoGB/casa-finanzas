@@ -1,6 +1,9 @@
+import { after } from "next/server";
 import { AppSidebar } from "@/components/app-shell/app-sidebar";
 import { BottomNav } from "@/components/app-shell/bottom-nav";
 import { GlobalSearch } from "@/components/app-shell/global-search";
+import { AccentSync } from "@/components/accent-sync";
+import { PageTransition } from "@/components/app-shell/page-transition";
 import {
   SidebarInset,
   SidebarProvider,
@@ -14,18 +17,23 @@ export default async function AppLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { profile, permissions } = await getAccess();
-  try {
-    await processRecurringForHousehold(profile.household_id);
-  } catch (error) {
-    console.error(
-      "No se pudieron procesar los movimientos recurrentes.",
-      error,
-    );
-  }
+  const { profile, permissions, accent } = await getAccess();
+  // Respaldo del cron diario: corre después de enviar la respuesta para no
+  // bloquear el render. Lo generado aparece en la siguiente navegación.
+  after(async () => {
+    try {
+      await processRecurringForHousehold(profile.household_id);
+    } catch (error) {
+      console.error(
+        "No se pudieron procesar los movimientos recurrentes.",
+        error,
+      );
+    }
+  });
 
   return (
     <SidebarProvider>
+      <AccentSync accent={accent} />
       <a
         href="#main-content"
         className="bg-background text-foreground fixed top-2 left-2 z-50 -translate-y-24 rounded-lg border px-4 py-2 focus:translate-y-0"
@@ -48,7 +56,7 @@ export default async function AppLayout({
           tabIndex={-1}
           className="min-w-0 flex-1 overflow-x-clip px-4 pt-4 pb-28 md:px-8 md:pb-10"
         >
-          {children}
+          <PageTransition>{children}</PageTransition>
         </div>
       </SidebarInset>
       <BottomNav role={profile.role} permissions={permissions} />

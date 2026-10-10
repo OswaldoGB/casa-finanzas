@@ -53,7 +53,7 @@ export default async function ListsPage() {
           )}
         </div>
       ) : (
-        <ul className="grid gap-3 sm:grid-cols-2">
+        <ul className="stagger grid gap-3 sm:grid-cols-2">
           {lists.map((list) => (
             <li key={list.id}>
               <Link

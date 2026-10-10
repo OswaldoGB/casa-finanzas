@@ -22,9 +22,70 @@ html {
   scroll-behavior: smooth;
 }
 
+/* ── Movimiento ────────────────────────────────────────────────────────────
+   Navegación: View Transitions (React <ViewTransition> en (app)/layout).
+   Navegadores sin soporte usan la entrada CSS de siempre. Todo se apaga con
+   prefers-reduced-motion. */
+:root {
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+}
+
+::view-transition {
+  pointer-events: none;
+}
+
 @media (prefers-reduced-motion: no-preference) {
-  #main-content > * {
-    animation: cozy-page-enter 280ms cubic-bezier(0.22, 1, 0.36, 1);
+  ::view-transition-old(.page-exit) {
+    animation: page-out 140ms var(--ease-in) both;
+  }
+  ::view-transition-new(.page-enter) {
+    animation: page-in 300ms var(--ease-out) 60ms both;
+  }
+
+  @supports not (view-transition-class: page-enter) {
+    #main-content > * {
+      animation: cozy-page-enter 280ms var(--ease-out);
+    }
+  }
+
+  /* Entrada escalonada de tarjetas/filas: añade .stagger al contenedor. */
+  .stagger > * {
+    animation: cozy-page-enter 420ms var(--ease-out) both;
+  }
+  .stagger > :nth-child(2) { animation-delay: 40ms; }
+  .stagger > :nth-child(3) { animation-delay: 80ms; }
+  .stagger > :nth-child(4) { animation-delay: 120ms; }
+  .stagger > :nth-child(5) { animation-delay: 160ms; }
+  .stagger > :nth-child(6) { animation-delay: 200ms; }
+  .stagger > :nth-child(7) { animation-delay: 240ms; }
+  .stagger > :nth-child(n + 8) { animation-delay: 280ms; }
+
+  /* Barras que se llenan al aparecer: .grow-x en el elemento con width inline. */
+  .grow-x {
+    transition: width 800ms var(--ease-out);
+  }
+  @starting-style {
+    .grow-x {
+      width: 0;
+    }
+  }
+
+  /* Checkbox que "salta" al marcarse. */
+  .check-pop:checked {
+    animation: check-pop 280ms var(--ease-out);
+  }
+
+  /* Skeleton con brillo en vez de parpadeo. */
+  .shimmer {
+    background-image: linear-gradient(
+      100deg,
+      transparent 20%,
+      color-mix(in oklch, var(--foreground) 6%, transparent) 50%,
+      transparent 80%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.4s linear infinite;
   }
 
   :where(a, button, input, select, textarea, summary) {
@@ -36,6 +97,35 @@ html {
 
   :where(button, [role="button"]):active {
     transform: scale(0.98);
+  }
+}
+
+@keyframes page-out {
+  to {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+@keyframes page-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+@keyframes check-pop {
+  50% {
+    transform: scale(1.25);
+  }
+}
+
+@keyframes shimmer {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -100% 0;
   }
 }
 
@@ -53,6 +143,12 @@ html {
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
+  }
+  ::view-transition-old(*),
+  ::view-transition-new(*),
+  ::view-transition-group(*) {
+    animation-duration: 0s !important;
+    animation-delay: 0s !important;
   }
 }
 
@@ -104,31 +200,38 @@ html {
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-/* Paleta: neutros cálidos (stone) + acento índigo + semánticos */
+/* Paleta: neutros cálidos (stone) + acento elegible (src/lib/theme/accents.ts) + semánticos.
+   AccentScript sobrescribe --ac-* en <html>; estos son los valores del índigo por defecto. */
 :root {
+  --ac-primary: oklch(0.565 0.19 275);
+  --ac-soft: oklch(0.955 0.02 275);
+  --ac-soft-fg: oklch(0.42 0.14 275);
+  --ac-primary-d: oklch(0.7 0.157 275);
+  --ac-soft-d: oklch(0.28 0.057 275);
+  --ac-soft-fg-d: oklch(0.9 0.047 275);
   --background: oklch(0.99 0.002 75);
   --foreground: oklch(0.2 0.006 60);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.2 0.006 60);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.2 0.006 60);
-  --primary: oklch(0.52 0.19 275);
+  --primary: var(--ac-primary);
   --primary-foreground: oklch(0.99 0 0);
   --secondary: oklch(0.965 0.004 75);
   --secondary-foreground: oklch(0.25 0.006 60);
   --muted: oklch(0.965 0.004 75);
   --muted-foreground: oklch(0.52 0.01 60);
-  --accent: oklch(0.955 0.02 275);
-  --accent-foreground: oklch(0.35 0.15 275);
+  --accent: var(--ac-soft);
+  --accent-foreground: var(--ac-soft-fg);
   --destructive: oklch(0.6 0.2 25);
   --border: oklch(0.92 0.005 75);
   --input: oklch(0.9 0.005 75);
-  --ring: oklch(0.52 0.19 275);
+  --ring: var(--primary);
   --income: oklch(0.6 0.15 155);
   --expense: oklch(0.63 0.19 28);
   --transfer: oklch(0.6 0.14 245);
   --warning: oklch(0.75 0.15 75);
-  --chart-1: oklch(0.52 0.19 275);
+  --chart-1: var(--primary);
   --chart-2: oklch(0.65 0.14 200);
   --chart-3: oklch(0.72 0.14 75);
   --chart-4: oklch(0.63 0.19 28);
@@ -136,12 +239,12 @@ html {
   --radius: 0.875rem;
   --sidebar: oklch(0.98 0.003 75);
   --sidebar-foreground: oklch(0.2 0.006 60);
-  --sidebar-primary: oklch(0.52 0.19 275);
+  --sidebar-primary: var(--primary);
   --sidebar-primary-foreground: oklch(0.99 0 0);
   --sidebar-accent: oklch(0.955 0.006 75);
   --sidebar-accent-foreground: oklch(0.2 0.006 60);
   --sidebar-border: oklch(0.92 0.005 75);
-  --sidebar-ring: oklch(0.52 0.19 275);
+  --sidebar-ring: var(--primary);
 }
 
 .dark {
@@ -151,35 +254,35 @@ html {
   --card-foreground: oklch(0.96 0.003 75);
   --popover: oklch(0.21 0.005 60);
   --popover-foreground: oklch(0.96 0.003 75);
-  --primary: oklch(0.68 0.16 275);
+  --primary: var(--ac-primary-d);
   --primary-foreground: oklch(0.16 0.004 60);
   --secondary: oklch(0.25 0.005 60);
   --secondary-foreground: oklch(0.96 0.003 75);
   --muted: oklch(0.25 0.005 60);
   --muted-foreground: oklch(0.7 0.008 70);
-  --accent: oklch(0.28 0.05 275);
-  --accent-foreground: oklch(0.9 0.05 275);
+  --accent: var(--ac-soft-d);
+  --accent-foreground: var(--ac-soft-fg-d);
   --destructive: oklch(0.68 0.18 25);
   --border: oklch(1 0 0 / 9%);
   --input: oklch(1 0 0 / 14%);
-  --ring: oklch(0.68 0.16 275);
+  --ring: var(--primary);
   --income: oklch(0.72 0.15 155);
   --expense: oklch(0.7 0.17 28);
   --transfer: oklch(0.7 0.13 245);
   --warning: oklch(0.8 0.14 75);
-  --chart-1: oklch(0.68 0.16 275);
+  --chart-1: var(--primary);
   --chart-2: oklch(0.72 0.12 200);
   --chart-3: oklch(0.8 0.13 75);
   --chart-4: oklch(0.7 0.17 28);
   --chart-5: oklch(0.72 0.15 155);
   --sidebar: oklch(0.18 0.005 60);
   --sidebar-foreground: oklch(0.96 0.003 75);
-  --sidebar-primary: oklch(0.68 0.16 275);
+  --sidebar-primary: var(--primary);
   --sidebar-primary-foreground: oklch(0.16 0.004 60);
   --sidebar-accent: oklch(0.25 0.005 60);
   --sidebar-accent-foreground: oklch(0.96 0.003 75);
   --sidebar-border: oklch(1 0 0 / 8%);
-  --sidebar-ring: oklch(0.68 0.16 275);
+  --sidebar-ring: var(--primary);
 }
 
 @layer base {

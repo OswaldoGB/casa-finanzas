@@ -1,3 +1,4 @@
+import { CountUp } from "@/components/count-up";
 import {
   AlertTriangle,
   ArrowDownLeft,
@@ -40,9 +41,14 @@ const day = new Intl.DateTimeFormat("es", {
 });
 
 export default async function DashboardPage() {
-  const data = await getAnalytics("dashboard");
-  const budgets = await getDashboardBudgets(`${data.today.slice(0, 7)}-01`);
-  const savings = await getDashboardSavings();
+  // Ahorros no depende de nada; presupuestos solo necesita el "hoy" del hogar.
+  const [[data, budgets], savings] = await Promise.all([
+    getAnalytics("dashboard").then(
+      async (data) =>
+        [data, await getDashboardBudgets(`${data.today.slice(0, 7)}-01`)] as const,
+    ),
+    getDashboardSavings(),
+  ]);
   const pendingLoans =
     savings.loans.reduce(
       (sum, loan) => sum + Math.round(loan.pending * 100),
@@ -107,7 +113,7 @@ export default async function DashboardPage() {
       </header>
       <section
         aria-label="Resumen financiero"
-        className="grid gap-3 sm:grid-cols-3"
+        className="stagger grid gap-3 sm:grid-cols-3"
       >
         <div className="bg-primary text-primary-foreground rounded-2xl p-5 sm:p-6">
           <div className="flex items-center justify-between">
@@ -115,7 +121,7 @@ export default async function DashboardPage() {
             <Wallet className="size-5 opacity-75" aria-hidden />
           </div>
           <p className="mt-5 text-3xl font-semibold tracking-tight tabular-nums">
-            {money.format(worth)}
+            <CountUp value={worth} />
           </p>
           <p className="mt-2 text-xs opacity-75">
             Cuentas menos tarjetas, más préstamos por cobrar
@@ -127,7 +133,7 @@ export default async function DashboardPage() {
             <ArrowDownLeft className="text-income size-5" aria-hidden />
           </div>
           <p className="mt-5 text-3xl font-semibold tracking-tight tabular-nums">
-            {money.format(data.totals.income)}
+            <CountUp value={data.totals.income} />
           </p>
           <p className="text-muted-foreground mt-2 text-xs">
             Solo movimientos publicados
@@ -139,7 +145,7 @@ export default async function DashboardPage() {
             <ArrowUpRight className="text-expense size-5" aria-hidden />
           </div>
           <p className="mt-5 text-3xl font-semibold tracking-tight tabular-nums">
-            {money.format(data.totals.expense)}
+            <CountUp value={data.totals.expense} />
           </p>
           <p className="text-muted-foreground mt-2 text-xs">
             Balance del mes:{" "}
@@ -166,7 +172,7 @@ export default async function DashboardPage() {
             {day.format(new Date(`${data.today}T00:00:00Z`))}
           </span>
         </div>
-        <div className="mt-4 grid gap-3 lg:grid-cols-2">
+        <div className="stagger mt-4 grid gap-3 lg:grid-cols-2">
           {priorities.map((priority) => {
             if (priority.kind === "clear")
               return (
@@ -200,7 +206,7 @@ export default async function DashboardPage() {
                       title: `${priority.count} presupuesto${priority.count === 1 ? "" : "s"} al límite`,
                       detail: "Ya alcanzó o superó el 90% de lo disponible",
                       icon: ReceiptText,
-                      tone: "border-amber-500/30 bg-amber-500/10",
+                      tone: "border-warning/30 bg-warning/10",
                     }
                   : priority.kind === "cash"
                     ? {
@@ -273,7 +279,7 @@ export default async function DashboardPage() {
                     aria-label={budget.name}
                     max={100}
                     value={Math.min(100, progress.percent)}
-                    className={`h-2 w-full ${progress.status === "exceeded" || progress.status === "danger" ? "accent-red-500" : progress.status === "warning" ? "accent-amber-500" : "accent-emerald-500"}`}
+                    className={`h-2 w-full ${progress.status === "exceeded" || progress.status === "danger" ? "accent-destructive" : progress.status === "warning" ? "accent-warning" : "accent-income"}`}
                   />
                   <p className="text-muted-foreground mt-1 text-xs">
                     {progress.percent.toFixed(0)}% utilizado

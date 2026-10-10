@@ -33,7 +33,7 @@ export default async function InventoryPage({
         </p>
       </header>
       <ExportButtons target="inventory" />
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="stagger grid gap-3 sm:grid-cols-3">
         {[
           ["Valor registrado", formatUSD(inventoryValue(items))],
           ["Artículos", String(items.length)],
@@ -126,7 +126,7 @@ export default async function InventoryPage({
               </table>
             </div>
           ) : (
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="stagger grid gap-4 sm:grid-cols-2">
               {visible.map((item) => (
                 <Link
                   href={`/inventory/${item.id}`}
