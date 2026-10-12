@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Pencil, Plus } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -31,25 +31,44 @@ export function TransactionDialog({
   const [open, setOpen] = useState(defaultOpen);
   const router = useRouter();
   const editing = Boolean(transaction);
+  const requestedFromUrl = useSearchParams().get("new") === "1" && !editing;
 
   useEffect(() => {
-    if (!defaultOpen) return;
+    if (!requestedFromUrl) return;
 
     const frame = requestAnimationFrame(() => setOpen(true));
     return () => cancelAnimationFrame(frame);
-  }, [defaultOpen]);
+  }, [requestedFromUrl]);
+
+  const changeOpen = useCallback(
+    (next: boolean) => {
+      setOpen(next);
+      if (!next && !editing) {
+        const url = new URL(window.location.href);
+        if (url.searchParams.get("new") === "1") {
+          url.searchParams.delete("new");
+          window.history.replaceState(
+            null,
+            "",
+            `${url.pathname}${url.search}${url.hash}`,
+          );
+        }
+      }
+    },
+    [editing],
+  );
 
   const saved = useCallback(
     (message: string) => {
       toast.success(message);
-      setOpen(false);
+      changeOpen(false);
       router.refresh();
     },
-    [router],
+    [router, changeOpen],
   );
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={changeOpen}>
       <DialogTrigger asChild>
         <button
           type="button"
