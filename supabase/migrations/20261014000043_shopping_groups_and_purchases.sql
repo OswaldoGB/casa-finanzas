@@ -29,13 +29,14 @@ alter table public.shopping_list_items add column group_id uuid,
 
 -- Invoker guard: only owner-run RPCs may attach financial records.
 create or replace function public.guard_shopping_list_item() returns trigger language plpgsql security invoker set search_path='' as $$
-declare target public.shopping_list_items; state text;
+declare target public.shopping_list_items; state text; project uuid;
 begin
   if TG_OP='DELETE' then target:=old; else target:=new; end if;
-  select status into state from public.shopping_lists where id=target.list_id and household_id=target.household_id for update;
+  select status,project_id into state,project from public.shopping_lists where id=target.list_id and household_id=target.household_id for update;
   if TG_OP='DELETE' and not found then return old; end if;
   if TG_OP='UPDATE' and new.list_id is distinct from old.list_id then raise exception 'No se puede mover el artículo a otra lista'; end if;
   if current_user='authenticated' and state is distinct from 'open' then raise exception 'Reabre la lista para editar pendientes'; end if;
+  if current_user='authenticated' and project is not null and not public.has_module_access('projects','edit') then raise exception 'Sin permiso para editar el proyecto de esta lista'; end if;
   if TG_OP='DELETE' and old.purchase_id is not null then raise exception 'Corrige primero el movimiento de esta compra'; end if;
   if TG_OP='UPDATE' and old.purchase_id is not null and new.purchase_id is not null
     and (new.name,new.quantity,new.unit,new.real_price,new.estimated_price,new.notes,new.group_id,new.resolution,new.checked)
@@ -62,17 +63,22 @@ update public.shopping_list_items i set resolution='legacy_unbought' from public
 
 create or replace function public.guard_shopping_list_header() returns trigger language plpgsql set search_path='' as $$
 begin
+  if TG_OP='DELETE' then
+    if exists(select 1 from public.households where id=old.household_id) and exists(select 1 from public.shopping_list_purchases where list_id=old.id) then raise exception 'Archiva la lista para conservar sus compras registradas'; end if;
+    return old;
+  end if;
   if TG_OP='UPDATE' and new.transaction_id is distinct from old.transaction_id and not (new.transaction_id is null and current_user<>'authenticated') then raise exception 'El vínculo histórico no se cambia'; end if;
   if current_user='authenticated' and new.project_id is distinct from (case when TG_OP='UPDATE' then old.project_id else null end)
     and exists(select 1 from public.shopping_list_purchases where list_id=new.id) then raise exception 'Revisa los gastos antes de cambiar el proyecto'; end if;
   if new.project_id is not null and new.project_id is distinct from (case when TG_OP='UPDATE' then old.project_id else null end) and not public.has_module_access('projects','edit') then raise exception 'Sin permiso para vincular este proyecto'; end if;
+  if current_user='authenticated' and new.project_id is not null and not public.has_module_access('projects','edit') then raise exception 'Sin permiso para editar este proyecto'; end if;
   if new.status='completed' and (TG_OP='INSERT' or old.status is distinct from 'completed')
     and (not exists(select 1 from public.shopping_list_items where list_id=new.id)
       or exists(select 1 from public.shopping_list_items where list_id=new.id and purchase_id is null and resolution='pending')) then raise exception 'Resuelve los artículos pendientes primero'; end if;
   return new;
 end $$;
 drop trigger shopping_lists_purchase on public.shopping_lists;
-create trigger shopping_lists_purchase before insert or update on public.shopping_lists for each row execute function public.guard_shopping_list_header();
+create trigger shopping_lists_purchase before insert or update or delete on public.shopping_lists for each row execute function public.guard_shopping_list_header();
 
 do $$ declare t text; begin
   foreach t in array array['shopping_list_groups','shopping_list_purchases'] loop
@@ -85,10 +91,12 @@ end $$;
 create policy shopping_groups_insert on public.shopping_list_groups for insert to authenticated with check(household_id=(select public.current_household_id()) and created_by=(select auth.uid()) and (select public.has_module_access('shopping_lists','edit')));
 create policy shopping_groups_update on public.shopping_list_groups for update to authenticated using(household_id=(select public.current_household_id()) and (select public.has_module_access('shopping_lists','edit'))) with check(household_id=(select public.current_household_id()));
 create function public.guard_shopping_group() returns trigger language plpgsql set search_path='' as $$
+declare project uuid;
 begin
   if TG_OP='UPDATE' and (new.id,new.household_id,new.created_by,new.list_id) is distinct from (old.id,old.household_id,old.created_by,old.list_id) then raise exception 'La identidad del lugar no se cambia'; end if;
-  perform 1 from public.shopping_lists where id=new.list_id and household_id=new.household_id and status='open' for update;
+  select project_id into project from public.shopping_lists where id=new.list_id and household_id=new.household_id and status='open' for update;
   if current_user='authenticated' and not found then raise exception 'Reabre la lista primero'; end if;
+  if current_user='authenticated' and project is not null and not public.has_module_access('projects','edit') then raise exception 'Sin permiso para editar este proyecto'; end if;
   if TG_OP='UPDATE' and new.is_archived and not old.is_archived and current_user='authenticated'
     and exists(select 1 from public.shopping_list_items where group_id=new.id and purchase_id is null and resolution='pending') then raise exception 'Mueve los pendientes antes de archivar el lugar'; end if;
   return new;
@@ -165,12 +173,14 @@ begin
   if not found then raise exception 'Reabre la lista primero'; end if;
   select * into item from public.shopping_list_items where id=p_item_id and household_id=public.current_household_id() for update;
   if not found or item.purchase_id is not null then raise exception 'Corrige primero la compra registrada'; end if;
+  if exists(select 1 from public.shopping_lists where id=lid and project_id is not null) and not public.has_module_access('projects','edit') then raise exception 'Sin permiso para editar el proyecto'; end if;
   update public.shopping_list_items set resolution=p_resolution,checked=false where id=p_item_id;
   perform public.refresh_shopping_list_state(lid);
 end $$;
 create function public.reopen_shopping_list(p_list_id uuid) returns void language plpgsql security definer set search_path='' as $$
 begin
   if not public.has_module_access('shopping_lists','edit') then raise exception 'Sin permiso'; end if;
+  if exists(select 1 from public.shopping_lists where id=p_list_id and household_id=public.current_household_id() and project_id is not null) and not public.has_module_access('projects','edit') then raise exception 'Sin permiso para editar el proyecto'; end if;
   update public.shopping_lists set status='open',completed_at=null where id=p_list_id and household_id=public.current_household_id() and status='completed';
   if not found then raise exception 'Lista no disponible'; end if;
 end $$;
@@ -183,6 +193,7 @@ begin
   select list_id into lid from public.shopping_list_groups where id=p_group_id and household_id=public.current_household_id();
   perform 1 from public.shopping_lists where id=lid and status='open' for update;
   if not found then raise exception 'Reabre la lista primero'; end if;
+  if exists(select 1 from public.shopping_lists where id=lid and project_id is not null) and not public.has_module_access('projects','edit') then raise exception 'Sin permiso para editar el proyecto'; end if;
   update public.shopping_list_items set group_id=null where group_id=p_group_id and purchase_id is null and resolution='pending';
   update public.shopping_list_groups set is_archived=true where id=p_group_id and household_id=public.current_household_id();
 end $$;

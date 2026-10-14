@@ -85,11 +85,13 @@ export async function getTrip(id: string): Promise<TripSnapshot | null> {
       household.data?.timezone ?? "America/El_Salvador",
     ),
     options: {
-      accounts: transactionOptions?.accounts ?? [],
+      accounts:
+        transactionOptions?.accounts.filter((a) => !a.is_archived) ?? [],
       categories:
-        transactionOptions?.categories.filter((c) => c.type === "expense") ??
-        [],
-      methods: transactionOptions?.methods ?? [],
+        transactionOptions?.categories.filter(
+          (c) => c.type === "expense" && !c.is_archived,
+        ) ?? [],
+      methods: transactionOptions?.methods.filter((m) => !m.is_archived) ?? [],
       expenses: expenses?.data ?? [],
     },
   };

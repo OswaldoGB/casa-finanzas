@@ -153,7 +153,10 @@ export async function getShoppingList(id: string) {
       household.data?.timezone ?? "America/El_Salvador",
     ),
     suggestions,
-    canEdit: canAccess(profile.role, permissions, "shopping_lists", "edit"),
+    canEdit:
+      canAccess(profile.role, permissions, "shopping_lists", "edit") &&
+      (!list.data.project_id ||
+        canAccess(profile.role, permissions, "projects", "edit")),
     canClose,
     canViewTransaction,
     options: options

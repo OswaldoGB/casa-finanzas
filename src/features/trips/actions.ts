@@ -180,7 +180,7 @@ export async function linkCostTransaction(
   const { error } = await supabase.rpc("link_trip_cost_transaction", {
     p_line_id: line.data,
     p_transaction_id: tx.data,
-    p_settle:form.get("is_settled")==="on",
+    p_settle: form.get("is_settled") === "on",
   });
   if (error)
     return { error: errorMessage(error, "No se pudo vincular el gasto.") };
@@ -204,7 +204,7 @@ export async function recordTripExpense(
     p_category_id: p.category_id,
     p_method_id: p.payment_method_id,
     p_request_key: p.request_key,
-    p_settle:p.is_settled,
+    p_settle: p.is_settled,
   });
   if (error)
     return { error: errorMessage(error, "No se pudo registrar el gasto.") };

@@ -3,8 +3,8 @@ import { amount } from "../projects/schemas";
 import type { Json } from "../../lib/supabase/database.types";
 export const uuid = z.string().uuid();
 export const optionalId = z
-  .union([z.literal(""), uuid])
-  .transform((v) => v || null);
+  .union([z.literal(""), z.literal("none"), uuid])
+  .transform((v) => (v && v !== "none" ? v : null));
 export const quantity = z.coerce
   .number()
   .finite()
@@ -54,14 +54,17 @@ export const activitySchema = z.object({
     "other",
   ]),
   time: z
-    .union([z.literal(""), z.string().regex(/^\d{2}:\d{2}$/)])
+    .union([z.literal(""), z.string().regex(/^(?:[01]\d|2[0-3]):[0-5]\d$/)])
     .transform((v) => v || null),
   title: name,
   location: z.string().trim().max(200),
   notes: z.string().trim().max(2000),
 });
 export const costLineSchema = z.object({
-  is_settled:z.preprocess(value=>value===true||value==="on",z.boolean()),
+  is_settled: z.preprocess(
+    (value) => value === true || value === "on",
+    z.boolean(),
+  ),
   name,
   quantity,
   unit: z.string().trim().max(30),
@@ -69,16 +72,24 @@ export const costLineSchema = z.object({
   activity_id: optionalId,
   category_id: optionalId,
 });
-export const ingredientSchema = z.object({
-  activity_id: uuid,
-  item_id: optionalId,
-  name: z.string().trim().max(100),
-  quantity,
-  unit: z.string().trim().max(30),
-  estimated_price: nullableMoney,
-});
+export const ingredientSchema = z
+  .object({
+    activity_id: uuid,
+    item_id: optionalId,
+    name: z.string().trim().max(100),
+    quantity,
+    unit: z.string().trim().max(30),
+    estimated_price: nullableMoney,
+  })
+  .refine((data) => Boolean(data.item_id) || data.name.length > 0, {
+    message: "Escribe el nombre del producto",
+    path: ["name"],
+  });
 export const expenseSchema = z.object({
-  is_settled:z.preprocess(value=>value===true||value==="on",z.boolean()),
+  is_settled: z.preprocess(
+    (value) => value === true || value === "on",
+    z.boolean(),
+  ),
   line_id: uuid,
   amount: amount.refine((v) => v > 0, "Monto mayor que cero"),
   date: z.string().date(),
@@ -123,7 +134,7 @@ export const tripSnapshotSchema = z.object({
   ),
   costLines: z.array(
     audit.extend({
-      is_settled:z.boolean(),
+      is_settled: z.boolean(),
       project_id: uuid,
       activity_id: uuid.nullable(),
       name: z.string(),

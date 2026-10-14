@@ -142,3 +142,30 @@ it("rejects changing a paid breakdown or reusing an operation for different item
   ).rejects.toThrow();
   await expect(pay(f, key, [f.remaining])).rejects.toThrow();
 });
+it("preserves paid list history instead of allowing physical deletion", async () => {
+  const f = await fixture();
+  await pay(f);
+  await expect(
+    db.query("delete from shopping_lists where id=$1", [f.list]),
+  ).rejects.toThrow();
+});
+it("requires project edit access to resolve a product of its linked list", async () => {
+  const f = await fixture(),
+    project = randomUUID();
+  await db.query(
+    "insert into projects(id,household_id,created_by,name) values($1,$2,$3,'Linked')",
+    [project, home, user],
+  );
+  await db.query("update shopping_lists set project_id=$1 where id=$2", [
+    project,
+    f.list,
+  ]);
+  await db.exec("select set_config('app.denied','projects',false)");
+  try {
+    await expect(
+      db.query("select set_shopping_item_resolution($1,'available')", [f.item]),
+    ).rejects.toThrow();
+  } finally {
+    await db.exec("select set_config('app.denied','',false)");
+  }
+});

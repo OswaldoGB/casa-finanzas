@@ -79,7 +79,14 @@ function PurchaseForm({
     if (state?.ok) onSuccess(state.ok);
   }, [state?.ok, onSuccess]);
   return (
-    <form action={action} className="grid gap-4">
+    <form
+      action={action}
+      onResetCapture={(event) => {
+        event.preventDefault();
+        event.stopPropagation();
+      }}
+      className="grid gap-4"
+    >
       <input type="hidden" name="list_id" value={props.listId} />
       <input type="hidden" name="group_id" value={props.groupId ?? ""} />
       <input type="hidden" name="request_key" value={key} />

@@ -94,6 +94,7 @@ begin
     insert into public.projects(household_id,created_by,name,budget,start_date,end_date,status,description) values(public.current_household_id(),auth.uid(),p_name,p_budget,p_start_date,p_end_date,p_status,p_description) returning id into pid;
     insert into public.trip_details(household_id,created_by,project_id,destination,participants) values(public.current_household_id(),auth.uid(),pid,p_destination,p_participants);
   else
+    perform 1 from public.projects where id=p_project_id and household_id=public.current_household_id() for update;
     perform 1 from public.trip_details where project_id=p_project_id and household_id=public.current_household_id() for update;
     if not found then raise exception 'Viaje no encontrado'; end if;
     update public.projects set name=p_name,budget=p_budget,start_date=p_start_date,end_date=p_end_date,status=p_status,description=p_description where id=p_project_id and household_id=public.current_household_id();
@@ -107,7 +108,8 @@ create function public.ensure_trip_shopping_list(p_project_id uuid) returns uuid
 declare lid uuid; title text;
 begin
   if not public.has_module_access('projects','edit') or not public.has_module_access('shopping_lists','edit') then raise exception 'Sin permiso para preparar compras'; end if;
-  select p.name into title from public.projects p join public.trip_details d on d.project_id=p.id where p.id=p_project_id and p.household_id=public.current_household_id() for update of p;
+  perform pg_advisory_xact_lock(hashtextextended('trip-list'||p_project_id::text,0));
+  select p.name into title from public.projects p join public.trip_details d on d.project_id=p.id where p.id=p_project_id and p.household_id=public.current_household_id() for share of p;
   if not found then raise exception 'Viaje no disponible'; end if;
   select id into lid from public.shopping_lists where project_id=p_project_id and household_id=public.current_household_id() and status<>'archived' order by created_at limit 1 for update;
   if found then
@@ -250,13 +252,34 @@ begin
     'shoppingSummary',(select jsonb_build_object('estimated',coalesce(round(sum(i.quantity*i.estimated_price) filter(where i.resolution='pending'),2),0),
       'pending',coalesce(round(sum(i.quantity*(case when i.checked then coalesce(i.real_price,i.estimated_price) else i.estimated_price end)) filter(where i.purchase_id is null and i.resolution='pending'),2),0),
       'missing',count(*) filter(where i.resolution='pending' and i.estimated_price is null))
-      from public.shopping_list_items i join public.shopping_lists l on l.id=i.list_id where l.project_id=p_project_id and l.household_id=home and l.status<>'archived')
+      from public.shopping_list_items i join public.shopping_lists l on l.id=i.list_id where l.project_id=p_project_id and l.household_id=home and (l.status<>'archived' or i.purchase_id is not null))
   ) into result;
   return result;
 end $$;
 
 revoke all on function public.save_trip(uuid,text,numeric,date,date,text,text,text,text),public.ensure_trip_shopping_list(uuid),public.link_trip_item(uuid,uuid,numeric,text,boolean),public.create_trip_activity_item(uuid,text,numeric,text,numeric),public.link_trip_cost_transaction(uuid,uuid,boolean),public.assign_shopping_list_project(uuid,uuid,boolean),public.trip_snapshot(uuid) from public;
 grant execute on function public.save_trip(uuid,text,numeric,date,date,text,text,text,text),public.ensure_trip_shopping_list(uuid),public.link_trip_item(uuid,uuid,numeric,text,boolean),public.create_trip_activity_item(uuid,text,numeric,text,numeric),public.link_trip_cost_transaction(uuid,uuid,boolean),public.assign_shopping_list_project(uuid,uuid,boolean),public.trip_snapshot(uuid) to authenticated;
+create function public.touch_trip_planning() returns trigger language plpgsql security definer set search_path='' as $$
+declare pid uuid; previous uuid;
+begin
+  if TG_TABLE_NAME in ('shopping_list_items','shopping_list_groups','shopping_list_purchases') then
+    select project_id into pid from public.shopping_lists where id=case when TG_OP='DELETE' then old.list_id else new.list_id end;
+  elsif TG_TABLE_NAME='projects' then
+    pid:=case when TG_OP='DELETE' then old.id else new.id end;
+  else
+    pid:=case when TG_OP='DELETE' then old.project_id else new.project_id end;
+    if TG_OP='UPDATE' then previous:=old.project_id; end if;
+  end if;
+  perform 1 from public.projects where id=pid or id=previous order by id for share;
+  update public.trip_details set updated_at=now() where project_id=pid or project_id=previous;
+  return null;
+end $$;
+do $$ declare t text; begin
+  foreach t in array array['trip_activities','trip_cost_lines','trip_cost_transactions','trip_activity_items','shopping_list_items','shopping_lists','shopping_list_groups','shopping_list_purchases','transactions','projects'] loop
+    execute format('create trigger %I_trip_touch after insert or update or delete on public.%I for each row execute function public.touch_trip_planning()',t,t);
+  end loop;
+end $$;
+revoke all on function public.touch_trip_planning() from public;
 create index trip_activity_day_idx on public.trip_activities(project_id,date);
 create index trip_required_item_idx on public.trip_activity_items(item_id);
 do $$ begin
