@@ -84,6 +84,16 @@ do $$ declare t text; begin
 end $$;
 create policy shopping_groups_insert on public.shopping_list_groups for insert to authenticated with check(household_id=(select public.current_household_id()) and created_by=(select auth.uid()) and (select public.has_module_access('shopping_lists','edit')));
 create policy shopping_groups_update on public.shopping_list_groups for update to authenticated using(household_id=(select public.current_household_id()) and (select public.has_module_access('shopping_lists','edit'))) with check(household_id=(select public.current_household_id()));
+create function public.guard_shopping_group() returns trigger language plpgsql set search_path='' as $$
+begin
+  if TG_OP='UPDATE' and (new.id,new.household_id,new.created_by,new.list_id) is distinct from (old.id,old.household_id,old.created_by,old.list_id) then raise exception 'La identidad del lugar no se cambia'; end if;
+  perform 1 from public.shopping_lists where id=new.list_id and household_id=new.household_id and status='open' for update;
+  if current_user='authenticated' and not found then raise exception 'Reabre la lista primero'; end if;
+  if TG_OP='UPDATE' and new.is_archived and not old.is_archived and current_user='authenticated'
+    and exists(select 1 from public.shopping_list_items where group_id=new.id and purchase_id is null and resolution='pending') then raise exception 'Mueve los pendientes antes de archivar el lugar'; end if;
+  return new;
+end $$;
+create trigger shopping_group_identity before insert or update on public.shopping_list_groups for each row execute function public.guard_shopping_group();
 create index shopping_items_purchase_idx on public.shopping_list_items(purchase_id) where purchase_id is not null;
 create index shopping_items_group_idx on public.shopping_list_items(list_id,group_id);
 create index shopping_lists_project_idx on public.shopping_lists(project_id) where project_id is not null;
@@ -96,6 +106,13 @@ begin
     where l.id=p_list_id and l.status<>'archived';
 end $$;
 revoke all on function public.refresh_shopping_list_state(uuid) from public;
+create function public.shopping_item_state_changed() returns trigger language plpgsql security definer set search_path='' as $$
+begin
+  perform public.refresh_shopping_list_state(case when TG_OP='DELETE' then old.list_id else new.list_id end);
+  return null;
+end $$;
+create trigger shopping_items_resolved after insert or update or delete on public.shopping_list_items for each row execute function public.shopping_item_state_changed();
+revoke all on function public.shopping_item_state_changed() from public;
 
 create function public.record_shopping_purchase(p_list_id uuid,p_group_id uuid,p_item_ids uuid[],p_account_id uuid,p_category_id uuid,p_date date,p_payment_method_id uuid,p_request_key uuid)
 returns jsonb language plpgsql security definer set search_path='' as $$
@@ -131,6 +148,11 @@ begin
   perform public.refresh_shopping_list_state(l.id);
   return jsonb_build_object('purchase_id',purchase,'transaction_id',tx);
 end $$;
+do $$ begin
+  if exists(select 1 from pg_publication where pubname='supabase_realtime') then
+    alter publication supabase_realtime add table public.shopping_list_groups,public.shopping_list_purchases;
+  end if;
+end $$;
 revoke all on function public.record_shopping_purchase(uuid,uuid,uuid[],uuid,uuid,date,uuid,uuid) from public;
 grant execute on function public.record_shopping_purchase(uuid,uuid,uuid[],uuid,uuid,date,uuid,uuid) to authenticated;
 
@@ -154,6 +176,24 @@ begin
 end $$;
 revoke all on function public.set_shopping_item_resolution(uuid,text),public.reopen_shopping_list(uuid) from public;
 grant execute on function public.set_shopping_item_resolution(uuid,text),public.reopen_shopping_list(uuid) to authenticated;
+create function public.archive_shopping_group(p_group_id uuid) returns void language plpgsql security definer set search_path='' as $$
+declare lid uuid;
+begin
+  if not public.has_module_access('shopping_lists','edit') then raise exception 'Sin permiso'; end if;
+  select list_id into lid from public.shopping_list_groups where id=p_group_id and household_id=public.current_household_id();
+  perform 1 from public.shopping_lists where id=lid and status='open' for update;
+  if not found then raise exception 'Reabre la lista primero'; end if;
+  update public.shopping_list_items set group_id=null where group_id=p_group_id and purchase_id is null and resolution='pending';
+  update public.shopping_list_groups set is_archived=true where id=p_group_id and household_id=public.current_household_id();
+end $$;
+create function public.shopping_purchase_snapshot(p_list_id uuid) returns jsonb language plpgsql stable security definer set search_path='' as $$
+begin
+  if not public.has_module_access('shopping_lists','view') or not exists(select 1 from public.shopping_lists where id=p_list_id and household_id=public.current_household_id()) then raise exception 'Sin acceso a la lista'; end if;
+  return coalesce((select jsonb_agg(jsonb_build_object('id',t.id,'amount',t.amount,'date',t.date,'status',t.status) order by t.date desc)
+    from public.transactions t join public.shopping_list_purchases p on p.transaction_id=t.id where p.list_id=p_list_id and p.household_id=public.current_household_id()),'[]'::jsonb);
+end $$;
+revoke all on function public.archive_shopping_group(uuid),public.shopping_purchase_snapshot(uuid) from public;
+grant execute on function public.archive_shopping_group(uuid),public.shopping_purchase_snapshot(uuid) to authenticated;
 
 create function public.restore_shopping_purchase() returns trigger language plpgsql security definer set search_path='' as $$
 declare lid uuid;

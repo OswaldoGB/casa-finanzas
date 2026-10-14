@@ -4,6 +4,7 @@ import { MoneyInput } from "@/components/ui/money-input";
 
 import { useActionState, useEffect, useRef } from "react";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { FormSelect } from "@/components/ui/form-select";
 import {
   archiveList,
   closeList,
@@ -44,6 +45,7 @@ export function ListForm({ list }: { list?: ShoppingList }) {
   const [state, action, pending] = useActionState(saveList, undefined);
   return (
     <form action={action} className="grid gap-4">
+      <input type="hidden" name="project_id" value={list?.project_id ?? ""} />
       {list && <input type="hidden" name="id" value={list.id} />}
       <label className="grid gap-1.5 text-sm font-medium">
         Nombre
@@ -89,11 +91,13 @@ export function ItemForm({
   item,
   suggestions,
   position = 0,
+  groups = [],
 }: {
   listId: string;
   item?: ShoppingItem;
   suggestions: { name: string; price: number | null }[];
   position?: number;
+  groups?: { id: string; name: string; is_archived: boolean }[];
 }) {
   const [state, action, pending] = useActionState(saveItem, undefined);
   const formRef = useRef<HTMLFormElement>(null);
@@ -102,6 +106,20 @@ export function ItemForm({
     <form ref={formRef} action={action} className="grid gap-3" noValidate>
       <input type="hidden" name="list_id" value={listId} />
       {item && <input type="hidden" name="id" value={item.id} />}
+      <label className="grid gap-1.5 text-sm font-medium">
+        Dónde comprar
+        <FormSelect
+          name="group_id"
+          defaultValue={item?.group_id ?? ""}
+          placeholder="Por decidir"
+          options={[
+            { value: "unassigned", label: "Por decidir" },
+            ...groups
+              .filter((g) => !g.is_archived)
+              .map((g) => ({ value: g.id, label: g.name })),
+          ]}
+        />
+      </label>
       <label className="grid gap-1.5 text-sm font-medium">
         Artículo
         <input

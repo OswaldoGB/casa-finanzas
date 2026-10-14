@@ -1,5 +1,30 @@
 import { expect, it } from "vitest";
-import { itemSchema, shoppingTotals } from "./schemas";
+import {
+  itemSchema,
+  shoppingTotals,
+  groupSchema,
+  purchaseInputSchema,
+} from "./schemas";
+import { randomUUID } from "node:crypto";
+it("validates store names and rejects repeated purchase products", () => {
+  expect(groupSchema.safeParse({ name: "   " }).success).toBe(false);
+  expect(groupSchema.parse({ name: " Selectos " })).toEqual({
+    name: "Selectos",
+  });
+  const id = randomUUID();
+  expect(
+    purchaseInputSchema.safeParse({
+      list_id: id,
+      group_id: "",
+      item_ids: [id, id],
+      account_id: id,
+      category_id: id,
+      date: "2026-10-14",
+      payment_method_id: "",
+      request_key: id,
+    }).success,
+  ).toBe(false);
+});
 it("separa carrito real y restantes estimados, sin inventar precios", () => {
   expect(
     shoppingTotals([
