@@ -10,7 +10,16 @@ const home = randomUUID(),
   category = randomUUID();
 const legacy = randomUUID(),
   legacyTx = randomUUID();
-beforeAll(async()=>{db=await createShoppingDatabase({home,user,account,category,legacy,legacyTx});},30000);
+beforeAll(async () => {
+  db = await createShoppingDatabase({
+    home,
+    user,
+    account,
+    category,
+    legacy,
+    legacyTx,
+  });
+}, 30000);
 afterAll(async () => {
   await db?.close();
 });
@@ -94,6 +103,10 @@ it("rejects mixed stores, missing prices, duplicate ids and insufficient permiss
 it("deleting one purchase restores only its items", async () => {
   const f = await fixture();
   const purchase = await pay(f);
+  await db.query("update shopping_list_items set checked=true where id=$1", [
+    f.remaining,
+  ]);
+  const otherPurchase = await pay({ ...f, group: f.other, item: f.remaining });
   await db.query("select delete_transaction_with_dependencies($1)", [
     purchase.transaction_id,
   ]);
@@ -107,13 +120,18 @@ it("deleting one purchase restores only its items", async () => {
     await rows("select checked from shopping_list_items where id=$1", [
       f.remaining,
     ]),
-  ).toEqual([{ checked: false }]);
+  ).toEqual([{ checked: true }]);
+  expect(
+    await rows("select purchase_id from shopping_list_items where id=$1", [
+      f.remaining,
+    ]),
+  ).toEqual([{ purchase_id: otherPurchase.purchase_id }]);
   expect(
     await rows(
       "select count(*)::int n from shopping_list_purchases where list_id=$1",
       [f.list],
     ),
-  ).toEqual([{ n: 0 }]);
+  ).toEqual([{ n: 1 }]);
 });
 it("rejects changing a paid breakdown or reusing an operation for different items", async () => {
   const f = await fixture(),

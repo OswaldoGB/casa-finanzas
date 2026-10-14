@@ -1,7 +1,14 @@
 import { PGlite } from "@electric-sql/pglite";
 import { readFile, access } from "node:fs/promises";
-export async function createShoppingDatabase(ids:{home:string;user:string;account:string;category:string;legacy:string;legacyTx:string}) {
-const {home,user,account,category,legacy,legacyTx}=ids;
+export async function createShoppingDatabase(ids: {
+  home: string;
+  user: string;
+  account: string;
+  category: string;
+  legacy: string;
+  legacyTx: string;
+}) {
+  const { home, user, account, category, legacy, legacyTx } = ids;
 
   const db = new PGlite();
   await db.exec(`
@@ -75,5 +82,5 @@ const {home,user,account,category,legacy,legacyTx}=ids;
   )
     await db.exec(await readFile(migration, "utf8"));
 
-return db;
+  return db;
 }
