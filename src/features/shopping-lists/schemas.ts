@@ -15,6 +15,7 @@ const optionalMoney = z
 export const listSchema = z.object({
   name: z.string().trim().min(1, "Escribe un nombre").max(100),
   store: z.string().trim().max(100),
+  project_id: z.union([z.literal(""),listIdSchema]).optional().transform(value=>value || null),
   budget: optionalMoney.refine(
     (value) => value === null || value > 0,
     "El tope debe ser mayor que cero",
@@ -22,6 +23,7 @@ export const listSchema = z.object({
 });
 export const itemSchema = z.object({
   name: z.string().trim().min(1, "Escribe un artículo").max(100),
+  group_id: z.union([z.literal(""),listIdSchema]).optional().transform(value=>value || null),
   quantity: z
     .string()
     .trim()
@@ -36,6 +38,14 @@ export const itemSchema = z.object({
   real_price: optionalMoney,
   notes: z.string().trim().max(1000),
   sort_order: z.coerce.number().int().min(0).max(1000000).default(0),
+});
+export const purchaseInputSchema = z.object({
+  list_id:listIdSchema,
+  group_id:z.union([z.literal(""),listIdSchema]).transform(value=>value || null),
+  item_ids:z.array(listIdSchema).min(1).max(500).refine(ids=>new Set(ids).size===ids.length,"Artículos repetidos"),
+  account_id:listIdSchema, category_id:listIdSchema,
+  date:z.string().date(), payment_method_id:z.union([z.literal(""),listIdSchema]).transform(value=>value || null),
+  request_key:listIdSchema,
 });
 export type TotalsItem = {
   quantity: number;
