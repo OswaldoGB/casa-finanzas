@@ -11,7 +11,7 @@
     "test": "vitest run",
     "format": "prettier --write .",
     "check": "npm run lint && npm run typecheck && npm run test",
-    "db:types": "supabase gen types typescript --linked > src/lib/supabase/database.types.ts"
+    "db:types": "supabase gen types typescript --linked > src/lib/supabase/database.generated.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.9.1",

@@ -283,4 +283,26 @@ Las tareas 1–3 cubren listas por lugar, migración y pagos; 4–5 cubren viaje
 agenda y presupuesto; 6 cubre integración/exportación; 7 cubre verificación y
 publicación. Los cinco riesgos de Review Focus tienen casos definidos arriba.
 Ninguna tarea crea una segunda fuente financiera ni modifica datos históricos
-para forzar coincidencias. No se ha iniciado implementación de producto.
+para forzar coincidencias.
+
+## Validación de implementación — 14 octubre 2026
+
+Las tareas 1–6 están implementadas. `npm run check` pasó con 260 pruebas en 51
+archivos, lint y tipos limpios. La compilación de producción incluye `/trips` y
+`/trips/[id]`. Las migraciones 43/44 se aplicaron al proyecto enlazado correcto;
+una segunda revisión remota confirmó que no quedan migraciones pendientes.
+Se regeneraron los tipos desde ese esquema, sustituyendo los contratos temporales.
+
+La revisión independiente detectó y se corrigieron cuatro casos: restricciones de
+gastos vinculados con permisos limitados, cambios directos del proyecto de una
+lista, unidades de ingredientes compartidos y exceso de datos en el resumen RPC.
+Los casos de regresión y la reasignación de listas ya pagadas pasan en PostgreSQL
+aislado. Las pruebas cubren compras por tienda, reintentos, importes, historial
+anterior y restauración al borrar un movimiento.
+
+Se revisó la interfaz con datos ficticios en escritorio y a 360/390 píxeles,
+incluyendo las cuatro pestañas, selects del pago, calculadora dentro de un modal
+y conservación de texto y selección cuando falla el formulario. La vista temporal
+de prueba se eliminó. No se registraron operaciones financieras de prueba en
+producción. El teclado físico del teléfono y dos sesiones reales simultáneas no
+se probaron; los permisos se verificaron con roles SQL de prueba.

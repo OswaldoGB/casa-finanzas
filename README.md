@@ -134,7 +134,7 @@ npm run build
 | `npm run dev` | Inicia el servidor local. |
 | `npm run check` | Ejecuta lint, tipos y pruebas. |
 | `npm run build` | Genera la compilación de producción. |
-| `npm run db:types` | Regenera `src/lib/supabase/database.types.ts` desde el proyecto enlazado. |
+| `npm run db:types` | Regenera `src/lib/supabase/database.generated.ts` desde el proyecto enlazado. `database.types.ts` conserva las correcciones de argumentos SQL opcionales. |
 | `npm run format` | Aplica Prettier al proyecto. |
 
 Los scripts `verify-*.mjs` crean y eliminan datos temporales. Ejecútalos únicamente contra desarrollo y revisa el encabezado de cada script antes de usarlo.
