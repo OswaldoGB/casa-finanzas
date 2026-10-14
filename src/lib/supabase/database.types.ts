@@ -1,3 +1,5 @@
+import type { PlanningTables, PlanningColumns, PlanningFunctions } from "./planning.types"
+
 export type Json =
   | string
   | number
@@ -6,7 +8,7 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[]
 
-export type Database = {
+type BaseDatabase = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
@@ -1971,6 +1973,13 @@ export type Database = {
     CompositeTypes: {
       [_ in never]: never
     }
+  }
+}
+
+export type Database = Omit<BaseDatabase, "public"> & {
+  public: Omit<BaseDatabase["public"], "Tables" | "Functions"> & {
+    Tables: BaseDatabase["public"]["Tables"] & PlanningTables & PlanningColumns
+    Functions: BaseDatabase["public"]["Functions"] & PlanningFunctions
   }
 }
 
