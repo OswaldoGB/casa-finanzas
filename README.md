@@ -1,5 +1,33 @@
 # Casa & Finanzas
 
+## Viajes y compras por lugar
+
+En **Viajes** puedes organizar fechas, destino, participantes, menús y actividades
+por día. Cada viaje utiliza un proyecto como vínculo financiero: su gasto real
+se calcula con los movimientos confirmados, incluso anticipos anteriores al viaje.
+El permiso de **Proyectos** también controla Viajes.
+
+Las cuatro vistas son **Resumen**, **Por día**, **Presupuesto** y **Compras**.
+Un producto puede vincularse a varias actividades sin copiarse en la lista.
+La cantidad requerida se separa de la cantidad que compras (por ejemplo, paquetes).
+**Ya lo tenemos** y **No comprar** resuelven artículos sin crear gastos.
+
+Las listas admiten lugares como Selectos, PriceSmart y Panadería. Cada lugar tiene
+su carrito; **Registrar compra** genera un movimiento solo para sus artículos,
+con cuenta o tarjeta, categoría y fecha. Puedes volver al mismo lugar y registrar
+otra compra sin repetir los productos pagados. Los pendientes quedan en la misma
+lista. Los precios incluyen impuestos.
+
+Los conceptos generales del viaje permiten registrar pagos o vincular gastos
+existentes. Desmarca **Este pago completa el concepto** para anticipos; el restante
+será una proyección. Al completarlo, la diferencia muestra ahorro o sobrecosto.
+Los gastos también se reflejan en su presupuesto mensual, sin duplicarse.
+
+Las compras anteriores se conservan. Para corregir un desglose pagado, corrige
+su movimiento autorizado y registra nuevamente la compra. Borrar un movimiento
+de compra restaura solo sus artículos; las demás compras permanecen intactas.
+CSV, Excel y respaldo incluyen los nuevos vínculos y estados.
+
 Aplicación web para organizar las finanzas y el hogar: cuentas, tarjetas de crédito, movimientos, presupuestos, préstamos, metas de ahorro, listas de compra, inventario y proyectos compartidos.
 
 Está construida con **Next.js 16**, **TypeScript** y **Supabase**. Cada instalación tiene su propio hogar, usuarios y permisos por módulo.

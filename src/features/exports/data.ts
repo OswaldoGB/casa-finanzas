@@ -9,8 +9,13 @@ import { getProjects } from "@/features/projects/queries";
 import { getAnalytics } from "@/features/analytics/queries";
 import { collectPages, transactionLabels, type ExportRow } from "./format";
 import { BACKUP_TABLES } from "./backup-tables";
+import { getTrip, getTrips } from "@/features/trips/queries";
+import { getShoppingList } from "@/features/shopping-lists/queries";
+import { tripExportRows } from "./trip-export";
+import { shoppingItemStatus } from "@/features/shopping-lists/purchase-totals";
 
 export const targets = {
+  trips: { table: "trip_details", module: "projects", label: "Viajes" },
   categories: {
     table: "categories",
     module: "transactions",
@@ -88,6 +93,43 @@ export async function exportRows(
     throw new ExportError("No tienes permiso para descargar este módulo.", 403);
   if (target === "budgets")
     return (await getBudgets(params.get("month") ?? undefined)).budgets;
+  if (target === "trips") {
+    const id = params.get("trip");
+    if (id) {
+      if (!uuid(id)) throw new ExportError("Viaje inválido.", 400);
+      const trip = await getTrip(id);
+      if (!trip) throw new ExportError("Viaje no encontrado.", 404);
+      return tripExportRows(trip);
+    }
+    return (await getTrips()).trips.map((t) => ({
+      viaje: t.name,
+      destino: t.detail.destination,
+      inicio: t.start_date,
+      final: t.end_date,
+      máximo: t.budget,
+      real: t.spent,
+      estado: t.status,
+    }));
+  }
+  if (target === "list_items") {
+    const id = params.get("list");
+    if (!uuid(id)) throw new ExportError("Lista inválida.", 400);
+    const list = await getShoppingList(id!);
+    if (!list) throw new ExportError("Lista no encontrada.", 404);
+    const groups = new Map(list.groups.map((g) => [g.id, g.name])),
+      purchases = new Map(list.purchases.map((p) => [p.id, p]));
+    return list.items.map((item) => ({
+      ...item,
+      lugar: item.purchase_id
+        ? (purchases.get(item.purchase_id)?.store_name ?? "Por decidir")
+        : (groups.get(item.group_id ?? "") ?? "Por decidir"),
+      estado: shoppingItemStatus(item),
+      movimiento_id: item.purchase_id
+        ? (purchases.get(item.purchase_id)?.transaction_id ?? "")
+        : "",
+      proyecto_id: list.list.project_id,
+    }));
+  }
   if (target === "loans") return (await getLoans()).loans;
   if (target === "savings") return (await getSavings()).goals;
   if (target === "projects")
@@ -170,12 +212,6 @@ export async function exportRows(
       if (["pending", "bought", "discarded"].includes(status))
         query = query.filter("status", "eq", status);
       else throw new ExportError("Estado de compra no válido.", 400);
-    }
-    if (target === "list_items") {
-      const list = params.get("list");
-      if (!uuid(list))
-        throw new ExportError("Selecciona una lista válida.", 400);
-      query = query.filter("list_id", "eq", list!);
     }
     const { data, error } = await query;
     if (error)

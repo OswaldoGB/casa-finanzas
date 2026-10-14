@@ -111,6 +111,20 @@ export async function getShoppingList(id: string) {
     })
     .map((item) => ({ name: item.name, price: item.real_price }));
   const canClose = canAccess(profile.role, permissions, "transactions", "edit");
+  const canViewProjects = canAccess(
+    profile.role,
+    permissions,
+    "projects",
+    "view",
+  );
+  const projects = canViewProjects
+    ? await supabase
+        .from("projects")
+        .select("id,name")
+        .eq("household_id", profile.household_id)
+        .order("name")
+    : null;
+  if (projects?.error) throw new Error("No se pudieron cargar los proyectos.");
   const canViewTransaction = canAccess(
     profile.role,
     permissions,
@@ -153,6 +167,10 @@ export async function getShoppingList(id: string) {
       household.data?.timezone ?? "America/El_Salvador",
     ),
     suggestions,
+    projects: projects?.data ?? [],
+    canAssignProject:
+      canAccess(profile.role, permissions, "projects", "edit") &&
+      canAccess(profile.role, permissions, "shopping_lists", "edit"),
     canEdit:
       canAccess(profile.role, permissions, "shopping_lists", "edit") &&
       (!list.data.project_id ||

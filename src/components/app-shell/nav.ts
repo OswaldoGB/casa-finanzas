@@ -8,6 +8,7 @@ import {
   LayoutDashboard,
   ListChecks,
   Package,
+  Plane,
   PiggyBank,
   Settings,
   ShoppingBag,
@@ -92,6 +93,7 @@ export const NAV: { label: string; items: NavItem[] }[] = [
         label: "Proyectos",
         icon: FolderKanban,
       },
+      { module: "projects", href: "/trips", label: "Viajes", icon: Plane },
     ],
   },
   {

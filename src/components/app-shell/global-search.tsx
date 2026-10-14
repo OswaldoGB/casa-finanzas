@@ -148,6 +148,14 @@ export function GlobalSearch({
               )}
               {!term && (
                 <CommandGroup heading="Crear">
+                  {canAccess(role, permissions, "projects", "edit") && (
+                    <CommandItem
+                      value="new-trip"
+                      onSelect={() => navigate("/trips?new=1")}
+                    >
+                      Crear viaje
+                    </CommandItem>
+                  )}
                   {canAccess(role, permissions, "transactions", "edit") && (
                     <CommandItem
                       value="new-transaction"

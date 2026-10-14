@@ -1,5 +1,12 @@
 import { expect, it } from "vitest";
 import { getMobileCreateAction } from "./mobile-create";
+it("abre un viaje desde el botón contextual del módulo", () => {
+  expect(getMobileCreateAction("/trips/example")).toEqual({
+    href: "/trips?new=1",
+    label: "Nuevo viaje",
+    module: "projects",
+  });
+});
 
 it("lleva a crear una cuenta desde la pantalla de cuentas", () => {
   expect(getMobileCreateAction("/accounts")).toMatchObject({

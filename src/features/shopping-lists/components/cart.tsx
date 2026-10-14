@@ -11,7 +11,10 @@ import { ItemForm, DeleteItemForm, fieldClass } from "./forms";
 import { GroupForm, ListAction } from "./group-form";
 import { PurchaseDialog } from "./purchase-dialog";
 import { PurchaseHistory } from "./purchase-history";
-type Props = NonNullable<Awaited<ReturnType<typeof getShoppingList>>>;
+type Props = Omit<
+  NonNullable<Awaited<ReturnType<typeof getShoppingList>>>,
+  "projects" | "canAssignProject"
+>;
 const labels: Record<string, string> = {
   pending: "Pendiente",
   cart: "En carrito",
@@ -316,6 +319,7 @@ export function ShoppingCart({
                   })}
                   {editable && canClose && options && cart.length > 0 && (
                     <PurchaseDialog
+                      disabled={pending}
                       listId={list.id}
                       groupId={group.id}
                       name={group.name}
@@ -326,7 +330,15 @@ export function ShoppingCart({
                   )}
                   {editable && group.id && !group.is_archived && (
                     <div>
-                      <details className="mb-3"><summary className="cursor-pointer text-xs">Cambiar nombre del lugar</summary><GroupForm listId={list.id} group={{id:group.id,name:group.name}}/></details>
+                      <details className="mb-3">
+                        <summary className="cursor-pointer text-xs">
+                          Cambiar nombre del lugar
+                        </summary>
+                        <GroupForm
+                          listId={list.id}
+                          group={{ id: group.id, name: group.name }}
+                        />
+                      </details>
                       <ListAction
                         kind="archive"
                         id={group.id}

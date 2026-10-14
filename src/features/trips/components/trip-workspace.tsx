@@ -1,6 +1,6 @@
 "use client";
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { createClient } from "@/lib/supabase/client";
 import type { TripSnapshot } from "../schemas";
@@ -16,6 +16,7 @@ export function TripWorkspace({
   availableLists: { id: string; name: string }[];
 }) {
   const router = useRouter();
+  const tab = useSearchParams().get("tab");
   useEffect(() => {
     const supabase = createClient();
     const channel = supabase
@@ -36,8 +37,15 @@ export function TripWorkspace({
     };
   }, [snapshot.project.id, router]);
   return (
-    <Tabs defaultValue="overview" className="min-w-0">
-      <TabsList className="grid h-auto w-full grid-cols-2 gap-1 sm:grid-cols-4">
+    <Tabs
+      defaultValue={
+        tab && ["overview", "days", "budget", "shopping"].includes(tab)
+          ? tab
+          : "overview"
+      }
+      className="min-w-0"
+    >
+      <TabsList className="grid w-full grid-cols-2 gap-1 group-data-horizontal/tabs:h-auto sm:grid-cols-4">
         {[
           ["overview", "Resumen"],
           ["days", "Por día"],
@@ -47,7 +55,7 @@ export function TripWorkspace({
           <TabsTrigger
             key={value}
             value={value}
-            className="min-w-0 py-2.5 text-sm"
+            className="h-auto min-w-0 py-2.5 text-sm"
           >
             {label}
           </TabsTrigger>

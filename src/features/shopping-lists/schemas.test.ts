@@ -22,6 +22,7 @@ it("validates store names and rejects repeated purchase products", () => {
       date: "2026-10-14",
       payment_method_id: "",
       request_key: id,
+      expected_total: "3.38",
     }).success,
   ).toBe(false);
 });

@@ -4,6 +4,7 @@ import { getTrips } from "@/features/trips/queries";
 import { TripDialog } from "@/features/trips/components/trip-dialog";
 import { projectStatus } from "@/features/projects/schemas";
 import { formatUSD } from "@/lib/format";
+import { ExportButtons } from "@/features/exports/components/export-buttons";
 export const metadata = { title: "Viajes" };
 export default async function TripsPage({
   searchParams,
@@ -26,6 +27,7 @@ export default async function TripsPage({
         </div>
         {canEdit && <TripDialog listenToNew />}
       </header>
+      <ExportButtons target="trips" />
       <div className="flex gap-2">
         <Link
           href="/trips"

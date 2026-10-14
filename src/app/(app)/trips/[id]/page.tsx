@@ -5,6 +5,7 @@ import { getTrip } from "@/features/trips/queries";
 import { TripDialog } from "@/features/trips/components/trip-dialog";
 import { TripWorkspace } from "@/features/trips/components/trip-workspace";
 import { requireModule } from "@/features/permissions/queries";
+import { ExportButtons } from "@/features/exports/components/export-buttons";
 export const metadata = { title: "Plan del viaje" };
 export default async function TripPage({
   params,
@@ -54,6 +55,7 @@ export default async function TripPage({
           {snapshot.canEdit && <TripDialog trip={snapshot} />}
         </div>
       </header>
+      <ExportButtons target="trips" filters={{ trip: id }} />
       <TripWorkspace snapshot={snapshot} availableLists={choices?.data ?? []} />
     </div>
   );

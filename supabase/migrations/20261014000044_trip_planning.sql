@@ -180,15 +180,16 @@ begin
   if exists(select 1 from public.shopping_list_purchases where list_id=l.id) then
     if not p_confirm_financial_change or not public.has_module_access('transactions','edit') then raise exception 'Confirma el cambio de proyecto de los gastos de esta lista'; end if;
     if exists(select 1 from public.shopping_list_purchases p join public.transactions t on t.id=p.transaction_id where p.list_id=l.id and t.project_id is not null and t.project_id is distinct from l.project_id and t.project_id is distinct from p_project_id) then raise exception 'Hay gastos vinculados a otro proyecto'; end if;
-    update public.transactions t set project_id=p_project_id from public.shopping_list_purchases p where p.transaction_id=t.id and p.list_id=l.id;
   end if;
   update public.shopping_lists set project_id=p_project_id where id=l.id;
+  update public.transactions t set project_id=p_project_id from public.shopping_list_purchases p where p.transaction_id=t.id and p.list_id=l.id;
 end $$;
 
-create function public.guard_trip_transaction_project() returns trigger language plpgsql set search_path='' as $$
+create function public.guard_trip_transaction_project() returns trigger language plpgsql security definer set search_path='' as $$
 begin
+  if (new.type<>'expense' or new.status<>'posted') and (exists(select 1 from public.trip_cost_transactions where transaction_id=old.id) or exists(select 1 from public.shopping_list_purchases where transaction_id=old.id)) then raise exception 'Una compra o concepto vinculado debe seguir siendo un gasto confirmado'; end if;
   if new.project_id is distinct from old.project_id and exists(select 1 from public.trip_cost_transactions where transaction_id=old.id) then raise exception 'Desvincula el concepto del viaje antes de cambiar el proyecto'; end if;
-  if current_user='authenticated' and new.project_id is distinct from old.project_id and exists(select 1 from public.shopping_list_purchases p join public.shopping_lists l on l.id=p.list_id where p.transaction_id=old.id and l.project_id is distinct from new.project_id) then raise exception 'Cambia el proyecto desde la lista para conservar sus vínculos'; end if;
+  if new.project_id is distinct from old.project_id and exists(select 1 from public.shopping_list_purchases p join public.shopping_lists l on l.id=p.list_id where p.transaction_id=old.id and l.project_id is distinct from new.project_id) then raise exception 'Cambia el proyecto desde la lista para conservar sus vínculos'; end if;
   return new;
 end $$;
 create trigger transactions_trip_project before update on public.transactions for each row execute function public.guard_trip_transaction_project();
@@ -248,7 +249,7 @@ begin
     'groups',case when can_lists then coalesce((select jsonb_agg(g) from public.shopping_list_groups g join public.shopping_lists l on l.id=g.list_id where l.project_id=p_project_id and l.household_id=home),'[]') else '[]' end,
     'items',case when can_lists then coalesce((select jsonb_agg(i order by i.sort_order,i.created_at) from public.shopping_list_items i join public.shopping_lists l on l.id=i.list_id where l.project_id=p_project_id and l.household_id=home),'[]') else '[]' end,
     'purchases',case when can_lists then coalesce((select jsonb_agg(p) from public.shopping_list_purchases p join public.shopping_lists l on l.id=p.list_id where l.project_id=p_project_id and l.household_id=home),'[]') else '[]' end,
-    'transactions',coalesce((select jsonb_agg(t order by date desc) from public.transactions t where project_id=p_project_id and household_id=home and type='expense' and status='posted'),'[]'),
+    'transactions',coalesce((select jsonb_agg(jsonb_build_object('id',t.id,'amount',t.amount,'date',t.date,'description',t.description,'status',t.status,'created_by',t.created_by) order by date desc) from public.transactions t where project_id=p_project_id and household_id=home and type='expense' and status='posted'),'[]'),
     'shoppingSummary',(select jsonb_build_object('estimated',coalesce(round(sum(i.quantity*i.estimated_price) filter(where i.resolution='pending'),2),0),
       'pending',coalesce(round(sum(i.quantity*(case when i.checked then coalesce(i.real_price,i.estimated_price) else i.estimated_price end)) filter(where i.purchase_id is null and i.resolution='pending'),2),0),
       'missing',count(*) filter(where i.resolution='pending' and i.estimated_price is null))
@@ -282,6 +283,30 @@ end $$;
 revoke all on function public.touch_trip_planning() from public;
 create index trip_activity_day_idx on public.trip_activities(project_id,date);
 create index trip_required_item_idx on public.trip_activity_items(item_id);
+create function public.guard_trip_item_unit() returns trigger language plpgsql security definer set search_path='' as $$
+begin
+  if new.unit is distinct from old.unit and exists(select 1 from public.trip_activity_items where item_id=old.id) then raise exception 'Quita los vínculos del menú antes de cambiar la unidad'; end if;
+  return new;
+end $$;
+create trigger shopping_items_trip_unit before update on public.shopping_list_items for each row execute function public.guard_trip_item_unit();
+create function public.travel_transaction_source(p_transaction_id uuid) returns jsonb language plpgsql stable security definer set search_path='' as $$
+declare tx public.transactions; purchase public.shopping_list_purchases; list public.shopping_lists; cost public.trip_cost_lines;
+begin
+  if not public.has_module_access('transactions','view') then raise exception 'Sin acceso al movimiento'; end if;
+  select * into tx from public.transactions where id=p_transaction_id and household_id=public.current_household_id();
+  if not found then return null; end if;
+  select * into purchase from public.shopping_list_purchases where transaction_id=tx.id and household_id=tx.household_id;
+  if found then select * into list from public.shopping_lists where id=purchase.list_id and household_id=tx.household_id; end if;
+  select c.* into cost from public.trip_cost_lines c join public.trip_cost_transactions r on r.cost_line_id=c.id where r.transaction_id=tx.id and r.household_id=tx.household_id;
+  return jsonb_build_object('purchase',case when purchase.id is not null then jsonb_build_object('id',purchase.id,'list_id',purchase.list_id,'store_name',purchase.store_name) else null end,
+    'list',case when list.id is not null then jsonb_build_object('id',list.id,'name',list.name) else null end,
+    'project',(select jsonb_build_object('id',p.id,'name',p.name,'is_trip',exists(select 1 from public.trip_details where project_id=p.id)) from public.projects p where p.id=tx.project_id and p.household_id=tx.household_id),
+    'cost',case when cost.id is not null then jsonb_build_object('id',cost.id,'name',cost.name) else null end,
+    'items',coalesce((select jsonb_agg(jsonb_build_object('name',i.name,'quantity',i.quantity,'unit',i.unit,'real_price',i.real_price) order by i.sort_order) from public.shopping_list_items i where i.purchase_id=purchase.id and i.household_id=tx.household_id),'[]'),
+    'activities',case when public.has_module_access('projects','view') then coalesce((select jsonb_agg(distinct jsonb_build_object('title',a.title,'date',a.date)) from public.trip_activities a left join public.trip_activity_items ai on ai.activity_id=a.id left join public.shopping_list_items i on i.id=ai.item_id where (i.purchase_id=purchase.id or a.id=cost.activity_id) and a.household_id=tx.household_id),'[]') else '[]' end);
+end $$;
+revoke all on function public.travel_transaction_source(uuid) from public;
+grant execute on function public.travel_transaction_source(uuid) to authenticated;
 do $$ begin
   if exists(select 1 from pg_publication where pubname='supabase_realtime') then
     alter publication supabase_realtime add table public.trip_details,public.trip_activities,public.trip_cost_lines,public.trip_cost_transactions,public.trip_activity_items;

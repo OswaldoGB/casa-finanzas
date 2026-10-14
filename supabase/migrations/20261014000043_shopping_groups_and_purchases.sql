@@ -56,8 +56,8 @@ insert into public.shopping_list_groups(household_id,created_by,list_id,name)
   select household_id,created_by,id,store from public.shopping_lists where trim(store)<>'';
 update public.shopping_list_items i set group_id=g.id from public.shopping_list_groups g where g.list_id=i.list_id and g.household_id=i.household_id;
 insert into public.shopping_list_purchases(household_id,created_by,list_id,group_id,store_name,transaction_id,request_key,created_at)
-  select l.household_id,l.created_by,l.id,g.id,l.store,l.transaction_id,gen_random_uuid(),coalesce(l.completed_at,l.updated_at)
-  from public.shopping_lists l left join public.shopping_list_groups g on g.list_id=l.id where l.transaction_id is not null;
+  select l.household_id,t.created_by,l.id,g.id,l.store,l.transaction_id,gen_random_uuid(),coalesce(l.completed_at,l.updated_at)
+  from public.shopping_lists l join public.transactions t on t.id=l.transaction_id left join public.shopping_list_groups g on g.list_id=l.id where l.transaction_id is not null;
 update public.shopping_list_items i set purchase_id=p.id from public.shopping_list_purchases p where p.list_id=i.list_id and i.checked;
 update public.shopping_list_items i set resolution='legacy_unbought' from public.shopping_lists l where l.id=i.list_id and l.status<>'open' and not i.checked;
 
@@ -67,6 +67,7 @@ begin
     if exists(select 1 from public.households where id=old.household_id) and exists(select 1 from public.shopping_list_purchases where list_id=old.id) then raise exception 'Archiva la lista para conservar sus compras registradas'; end if;
     return old;
   end if;
+  if TG_OP='UPDATE' and current_user='authenticated' and new.project_id is distinct from old.project_id then raise exception 'Cambia el proyecto desde el formulario de vínculos de la lista'; end if;
   if TG_OP='UPDATE' and new.transaction_id is distinct from old.transaction_id and not (new.transaction_id is null and current_user<>'authenticated') then raise exception 'El vínculo histórico no se cambia'; end if;
   if current_user='authenticated' and new.project_id is distinct from (case when TG_OP='UPDATE' then old.project_id else null end)
     and exists(select 1 from public.shopping_list_purchases where list_id=new.id) then raise exception 'Revisa los gastos antes de cambiar el proyecto'; end if;
@@ -110,7 +111,7 @@ create function public.refresh_shopping_list_state(p_list_id uuid) returns void 
 begin
   update public.shopping_lists l set status=case when exists(select 1 from public.shopping_list_items i where i.list_id=l.id)
     and not exists(select 1 from public.shopping_list_items i where i.list_id=l.id and i.purchase_id is null and i.resolution='pending') then 'completed' else 'open' end,
-    completed_at=case when not exists(select 1 from public.shopping_list_items i where i.list_id=l.id and i.purchase_id is null and i.resolution='pending') then now() else null end
+    completed_at=case when exists(select 1 from public.shopping_list_items i where i.list_id=l.id) and not exists(select 1 from public.shopping_list_items i where i.list_id=l.id and i.purchase_id is null and i.resolution='pending') then coalesce(l.completed_at,now()) else null end
     where l.id=p_list_id and l.status<>'archived';
 end $$;
 revoke all on function public.refresh_shopping_list_state(uuid) from public;
@@ -122,13 +123,13 @@ end $$;
 create trigger shopping_items_resolved after insert or update or delete on public.shopping_list_items for each row execute function public.shopping_item_state_changed();
 revoke all on function public.shopping_item_state_changed() from public;
 
-create function public.record_shopping_purchase(p_list_id uuid,p_group_id uuid,p_item_ids uuid[],p_account_id uuid,p_category_id uuid,p_date date,p_payment_method_id uuid,p_request_key uuid)
+create function public.record_shopping_purchase(p_list_id uuid,p_group_id uuid,p_item_ids uuid[],p_account_id uuid,p_category_id uuid,p_date date,p_payment_method_id uuid,p_request_key uuid,p_expected_total numeric default null)
 returns jsonb language plpgsql security definer set search_path='' as $$
 declare l public.shopping_lists; existing public.shopping_list_purchases; purchase uuid; tx uuid; total numeric(14,2); store text:='Por decidir'; payload jsonb;
 begin
   if not public.has_module_access('shopping_lists','edit') or not public.has_module_access('transactions','edit') then raise exception 'Sin permiso para registrar compras'; end if;
   if p_request_key is null or p_date is null or coalesce(cardinality(p_item_ids),0) not between 1 and 500 or cardinality(p_item_ids)<>(select count(distinct x) from unnest(p_item_ids) x) then raise exception 'Selección inválida'; end if;
-  payload:=jsonb_build_object('list',p_list_id,'group',p_group_id,'items',(select jsonb_agg(x order by x) from unnest(p_item_ids) x),'account',p_account_id,'category',p_category_id,'date',p_date,'method',p_payment_method_id);
+  payload:=jsonb_build_object('list',p_list_id,'group',p_group_id,'items',(select jsonb_agg(x order by x) from unnest(p_item_ids) x),'account',p_account_id,'category',p_category_id,'date',p_date,'method',p_payment_method_id,'expected_total',p_expected_total);
   -- The operation key serializes retries even when two requests target different lists.
   perform pg_advisory_xact_lock(hashtextextended(public.current_household_id()::text||p_request_key::text,0));
   select * into existing from public.shopping_list_purchases where household_id=public.current_household_id() and request_key=p_request_key;
@@ -147,6 +148,7 @@ begin
   if (select count(*) from public.shopping_list_items where id=any(p_item_ids) and list_id=l.id and household_id=l.household_id and group_id is not distinct from p_group_id and purchase_id is null and resolution='pending' and checked and real_price is not null)<>cardinality(p_item_ids) then raise exception 'Selecciona artículos de este lugar, en carrito y con precio'; end if;
   select round(sum(real_price*quantity),2) into total from public.shopping_list_items where id=any(p_item_ids) and list_id=l.id;
   if total<=0 then raise exception 'El total debe ser mayor que cero'; end if;
+  if p_expected_total is not null and total<>p_expected_total then raise exception 'El carrito cambió; revisa el total antes de pagar'; end if;
   perform public.validate_purchase_refs(l.household_id,p_account_id,p_category_id,p_payment_method_id);
   insert into public.transactions(household_id,created_by,type,amount,date,account_id,category_id,payment_method_id,project_id,description)
     values(l.household_id,auth.uid(),'expense',total,p_date,p_account_id,p_category_id,p_payment_method_id,l.project_id,left(l.name||' · '||store,240)) returning id into tx;
@@ -161,8 +163,8 @@ do $$ begin
     alter publication supabase_realtime add table public.shopping_list_groups,public.shopping_list_purchases;
   end if;
 end $$;
-revoke all on function public.record_shopping_purchase(uuid,uuid,uuid[],uuid,uuid,date,uuid,uuid) from public;
-grant execute on function public.record_shopping_purchase(uuid,uuid,uuid[],uuid,uuid,date,uuid,uuid) to authenticated;
+revoke all on function public.record_shopping_purchase(uuid,uuid,uuid[],uuid,uuid,date,uuid,uuid,numeric) from public;
+grant execute on function public.record_shopping_purchase(uuid,uuid,uuid[],uuid,uuid,date,uuid,uuid,numeric) to authenticated;
 
 create function public.set_shopping_item_resolution(p_item_id uuid,p_resolution text) returns void language plpgsql security definer set search_path='' as $$
 declare item public.shopping_list_items; lid uuid;

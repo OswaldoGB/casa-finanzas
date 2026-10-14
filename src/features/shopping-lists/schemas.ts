@@ -49,6 +49,7 @@ export const itemSchema = z.object({
   sort_order: z.coerce.number().int().min(0).max(1000000).default(0),
 });
 export const purchaseInputSchema = z.object({
+  expected_total: money,
   list_id: listIdSchema,
   group_id: z
     .union([z.literal(""), listIdSchema])

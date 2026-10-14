@@ -5,12 +5,21 @@ import { projectSnapshotSchema } from "./schemas";
 
 export async function getProjects() {
   const { supabase, profile, permissions } = await requireModule("projects");
-  const result = await supabase.rpc("project_snapshot");
+  const [result, trips] = await Promise.all([
+    supabase.rpc("project_snapshot"),
+    supabase
+      .from("trip_details")
+      .select("project_id")
+      .eq("household_id", profile.household_id),
+  ]);
   const parsed = projectSnapshotSchema.safeParse(result.data);
-  if (result.error || !parsed.success)
+  if (result.error || trips.error || !parsed.success)
     throw new Error("No se pudieron cargar los proyectos.");
   return {
-    projects: parsed.data,
+    projects: parsed.data.map((p) => ({
+      ...p,
+      isTrip: (trips.data ?? []).some((t) => t.project_id === p.id),
+    })),
     canEdit: canAccess(profile.role, permissions, "projects", "edit"),
   };
 }

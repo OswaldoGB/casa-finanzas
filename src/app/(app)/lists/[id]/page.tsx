@@ -7,6 +7,7 @@ import {
   ListOperation,
 } from "@/features/shopping-lists/components/forms";
 import { ShoppingCart } from "@/features/shopping-lists/components/cart";
+import { ListProjectLink } from "@/features/shopping-lists/components/project-link";
 export const metadata = { title: "Lista de compra" };
 export default async function ListPage({
   params,
@@ -47,6 +48,14 @@ export default async function ListPage({
         )}
       </header>
       <ExportButtons target="list_items" filters={{ list: id }} />
+      {data.canAssignProject && (
+        <ListProjectLink
+          listId={id}
+          projectId={list.project_id}
+          projects={data.projects}
+          hasPurchases={data.purchases.length > 0}
+        />
+      )}
       {list.transaction_id && canViewTransaction && (
         <Link
           href={`/transactions/${list.transaction_id}`}

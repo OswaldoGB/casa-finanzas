@@ -129,11 +129,14 @@ export async function recordPurchase(
     p_date: p.date,
     p_payment_method_id: p.payment_method_id,
     p_request_key: p.request_key,
+    p_expected_total: p.expected_total,
   });
   if (error)
     return {
       error:
-        "No se registró la compra. Revisa precios, permisos y si los artículos ya fueron pagados.",
+        error.code === "P0001"
+          ? error.message
+          : "No se registró la compra. Revisa precios, permisos y si los artículos ya fueron pagados.",
     };
   refresh(p.list_id);
   for (const path of [
@@ -181,14 +184,12 @@ export async function saveList(
   if (result.error || !result.data)
     return { error: "No se pudo guardar la lista." };
   if (!id && values.store) {
-    const group = await supabase
-      .from("shopping_list_groups")
-      .insert({
-        list_id: result.data.id,
-        name: values.store,
-        household_id: profile.household_id,
-        created_by: profile.id,
-      });
+    const group = await supabase.from("shopping_list_groups").insert({
+      list_id: result.data.id,
+      name: values.store,
+      household_id: profile.household_id,
+      created_by: profile.id,
+    });
     if (group.error)
       return {
         error:

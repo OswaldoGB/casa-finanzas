@@ -8,6 +8,10 @@ export type MobileCreateAction = {
 
 const actions: [string, MobileCreateAction][] = [
   [
+    "/trips",
+    { href: "/trips?new=1", label: "Nuevo viaje", module: "projects" },
+  ],
+  [
     "/accounts",
     { href: "/accounts/new", label: "Nueva cuenta", module: "accounts" },
   ],

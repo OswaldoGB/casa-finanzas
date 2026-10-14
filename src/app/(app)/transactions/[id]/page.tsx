@@ -14,6 +14,7 @@ import {
   transactionTypeLabel,
 } from "@/features/transactions/details";
 import { formatUSD } from "@/lib/format";
+import { TransactionTravelSource } from "@/features/trips/components/transaction-source";
 
 export const metadata = { title: "Movimiento" };
 type TransactionSource = {
@@ -58,19 +59,21 @@ export default async function TransactionPage({
     (member) => member.id === transaction.created_by,
   );
   const sources = [
-    result.sources.shoppingList && {
-      type: "shopping_list" as const,
-      href: `/lists/${result.sources.shoppingList.id}`,
-      name: result.sources.shoppingList.name,
-      detail: [
-        result.sources.shoppingList.store,
-        result.sources.shoppingList.status === "open"
-          ? "Abierta"
-          : "Completada",
-      ]
-        .filter(Boolean)
-        .join(" · "),
-    },
+    result.sources.shoppingList && !result.travelSource?.purchase
+      ? {
+          type: "shopping_list" as const,
+          href: `/lists/${result.sources.shoppingList.id}`,
+          name: result.sources.shoppingList.name,
+          detail: [
+            result.sources.shoppingList.store,
+            result.sources.shoppingList.status === "open"
+              ? "Abierta"
+              : "Completada",
+          ]
+            .filter(Boolean)
+            .join(" · "),
+        }
+      : null,
     result.sources.shoppingItem && {
       type: "shopping_item" as const,
       href: "/shopping",
@@ -235,6 +238,12 @@ export default async function TransactionPage({
           </div>
         )}
       </section>
+      <TransactionTravelSource
+        source={result.travelSource}
+        canViewProjects={result.canViewProjects}
+        canViewLists={result.canViewLists}
+        amount={Number(transaction.amount)}
+      />
       <AttachmentsPanel
         transactionId={id}
         initialAttachments={attachments}

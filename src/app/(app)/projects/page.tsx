@@ -27,7 +27,7 @@ export default async function ProjectsPage() {
           )}
           {projects.map((project) => (
             <Link
-              href={`/projects/${project.id}`}
+              href={`/${project.isTrip ? "trips" : "projects"}/${project.id}`}
               key={project.id}
               className="bg-card hover:border-primary space-y-3 rounded-2xl border p-5"
             >

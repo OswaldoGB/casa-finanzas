@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { getProjects } from "@/features/projects/queries";
 import { ProjectForm } from "@/features/projects/components/project-form";
 import { ActionForm } from "@/features/projects/components/action-form";
@@ -16,6 +16,7 @@ export default async function ProjectPage({
   const { projects, canEdit } = await getProjects();
   const project = projects.find((item) => item.id === id);
   if (!project) notFound();
+  if (project.isTrip) redirect(`/trips/${id}`);
   return (
     <div className="mx-auto max-w-5xl space-y-6">
       <Link href="/projects" className="text-sm underline">

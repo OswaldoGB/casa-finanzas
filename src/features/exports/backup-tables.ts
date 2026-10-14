@@ -15,5 +15,12 @@ export const BACKUP_TABLES = [
   "shopping_items",
   "shopping_list_items",
   "shopping_lists",
+  "shopping_list_groups",
+  "shopping_list_purchases",
+  "trip_details",
+  "trip_activities",
+  "trip_cost_lines",
+  "trip_cost_transactions",
+  "trip_activity_items",
   "transactions",
 ] as const;

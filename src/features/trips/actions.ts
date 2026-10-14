@@ -232,7 +232,10 @@ export async function assignListProject(
 ): Promise<FormState> {
   const { supabase } = await requireModule("projects", "edit");
   const list = uuid.safeParse(form.get("list_id")),
-    project = uuid.safeParse(form.get("project_id"));
+    project =
+      String(form.get("project_id") ?? "") === "none"
+        ? { success: true as const, data: null }
+        : uuid.safeParse(form.get("project_id"));
   if (!list.success || !project.success)
     return { error: "Selecciona lista y proyecto." };
   const { error } = await supabase.rpc("assign_shopping_list_project", {
@@ -242,8 +245,12 @@ export async function assignListProject(
   });
   if (error)
     return { error: errorMessage(error, "No se pudo vincular la lista.") };
-  refresh(project.data);
-  return { ok: "Lista y gastos vinculados al proyecto." };
+  refresh(project.data ?? undefined);
+  return {
+    ok: project.data
+      ? "Lista y gastos vinculados al proyecto."
+      : "Lista separada del proyecto.",
+  };
 }
 export async function removeTripRecord(
   _: FormState,

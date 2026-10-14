@@ -129,6 +129,10 @@ export type PlanningColumns = {
   };
 };
 export type PlanningFunctions = {
+  travel_transaction_source: {
+    Args: { p_transaction_id: string };
+    Returns: Json;
+  };
   save_trip: {
     Args: {
       p_project_id: string | null;
@@ -169,7 +173,7 @@ export type PlanningFunctions = {
     Returns: string;
   };
   link_trip_cost_transaction: {
-    Args: { p_line_id: string; p_transaction_id: string; p_settle?:boolean };
+    Args: { p_line_id: string; p_transaction_id: string; p_settle?: boolean };
     Returns: undefined;
   };
   assign_shopping_list_project: {
@@ -196,6 +200,7 @@ export type PlanningFunctions = {
   remove_trip_activity: { Args: { p_activity_id: string }; Returns: undefined };
   record_shopping_purchase: {
     Args: {
+      p_expected_total?: number;
       p_list_id: string;
       p_group_id: string | null;
       p_item_ids: string[];

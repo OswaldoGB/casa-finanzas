@@ -1,5 +1,7 @@
 import "server-only";
+import { travelTransactionSourceSchema } from "@/features/trips/transaction-source";
 import { requireModule } from "@/features/permissions/queries";
+import { canAccess } from "@/features/permissions/modules";
 import type { Database } from "@/lib/supabase/database.types";
 import { transactionIdSchema } from "./schemas";
 import { todayInTimeZone } from "@/features/recurring/processing";
@@ -128,52 +130,67 @@ export async function getTransaction(id: string) {
     .eq("household_id", profile.household_id)
     .maybeSingle();
   if (error) throw new Error("No se pudo cargar el movimiento.");
-  const [loan, shoppingList, shoppingItem, inventoryItem] = await Promise.all([
-    data?.loan_id
-      ? supabase
-          .from("loans")
-          .select(
-            "id,debtor,amount,recovered_amount,date,expected_payment_date",
-          )
-          .eq("id", data.loan_id)
-          .eq("household_id", profile.household_id)
-          .maybeSingle()
-      : Promise.resolve({ data: null, error: null }),
-    data
-      ? supabase
-          .from("shopping_lists")
-          .select("id,name,store,status")
-          .eq("transaction_id", data.id)
-          .eq("household_id", profile.household_id)
-          .maybeSingle()
-      : Promise.resolve({ data: null, error: null }),
-    data
-      ? supabase
-          .from("shopping_items")
-          .select("id,name,status")
-          .eq("transaction_id", data.id)
-          .eq("household_id", profile.household_id)
-          .maybeSingle()
-      : Promise.resolve({ data: null, error: null }),
-    data
-      ? supabase
-          .from("inventory_items")
-          .select("id,name,location")
-          .eq("transaction_id", data.id)
-          .eq("household_id", profile.household_id)
-          .maybeSingle()
-      : Promise.resolve({ data: null, error: null }),
-  ]);
+  const [loan, shoppingList, shoppingItem, inventoryItem, travelSource] =
+    await Promise.all([
+      data?.loan_id
+        ? supabase
+            .from("loans")
+            .select(
+              "id,debtor,amount,recovered_amount,date,expected_payment_date",
+            )
+            .eq("id", data.loan_id)
+            .eq("household_id", profile.household_id)
+            .maybeSingle()
+        : Promise.resolve({ data: null, error: null }),
+      data
+        ? supabase
+            .from("shopping_lists")
+            .select("id,name,store,status")
+            .eq("transaction_id", data.id)
+            .eq("household_id", profile.household_id)
+            .maybeSingle()
+        : Promise.resolve({ data: null, error: null }),
+      data
+        ? supabase
+            .from("shopping_items")
+            .select("id,name,status")
+            .eq("transaction_id", data.id)
+            .eq("household_id", profile.household_id)
+            .maybeSingle()
+        : Promise.resolve({ data: null, error: null }),
+      data
+        ? supabase
+            .from("inventory_items")
+            .select("id,name,location")
+            .eq("transaction_id", data.id)
+            .eq("household_id", profile.household_id)
+            .maybeSingle()
+        : Promise.resolve({ data: null, error: null }),
+      data
+        ? supabase.rpc("travel_transaction_source", {
+            p_transaction_id: data.id,
+          })
+        : Promise.resolve({ data: null, error: null }),
+    ]);
   if (
     loan.error ||
     shoppingList.error ||
     shoppingItem.error ||
-    inventoryItem.error
+    inventoryItem.error ||
+    travelSource.error
   )
     throw new Error("No se pudo cargar el origen del movimiento.");
   return {
     transaction: data,
     loan: loan.data,
+    travelSource: travelTransactionSourceSchema.parse(travelSource.data),
+    canViewProjects: canAccess(profile.role, permissions, "projects", "view"),
+    canViewLists: canAccess(
+      profile.role,
+      permissions,
+      "shopping_lists",
+      "view",
+    ),
     sources: {
       shoppingList: shoppingList.data,
       shoppingItem: shoppingItem.data,

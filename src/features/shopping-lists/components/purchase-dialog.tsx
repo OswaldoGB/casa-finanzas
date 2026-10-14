@@ -15,7 +15,9 @@ import { formatUSD } from "@/lib/format";
 import { recordPurchase } from "../actions";
 import { Feedback, buttonClass, fieldClass } from "./forms";
 import type { ShoppingItem } from "../queries";
+import { shoppingPurchaseTotals } from "../purchase-totals";
 type Props = {
+  disabled?: boolean;
   listId: string;
   groupId: string | null;
   name: string;
@@ -38,16 +40,14 @@ export function PurchaseDialog(props: Props) {
     },
     [router],
   );
-  const total = props.items.reduce(
-    (sum, i) => sum + (i.real_price ?? 0) * i.quantity,
-    0,
-  );
+  const total = shoppingPurchaseTotals(props.items, [], []).cart;
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <button
           className={buttonClass}
           disabled={
+            props.disabled ||
             !props.items.length ||
             total <= 0 ||
             props.items.some((i) => i.real_price == null)
@@ -90,6 +90,11 @@ function PurchaseForm({
       <input type="hidden" name="list_id" value={props.listId} />
       <input type="hidden" name="group_id" value={props.groupId ?? ""} />
       <input type="hidden" name="request_key" value={key} />
+      <input
+        type="hidden"
+        name="expected_total"
+        value={shoppingPurchaseTotals(props.items, [], []).cart.toFixed(2)}
+      />
       <ul className="rounded-lg border p-3 text-sm">
         {props.items.map((i) => (
           <li key={i.id} className="flex justify-between gap-2 py-1">

@@ -1,5 +1,14 @@
 import { PGlite } from "@electric-sql/pglite";
 import { createShoppingDatabase } from "./database-test-fixture";
+it("rejects a checkout whose confirmed total no longer matches the cart", async () => {
+  const f = await fixture();
+  await expect(
+    db.query(
+      "select record_shopping_purchase($1,$2,$3,$4,$5,'2026-10-14',null,$6,99.99)",
+      [f.list, f.group, [f.item], account, category, randomUUID()],
+    ),
+  ).rejects.toThrow(/carrito cambió/i);
+});
 import { randomUUID } from "node:crypto";
 import { beforeAll, afterAll, expect, it } from "vitest";
 
