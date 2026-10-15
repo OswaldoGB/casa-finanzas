@@ -73,7 +73,7 @@ const products: Record<Institution, Product[]> = {
       value: "cashback_epay_platinum",
       label: "Cash Back e-pay Platinum Mastercard",
       imageUrl:
-        "https://multimedia.bancocuscatlan.com/assets/paginas-internas/e-Pay.jpg",
+        "https://multimedia.bancocuscatlan.com/strapi-media/Tarjetas_VISA_MASTECARD_10_d9e065a424.png",
       fallback: "cuscatlan",
     },
     { value: "multipuntos", label: "MultiPuntos", fallback: "cuscatlan" },

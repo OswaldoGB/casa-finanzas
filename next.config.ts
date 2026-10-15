@@ -6,7 +6,7 @@ const nextConfig: NextConfig = {
       {
         protocol: "https",
         hostname: "multimedia.bancocuscatlan.com",
-        pathname: "/assets/paginas-internas/e-Pay.jpg",
+        pathname: "/strapi-media/Tarjetas_VISA_MASTECARD_10_d9e065a424.png",
       },
       {
         protocol: "https",

@@ -22,7 +22,7 @@ describe("card appearance catalog", () => {
       label: "Cash Back e-pay Platinum Mastercard",
       networkLabel: "Mastercard",
       imageUrl:
-        "https://multimedia.bancocuscatlan.com/assets/paginas-internas/e-Pay.jpg",
+        "https://multimedia.bancocuscatlan.com/strapi-media/Tarjetas_VISA_MASTECARD_10_d9e065a424.png",
     });
   });
   it.each(["uno", "uno_oro"])(
