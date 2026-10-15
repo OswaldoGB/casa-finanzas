@@ -5,6 +5,26 @@ import { cardAppearance, cardProductOptions } from "./card-appearance";
 import { CardArtwork } from "./components/card-artwork";
 
 describe("card appearance catalog", () => {
+  it("offers Cash Back e-pay Platinum with its own official artwork", () => {
+    expect(cardProductOptions("cuscatlan")).toContainEqual(
+      expect.objectContaining({
+        value: "cashback_epay_platinum",
+        label: "Cash Back e-pay Platinum Mastercard",
+      }),
+    );
+    expect(
+      cardAppearance({
+        institution: "cuscatlan",
+        network: "mastercard",
+        product: "cashback_epay_platinum",
+      }),
+    ).toMatchObject({
+      label: "Cash Back e-pay Platinum Mastercard",
+      networkLabel: "Mastercard",
+      imageUrl:
+        "https://multimedia.bancocuscatlan.com/assets/paginas-internas/e-Pay.jpg",
+    });
+  });
   it.each(["uno", "uno_oro"])(
     "offers %s with official Cuscatlán artwork",
     (product) => {

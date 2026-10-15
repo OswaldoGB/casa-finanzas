@@ -69,6 +69,13 @@ const products: Record<Institution, Product[]> = {
     { value: "oro", label: "Oro", fallback: "cuscatlan" },
     { value: "platinum", label: "Platinum", fallback: "cuscatlan" },
     { value: "cashback", label: "Cash Back", fallback: "cuscatlan" },
+    {
+      value: "cashback_epay_platinum",
+      label: "Cash Back e-pay Platinum Mastercard",
+      imageUrl:
+        "https://multimedia.bancocuscatlan.com/assets/paginas-internas/e-Pay.jpg",
+      fallback: "cuscatlan",
+    },
     { value: "multipuntos", label: "MultiPuntos", fallback: "cuscatlan" },
   ],
   davivienda: [
