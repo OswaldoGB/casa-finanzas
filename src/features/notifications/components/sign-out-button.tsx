@@ -1,3 +1,29 @@
 "use client";
-import{useTransition}from"react";import{LogOut}from"lucide-react";import{toast}from"sonner";import{signOut}from"@/features/auth/actions";
-export function SignOutButton(){const[pending,start]=useTransition();return <button type="button" disabled={pending} aria-label="Cerrar sesión" className="text-muted-foreground hover:bg-accent focus-visible:ring-ring grid size-9 place-items-center rounded-md outline-none focus-visible:ring-2 disabled:opacity-50" onClick={()=>start(async()=>{try{await signOut()}catch{toast.error("No se pudo cerrar la sesión y desactivar este dispositivo. Vuelve a intentar.")}})}><LogOut className="size-4"/></button>}
+import { useTransition } from "react";
+import { LogOut } from "lucide-react";
+import { toast } from "sonner";
+import { signOut } from "@/features/auth/actions";
+export function SignOutButton() {
+  const [pending, start] = useTransition();
+  return (
+    <button
+      type="button"
+      disabled={pending}
+      aria-label="Cerrar sesión"
+      className="text-muted-foreground hover:bg-accent focus-visible:ring-ring grid size-9 place-items-center rounded-md outline-none focus-visible:ring-2 disabled:opacity-50"
+      onClick={() =>
+        start(async () => {
+          try {
+            await signOut();
+          } catch {
+            toast.error(
+              "No se pudo cerrar la sesión y desactivar este dispositivo. Vuelve a intentar.",
+            );
+          }
+        })
+      }
+    >
+      <LogOut className="size-4" />
+    </button>
+  );
+}

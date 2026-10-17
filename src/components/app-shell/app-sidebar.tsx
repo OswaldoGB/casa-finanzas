@@ -105,7 +105,7 @@ export function AppSidebar({ user }: { user: SessionUser }) {
             </p>
           </div>
           <ThemeToggle />
-          <SignOutButton/>
+          <SignOutButton />
         </div>
       </SidebarFooter>
       <SidebarRail />

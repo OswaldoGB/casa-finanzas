@@ -144,3 +144,15 @@ it("leases work once and cancels a claimed delivery when its reminder changes", 
     ).rows,
   ).toEqual([{ ok: false }]);
 });
+it("does not deliver old advance alerts after moving to a nearer alert window", async () => {
+  await db.exec(`select set_config('app.user','${ids.admin}',false)`);
+  const r = await record();
+  await db.query("select prepare_reminder_notifications('2026-10-17 15:00Z')");
+  await db.query("select prepare_reminder_notifications('2026-10-23 15:00Z')");
+  const jobs = (
+    await db.query<{ r: { reminder_id: string; message: string }[] }>(
+      "select claim_notification_deliveries(50,'2026-10-23 15:00Z') r",
+    )
+  ).rows[0].r.filter((j) => j.reminder_id === r.id);
+  expect(jobs).toHaveLength(1);
+});
