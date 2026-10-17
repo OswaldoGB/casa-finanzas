@@ -27,6 +27,16 @@ export type ReminderTables = {
   reminder_events: Table<ReminderEvent>;
 };
 export type ReminderFunctions = {
+  register_push_subscription: {
+    Args: {
+      p_endpoint: string;
+      p_keys: Json;
+      p_device_hash: string;
+      p_name: string;
+    };
+    Returns: string;
+  };
+  claim_test_push: { Args: { p_device_hash: string }; Returns: Json };
   refresh_my_reminder_notifications: {
     Args: Record<string, never>;
     Returns: Json;

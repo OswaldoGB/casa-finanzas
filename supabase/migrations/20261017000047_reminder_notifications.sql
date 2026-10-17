@@ -102,3 +102,28 @@ create function public.set_reminder_preferences(p_shared boolean,p_push boolean)
  update public.notification_deliveries d set status='cancelled',lease_token=null,lease_until=null from public.user_notifications n where d.notification_id=n.id and n.user_id=auth.uid()and d.status in('pending','retry','sending')and(not p_push or not n.is_active);
 end$$;
 revoke all on function public.set_reminder_preferences(boolean,boolean)from public;grant execute on function public.set_reminder_preferences(boolean,boolean)to authenticated;
+create function public.register_push_subscription(p_endpoint text,p_keys jsonb,p_device_hash text,p_name text)returns uuid language plpgsql security definer set search_path='' as $$
+declare existing public.push_subscriptions;sid uuid;begin
+ if not public.has_module_access('reminders','view')then raise exception 'Sin permiso para activar avisos';end if;
+ if length(p_endpoint)>4096 or p_endpoint!~'^https://(fcm\.googleapis\.com|updates\.push\.services\.mozilla\.com|web\.push\.apple\.com|[a-z0-9-]+\.notify\.windows\.com)(:443)?/'or p_device_hash!~'^[a-f0-9]{64}$'or coalesce(p_keys->>'p256dh','')!~'^[A-Za-z0-9_-]{87}$'or coalesce(p_keys->>'auth','')!~'^[A-Za-z0-9_-]{22}$'then raise exception 'Suscripción inválida';end if;
+ perform pg_advisory_xact_lock(hashtextextended(p_endpoint,0));
+ select * into existing from public.push_subscriptions where endpoint=p_endpoint for update;
+ if found and existing.user_id<>auth.uid()then raise exception 'Este navegador tiene una suscripción de otra cuenta. Restablece la suscripción en este dispositivo.';end if;
+ if exists(select 1 from public.push_subscriptions where device_token_hash=p_device_hash and user_id<>auth.uid())then raise exception 'El dispositivo pertenece a otra cuenta; restablece su suscripción';end if;
+ update public.push_subscriptions set is_active=false,device_token_hash=replace(gen_random_uuid()::text,'-','')||replace(gen_random_uuid()::text,'-','')where user_id=auth.uid()and device_token_hash=p_device_hash and endpoint<>p_endpoint;
+ insert into public.push_subscriptions(household_id,user_id,endpoint,keys,device_token_hash,device_name)values(public.current_household_id(),auth.uid(),p_endpoint,p_keys,p_device_hash,left(p_name,80))on conflict(endpoint)do update set keys=excluded.keys,device_token_hash=excluded.device_token_hash,is_active=true,updated_at=now()returning id into sid;
+ insert into public.reminder_preferences(user_id,household_id,push_enabled)values(auth.uid(),public.current_household_id(),true)on conflict(user_id)do update set push_enabled=true;
+ return sid;
+end$$;
+revoke all on function public.register_push_subscription(text,jsonb,text,text)from public;grant execute on function public.register_push_subscription(text,jsonb,text,text)to authenticated;
+create function public.claim_test_push(p_device_hash text)returns jsonb language plpgsql security definer set search_path='' as $$
+declare sub public.push_subscriptions;begin
+ if not public.has_module_access('reminders','view')then raise exception 'Sin permiso';end if;
+ select * into sub from public.push_subscriptions where user_id=auth.uid()and device_token_hash=p_device_hash and is_active;
+ if not found then raise exception 'Activa este dispositivo primero';end if;
+ update public.reminder_preferences set last_test_at=now()where user_id=auth.uid()and(last_test_at is null or last_test_at<now()-interval '1 minute');
+ if not found then raise exception 'Espera un minuto antes de enviar otra prueba';end if;
+ return jsonb_build_object('endpoint',sub.endpoint,'keys',sub.keys);
+end$$;
+revoke all on function public.claim_test_push(text)from public;grant execute on function public.claim_test_push(text)to authenticated;
+

@@ -8,6 +8,8 @@ const PUBLIC_PATHS = [
   "/auth",
   "/icon",
   "/apple-icon",
+  "/sw.js",
+  "/api/notifications",
 ];
 
 export const isPublicPath = (pathname: string) =>

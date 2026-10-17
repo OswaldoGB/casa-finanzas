@@ -90,6 +90,30 @@ it("protects queue functions from authenticated callers", async () => {
     await db.exec("reset role");
   }
 });
+it("does not transfer a browser subscription to another account", async () => {
+  await db.exec(
+    `select set_config('app.user','${ids.member}',false);set role authenticated`,
+  );
+  const endpoint = "https://fcm.googleapis.com/fcm/send/owned",
+    keys = JSON.stringify({ p256dh: "B".repeat(87), auth: "a".repeat(22) }),
+    hash = "a".repeat(64);
+  await db.query(
+    "select register_push_subscription($1,$2::jsonb,$3,'Prueba')",
+    [endpoint, keys, hash],
+  );
+  await db.exec(`select set_config('app.user','${ids.admin}',false)`);
+  try {
+    await expect(
+      db.query("select register_push_subscription($1,$2::jsonb,$3,'Otro')", [
+        endpoint,
+        keys,
+        "b".repeat(64),
+      ]),
+    ).rejects.toThrow(/otra cuenta/i);
+  } finally {
+    await db.exec("reset role");
+  }
+});
 it("leases work once and cancels a claimed delivery when its reminder changes", async () => {
   await db.exec(
     `select set_config('app.user','${ids.admin}',false);insert into reminder_preferences(user_id,household_id,push_enabled)values('${ids.admin}','${ids.home}',true)on conflict(user_id)do update set push_enabled=true;insert into push_subscriptions(household_id,user_id,endpoint,keys,device_token_hash)values('${ids.home}','${ids.admin}','https://fcm.googleapis.com/fcm/send/test','{}','test-device')`,

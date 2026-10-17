@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { revokeBrowserBinding } from "@/features/notifications/push-subscriptions";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { hasAnyProfile } from "./queries";
@@ -14,6 +15,7 @@ export async function login(_: FormState, fd: FormData): Promise<FormState> {
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithPassword(parsed.data);
   if (error) return { error: "Correo o contraseña incorrectos." };
+  try{await revokeBrowserBinding();}catch{await supabase.auth.signOut();return{error:"La sesión anterior de notificaciones no se pudo cerrar. Intenta iniciar sesión nuevamente."};}
   redirect(safeNext(fd.get("next")));
 }
 
@@ -72,6 +74,7 @@ export async function setupHousehold(_: FormState, fd: FormData): Promise<FormSt
 }
 
 export async function signOut() {
+  await revokeBrowserBinding();
   const supabase = await createClient();
   await supabase.auth.signOut();
   redirect("/login");

@@ -4,6 +4,7 @@ import { NotificationPreferences } from "@/features/notifications/components/not
 import { ReminderActionForm } from "@/features/reminders/components/reminder-dialog";
 import { markNoticesRead } from "@/features/notifications/actions";
 import Link from "next/link";
+import { PushDeviceSettings } from "@/features/notifications/components/push-device-settings";
 export const metadata = { title: "Notificaciones" };
 export default async function Page({
   searchParams,
@@ -47,6 +48,7 @@ export default async function Page({
           )}
         </nav>
       )}
+      <PushDeviceSettings />
       <NotificationPreferences
         key={JSON.stringify(data.preferences)}
         preferences={data.preferences}

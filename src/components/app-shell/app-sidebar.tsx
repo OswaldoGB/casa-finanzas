@@ -2,8 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LogOut } from "lucide-react";
-import { signOut } from "@/features/auth/actions";
+import { SignOutButton } from "@/features/notifications/components/sign-out-button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { BrandLockup } from "@/components/brand-mark";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -106,15 +105,7 @@ export function AppSidebar({ user }: { user: SessionUser }) {
             </p>
           </div>
           <ThemeToggle />
-          <form action={signOut}>
-            <button
-              type="submit"
-              aria-label="Cerrar sesión"
-              className="text-muted-foreground hover:text-foreground hover:bg-accent focus-visible:ring-ring grid size-9 place-items-center rounded-md outline-none focus-visible:ring-2"
-            >
-              <LogOut className="size-4" />
-            </button>
-          </form>
+          <SignOutButton/>
         </div>
       </SidebarFooter>
       <SidebarRail />
