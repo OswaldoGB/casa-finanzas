@@ -9,7 +9,7 @@ create table public.reminders(
  title text not null check(length(trim(title)) between 1 and 120),notes text not null default '' check(length(notes)<=5000),reference text not null default '' check(length(reference)<=80),category_id uuid,
  kind text not null check(kind in('note','once','recurring')),visibility text not null default 'personal' check(visibility in('personal','household')),
  status text not null default 'active' check(status in('active','completed','paused','archived')),previous_status text,
- due_date date, due_time time,anchor_date date,snoozed_until date,repeat_unit text check(repeat_unit in('day','week','month','year')),
+ due_date date, due_time time,anchor_date date,snoozed_until date,effective_date date generated always as(coalesce(snoozed_until,due_date))stored,repeat_unit text check(repeat_unit in('day','week','month','year')),
  repeat_interval int not null default 1 check(repeat_interval between 1 and 365),repeat_from text not null default 'completion' check(repeat_from in('completion','calendar')),
  current_km numeric(10,1) check(current_km between 0 and 99999999),due_km numeric(10,1) check(due_km between 0 and 99999999),repeat_km numeric(10,1) check(repeat_km>0 and repeat_km<=99999999),
  alert_days int[] not null default '{7,1,0}' check(cardinality(alert_days)<=12 and 0<=all(alert_days) and 365>=all(alert_days)),

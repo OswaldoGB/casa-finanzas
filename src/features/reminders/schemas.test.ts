@@ -12,6 +12,11 @@ const input = {
   repeat_from: "completion",
   alert_days: [7, 1, 0],
 };
+it("accepts the category selector's explicit empty option", () => {
+  expect(
+    reminderSchema.parse({ ...input, category_id: "none" }).category_id,
+  ).toBeNull();
+});
 it("normalizes alerts and enforces text and mileage limits", () => {
   expect(
     reminderSchema.parse({ ...input, alert_days: [7, 7, 0] }).alert_days,

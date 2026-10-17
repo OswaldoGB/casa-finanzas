@@ -2,6 +2,7 @@ import type { ReminderInput } from "./schemas";
 import type { ReminderSchedule } from "./schedule";
 import type { Json } from "@/lib/supabase/database.generated";
 export type ReminderRecord = ReminderInput & {
+  effective_date: string | null;
   id: string;
   household_id: string;
   owner_id: string;

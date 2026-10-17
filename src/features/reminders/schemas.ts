@@ -27,9 +27,9 @@ export const reminderSchema = z
     kind: z.enum(["note", "once", "recurring"]),
     visibility: z.enum(["personal", "household"]).default("personal"),
     category_id: z
-      .union([z.string().uuid(), z.literal(""), z.null()])
+      .union([z.string().uuid(), z.literal(""), z.literal("none"), z.null()])
       .optional()
-      .transform((v) => v || null),
+      .transform((v) => (!v || v === "none" ? null : v)),
     due_date: optionalDay,
     due_time: z
       .union([
