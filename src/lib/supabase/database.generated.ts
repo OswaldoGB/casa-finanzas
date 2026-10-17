@@ -2574,7 +2574,8 @@ export type Database = {
         | "shopping_lists"
         | "projects"
         | "loans"
-        | "savings";
+        | "savings"
+        | "reminders";
       payment_method_type: "cash" | "debit" | "credit" | "transfer" | "other";
       permission_level: "none" | "view" | "edit";
       recurring_frequency: "weekly" | "biweekly" | "monthly" | "yearly";
@@ -2759,3 +2760,4 @@ export const Constants = {
     },
   },
 } as const;
+

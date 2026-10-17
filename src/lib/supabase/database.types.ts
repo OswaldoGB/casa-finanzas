@@ -1,4 +1,8 @@
 import type { Database as GeneratedDatabase } from "./database.generated";
+import type {
+  ReminderTables,
+  ReminderFunctions,
+} from "./reminders-local.types";
 export type {
   Json,
   Tables,
@@ -38,7 +42,8 @@ type Overrides = {
   save_trip: NullableArgs<Functions["save_trip"], "p_project_id">;
 };
 export type Database = Omit<GeneratedDatabase, "public"> & {
-  public: Omit<GeneratedDatabase["public"], "Functions"> & {
-    Functions: Omit<Functions, keyof Overrides> & Overrides;
+  public: Omit<GeneratedDatabase["public"], "Functions" | "Tables"> & {
+    Tables: GeneratedDatabase["public"]["Tables"] & ReminderTables;
+    Functions: Omit<Functions, keyof Overrides> & Overrides & ReminderFunctions;
   };
 };

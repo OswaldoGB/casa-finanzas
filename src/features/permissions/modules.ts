@@ -11,6 +11,7 @@ export const MODULE_NAMES = [
   "projects",
   "loans",
   "savings",
+  "reminders",
 ] as const;
 
 export type ModuleName = (typeof MODULE_NAMES)[number];
@@ -30,6 +31,7 @@ const labels: Record<ModuleName, string> = {
   projects: "Proyectos",
   loans: "Préstamos",
   savings: "Ahorros",
+  reminders: "Recordatorios",
 };
 
 export const MODULES = MODULE_NAMES.map((name) => ({
