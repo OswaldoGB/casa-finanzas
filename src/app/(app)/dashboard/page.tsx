@@ -23,6 +23,7 @@ import { getDashboardBudgets } from "@/features/budgets/queries";
 import { budgetProgress } from "@/features/budgets/schemas";
 import { getDashboardSavings } from "@/features/dashboard/queries";
 import { CardArtwork } from "@/features/accounts/components/card-artwork";
+import { UpcomingReminders } from "@/features/dashboard/components/upcoming-reminders";
 
 export const metadata = { title: "Inicio" };
 const money = new Intl.NumberFormat("en-US", {
@@ -45,7 +46,10 @@ export default async function DashboardPage() {
   const [[data, budgets], savings] = await Promise.all([
     getAnalytics("dashboard").then(
       async (data) =>
-        [data, await getDashboardBudgets(`${data.today.slice(0, 7)}-01`)] as const,
+        [
+          data,
+          await getDashboardBudgets(`${data.today.slice(0, 7)}-01`),
+        ] as const,
     ),
     getDashboardSavings(),
   ]);
@@ -111,6 +115,7 @@ export default async function DashboardPage() {
           Tus saldos, el movimiento del mes y lo que viene.
         </p>
       </header>
+      <UpcomingReminders />
       <section
         aria-label="Resumen financiero"
         className="stagger grid gap-3 sm:grid-cols-3"
@@ -443,8 +448,7 @@ export default async function DashboardPage() {
               href="/accounts"
               className="text-primary mt-3 inline-flex items-center gap-1 text-xs font-medium"
             >
-              Ver billetera{" "}
-              <ChevronRight className="size-3.5" aria-hidden />
+              Ver billetera <ChevronRight className="size-3.5" aria-hidden />
             </Link>
           )}
         </section>

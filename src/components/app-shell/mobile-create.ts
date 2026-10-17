@@ -8,6 +8,14 @@ export type MobileCreateAction = {
 
 const actions: [string, MobileCreateAction][] = [
   [
+    "/reminders",
+    {
+      href: "/reminders?new=1",
+      label: "Nuevo recordatorio",
+      module: "reminders",
+    },
+  ],
+  [
     "/trips",
     { href: "/trips?new=1", label: "Nuevo viaje", module: "projects" },
   ],

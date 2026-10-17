@@ -8,6 +8,7 @@ export async function refreshMyNotices() {
   const { error } = await supabase.rpc("refresh_my_reminder_notifications", {});
   if (error) return { error: "No se pudieron actualizar los avisos." };
   revalidatePath("/notifications");
+  revalidatePath("/", "layout");
   return { ok: true };
 }
 export async function markNoticesRead(

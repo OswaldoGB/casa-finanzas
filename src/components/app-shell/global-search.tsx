@@ -148,6 +148,14 @@ export function GlobalSearch({
               )}
               {!term && (
                 <CommandGroup heading="Crear">
+                  {canAccess(role, permissions, "reminders", "edit") && (
+                    <CommandItem
+                      value="new-reminder"
+                      onSelect={() => navigate("/reminders?new=1")}
+                    >
+                      Nuevo recordatorio
+                    </CommandItem>
+                  )}
                   {canAccess(role, permissions, "projects", "edit") && (
                     <CommandItem
                       value="new-trip"

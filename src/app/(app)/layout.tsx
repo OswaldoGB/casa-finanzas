@@ -11,6 +11,9 @@ import {
 } from "@/components/ui/sidebar";
 import { getAccess } from "@/features/permissions/queries";
 import { processRecurringForHousehold } from "@/features/recurring/process-due";
+import { canAccess } from "@/features/permissions/modules";
+import { getNotificationUnreadCount } from "@/features/notifications/queries";
+import { NotificationBell } from "@/features/notifications/components/notification-bell";
 
 export default async function AppLayout({
   children,
@@ -18,6 +21,13 @@ export default async function AppLayout({
   children: React.ReactNode;
 }) {
   const { profile, permissions, accent } = await getAccess();
+  const hasReminders = canAccess(
+    profile.role,
+    permissions,
+    "reminders",
+    "view",
+  );
+  const unread = hasReminders ? await getNotificationUnreadCount() : 0;
   // Respaldo del cron diario: corre después de enviar la respuesta para no
   // bloquear el render. Lo generado aparece en la siguiente navegación.
   after(async () => {
@@ -50,6 +60,9 @@ export default async function AppLayout({
             aria-label="Mostrar u ocultar menú"
           />
           <GlobalSearch role={profile.role} permissions={permissions} />
+          {hasReminders && (
+            <NotificationBell unread={unread} userId={profile.id} />
+          )}
         </header>
         <div
           id="main-content"

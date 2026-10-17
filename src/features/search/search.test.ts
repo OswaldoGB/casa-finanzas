@@ -1,5 +1,10 @@
 import { expect, it } from "vitest";
 import { allowedSearchTargets, normalizeSearch } from "./search";
+it("includes reminders only when the module is visible", () => {
+  expect(
+    allowedSearchTargets("member", { reminders: "view" }).map((t) => t.table),
+  ).toEqual(["reminders"]);
+});
 
 it("solo busca módulos visibles, incluso cuando los catálogos tienen lectura compartida", () => {
   expect(
@@ -10,7 +15,7 @@ it("solo busca módulos visibles, incluso cuando los catálogos tienen lectura c
     }).map((target) => target.table),
   ).toEqual(["transactions"]);
   expect(allowedSearchTargets("member", {}).length).toBe(0);
-  expect(allowedSearchTargets("admin", {}).length).toBe(8);
+  expect(allowedSearchTargets("admin", {}).length).toBe(9);
 });
 
 it("escapa los comodines y limita el texto que se envía a la búsqueda", () => {

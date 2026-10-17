@@ -83,6 +83,7 @@ export async function saveReminder(
     p_request_key: key.data,
   });
   if (error) return failure(error);
+  await supabase.rpc("refresh_my_reminder_notifications", {});
   refresh();
   return { ok: id.data ? "Recordatorio actualizado." : "Registro guardado." };
 }
@@ -112,6 +113,7 @@ export async function completeReminder(
     },
   });
   if (error) return failure(error);
+  await supabase.rpc("refresh_my_reminder_notifications", {});
   refresh();
   return { ok: "Realización guardada. La próxima ocasión quedó preparada." };
 }
@@ -133,6 +135,7 @@ export async function operateReminder(
     p_input: op.data === "snooze" ? { date: String(form.get("date")) } : {},
   });
   if (error) return failure(error);
+  await supabase.rpc("refresh_my_reminder_notifications", {});
   refresh();
   return { ok: "Recordatorio actualizado." };
 }
@@ -157,6 +160,7 @@ export async function saveReminderCategory(
           .insert({ ...p.data, household_id: profile.household_id })
           .select("id");
   if (result.error || !result.data?.length) return failure(result.error);
+  await supabase.rpc("refresh_my_reminder_notifications", {});
   refresh();
   return { ok: "Categoría guardada." };
 }

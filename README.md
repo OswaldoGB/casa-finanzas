@@ -1,5 +1,39 @@
 # Casa & Finanzas
 
+## Recordatorios, notas y avisos
+
+El módulo **Recordatorios** permite notas sin fecha, tareas puntuales y repetición
+por días, semanas, meses, años o kilometraje manual. **Ya lo realicé** guarda lo
+hecho y prepara la próxima ocasión. Completar conserva el historial; posponer no
+modifica el calendario fijo original. No se generan gastos ni lecturas automáticas.
+
+Los registros son personales por defecto. Compartirlos con el hogar también comparte
+su historial. El permiso **Recordatorios** se asigna desde Configuración; incluso el
+administrador solo puede consultar sus propios registros personales y los compartidos.
+Los respaldos respetan esa privacidad y no incluyen dispositivos ni claves push.
+
+En **Notificaciones**, cada persona decide si recibe avisos compartidos y activa
+cada dispositivo mediante un botón. En iPhone/iPad, hay que añadir la app a inicio
+y abrirla desde allí. El texto del teléfono es genérico; los detalles requieren sesión.
+Cerrar sesión desactiva la vinculación de ese navegador. Una prueba solo se envía
+al pulsar **Enviar aviso de prueba** en el dispositivo activado.
+
+Para un fork, genera un par VAPID con la biblioteca `web-push` instalada y configura
+`NEXT_PUBLIC_WEB_PUSH_PUBLIC_KEY`, `WEB_PUSH_PRIVATE_KEY` y `WEB_PUSH_SUBJECT` (URL
+HTTPS pública del proyecto o contacto mailto). Nunca publiques la clave privada.
+Las dos claves deben corresponder al mismo par; cambiarlo requiere reactivar las
+suscripciones del navegador. El archivo `/sw.js` es público y no guarda páginas
+privadas para usarlas offline.
+
+`/api/cron/reminders` utiliza el mismo `CRON_SECRET` y se ejecuta independientemente
+del cron financiero a las 12:00 UTC, aproximadamente las 06:00 en El Salvador.
+Los avisos predeterminados son 7 días antes, 1 día antes y el mismo día. No se
+prometen alarmas al minuto exacto ni entrega si el sistema bloquea notificaciones.
+Una notificación ya entregada al teléfono puede permanecer tras completar la tarea;
+su enlace consulta siempre el estado vigente.
+[Restricciones del cron](https://vercel.com/docs/cron-jobs/usage-and-pricing) y
+[Web Push en iOS](https://webkit.org/blog/13878/web-push-for-web-apps-on-ios-and-ipados/).
+
 ## Viajes y compras por lugar
 
 En **Viajes** puedes organizar fechas, destino, participantes, menús y actividades

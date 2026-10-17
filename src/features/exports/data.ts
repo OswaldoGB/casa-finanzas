@@ -13,8 +13,19 @@ import { getTrip, getTrips } from "@/features/trips/queries";
 import { getShoppingList } from "@/features/shopping-lists/queries";
 import { tripExportRows } from "./trip-export";
 import { shoppingItemStatus } from "@/features/shopping-lists/purchase-totals";
+import { reminderExportRows, reminderEventExportRows } from "./reminder-export";
 
 export const targets = {
+  reminders: {
+    table: "reminders",
+    module: "reminders",
+    label: "Recordatorios",
+  },
+  reminder_events: {
+    table: "reminder_events",
+    module: "reminders",
+    label: "Historial de recordatorios",
+  },
   trips: { table: "trip_details", module: "projects", label: "Viajes" },
   categories: {
     table: "categories",
@@ -221,6 +232,8 @@ export async function exportRows(
       );
     return (data ?? []).map((row) => ({ ...row }));
   });
+  if (target === "reminders") return reminderExportRows(rows);
+  if (target === "reminder_events") return reminderEventExportRows(rows);
   if (target === "accounts") {
     const balances = await access.supabase.rpc("account_balances");
     if (balances.error)

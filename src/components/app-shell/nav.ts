@@ -1,5 +1,6 @@
 import {
   ArrowLeftRight,
+  BellRing,
   ChartColumn,
   ChartPie,
   FolderKanban,
@@ -69,6 +70,12 @@ export const NAV: { label: string; items: NavItem[] }[] = [
   {
     label: "Hogar",
     items: [
+      {
+        module: "reminders",
+        href: "/reminders",
+        label: "Recordatorios",
+        icon: BellRing,
+      },
       {
         module: "shopping_lists",
         href: "/lists",

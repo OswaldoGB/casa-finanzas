@@ -1,5 +1,15 @@
 import "server-only";
 import { requireModule } from "@/features/permissions/queries";
+export async function getNotificationUnreadCount() {
+  const { supabase, profile } = await requireModule("reminders");
+  const { count, error } = await supabase
+    .from("user_notifications")
+    .select("id", { head: true, count: "exact" })
+    .eq("user_id", profile.id)
+    .is("read_at", null);
+  if (error) throw new Error("No se pudo contar los avisos.");
+  return count ?? 0;
+}
 export async function getNotifications(page = 1) {
   const { supabase, profile } = await requireModule("reminders");
   const [result, preferences, count] = await Promise.all([

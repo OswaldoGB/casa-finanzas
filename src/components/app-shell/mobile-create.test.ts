@@ -1,5 +1,12 @@
 import { expect, it } from "vitest";
 import { getMobileCreateAction } from "./mobile-create";
+it("opens a new reminder from its contextual plus", () => {
+  expect(getMobileCreateAction("/reminders/example")).toEqual({
+    href: "/reminders?new=1",
+    label: "Nuevo recordatorio",
+    module: "reminders",
+  });
+});
 it("abre un viaje desde el botón contextual del módulo", () => {
   expect(getMobileCreateAction("/trips/example")).toEqual({
     href: "/trips?new=1",

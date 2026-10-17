@@ -1,4 +1,7 @@
 export const BACKUP_TABLES = [
+  "reminder_categories",
+  "reminders",
+  "reminder_events",
   "accounts",
   "attachments",
   "budgets",

@@ -2,6 +2,13 @@ import { canAccess, type PermissionMap } from "../permissions/modules";
 
 const targets = [
   {
+    module: "reminders",
+    table: "reminders",
+    column: "title",
+    label: "Recordatorio",
+    path: "/reminders",
+  },
+  {
     module: "accounts",
     table: "accounts",
     column: "name",
