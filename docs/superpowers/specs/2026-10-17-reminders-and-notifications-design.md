@@ -1,7 +1,7 @@
 # Recordatorios, notas y notificaciones — Diseño
 
 Fecha: 17 de octubre de 2026.
-Estado: propuesta funcional aprobada en conversación; especificación escrita pendiente de revisión del usuario.
+Estado: propuesta funcional y especificación escrita aprobadas por el usuario; plan de implementación en revisión.
 
 ## Propósito y decisiones del usuario
 
