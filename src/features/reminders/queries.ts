@@ -47,7 +47,10 @@ export async function getReminders(input: Partial<ReminderFilters>) {
     filters.view === "archived"
   )
     query = query.eq("status", filters.view);
-  else query = query.eq("status", "active").neq("kind", "note");
+  else if (filters.view === "calendar")
+    query = query.eq("status", "active").neq("kind", "note");
+  // Agenda: activos con fecha primero; las notas (sin fecha) quedan al final.
+  else query = query.eq("status", "active");
   if (filters.category) query = query.eq("category_id", filters.category);
   if (filters.reference) query = query.eq("reference", filters.reference);
   if (filters.privacy) query = query.eq("visibility", filters.privacy);

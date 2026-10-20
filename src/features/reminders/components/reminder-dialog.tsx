@@ -77,27 +77,34 @@ export function ReminderDialog({
   children,
   listenToNew = false,
   label,
+  open: controlledOpen,
+  onOpenChange,
 }: {
   title: string;
   description?: string;
-  trigger: ReactNode;
+  /** Sin trigger, el diálogo se abre desde fuera con open/onOpenChange (p. ej. desde un menú). */
+  trigger?: ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
   action: Action;
   children: ReactNode;
   listenToNew?: boolean;
   label?: string;
 }) {
-  const [open, setOpen] = useState(false),
+  const [internalOpen, setInternalOpen] = useState(false),
+    open = controlledOpen ?? internalOpen,
     router = useRouter(),
     requested = useSearchParams().get("new") === "1" && listenToNew;
   useEffect(() => {
     if (requested) {
-      const frame = requestAnimationFrame(() => setOpen(true));
+      const frame = requestAnimationFrame(() => setInternalOpen(true));
       return () => cancelAnimationFrame(frame);
     }
   }, [requested]);
   const change = useCallback(
     (value: boolean) => {
-      setOpen(value);
+      setInternalOpen(value);
+      onOpenChange?.(value);
       if (!value && listenToNew) {
         const url = new URL(location.href);
         url.searchParams.delete("new");
@@ -108,7 +115,7 @@ export function ReminderDialog({
         );
       }
     },
-    [listenToNew],
+    [listenToNew, onOpenChange],
   );
   const saved = useCallback(() => {
     change(false);
@@ -116,7 +123,7 @@ export function ReminderDialog({
   }, [change, router]);
   return (
     <Dialog open={open} onOpenChange={change}>
-      <DialogTrigger asChild>{trigger}</DialogTrigger>
+      {trigger && <DialogTrigger asChild>{trigger}</DialogTrigger>}
       <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-xl">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>

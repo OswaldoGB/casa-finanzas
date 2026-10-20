@@ -3,12 +3,15 @@ import { fieldClass } from "@/features/shopping-lists/components/forms";
 import { completeReminder, operateReminder } from "../actions";
 import type { ReminderRecord } from "../types";
 import { ReminderDialog } from "./reminder-dialog";
+type Controlled = { open?: boolean; onOpenChange?: (open: boolean) => void };
 export function CompletionDialog({
   record,
   today,
+  trigger,
 }: {
   record: ReminderRecord;
   today: string;
+  trigger?: React.ReactNode;
 }) {
   return (
     <ReminderDialog
@@ -21,9 +24,11 @@ export function CompletionDialog({
       action={completeReminder}
       label="Guardar realización"
       trigger={
-        <button className="bg-primary text-primary-foreground min-h-10 rounded-xl px-3 py-2 text-sm">
-          Marcar como realizado
-        </button>
+        trigger ?? (
+          <button className="bg-primary text-primary-foreground min-h-10 rounded-xl px-3 py-2 text-sm">
+            Marcar como realizado
+          </button>
+        )
       }
     >
       <input type="hidden" name="id" value={record.id} />
@@ -72,19 +77,25 @@ export function CompletionDialog({
 export function SnoozeDialog({
   record,
   today,
+  open,
+  onOpenChange,
 }: {
   record: ReminderRecord;
   today: string;
-}) {
+} & Controlled) {
   return (
     <ReminderDialog
       title="Posponer esta ocasión"
       description="El calendario original de repetición se conserva. Los avisos pendientes se actualizarán."
       action={operateReminder}
+      open={open}
+      onOpenChange={onOpenChange}
       trigger={
-        <button className="min-h-10 rounded-xl border px-3 py-2 text-sm">
-          Posponer
-        </button>
+        open === undefined && (
+          <button className="min-h-10 rounded-xl border px-3 py-2 text-sm">
+            Posponer
+          </button>
+        )
       }
     >
       <input name="id" type="hidden" value={record.id} />

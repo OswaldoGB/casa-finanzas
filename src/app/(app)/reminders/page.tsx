@@ -1,19 +1,33 @@
 import Link from "next/link";
-import { BellRing, Plus } from "lucide-react";
+import { ArrowLeft, Plus } from "lucide-react";
 import { getReminders } from "@/features/reminders/queries";
 import { reminderFilters } from "@/features/reminders/filters";
 import { scheduleOf } from "@/features/reminders/types";
-import { reminderStatus } from "@/features/reminders/status";
+import { agendaBucket, reminderStatus, type AgendaBucket } from "@/features/reminders/status";
 import { ReminderDialog } from "@/features/reminders/components/reminder-dialog";
 import { ReminderForm } from "@/features/reminders/components/reminder-form";
 import { ReminderCard } from "@/features/reminders/components/reminder-card";
 import { ReminderCalendar } from "@/features/reminders/components/reminder-calendar";
-import { ReminderFiltersForm } from "@/features/reminders/components/reminder-filters";
-import { CategoryDialog } from "@/features/reminders/components/category-dialog";
+import { RemindersFilters, RemindersMenu } from "@/features/reminders/components/reminders-toolbar";
 import { saveReminder } from "@/features/reminders/actions";
-import { ExportButtons } from "@/features/exports/components/export-buttons";
 import { ReminderSync } from "@/features/reminders/components/reminder-sync";
+
 export const metadata = { title: "Recordatorios" };
+
+const BUCKETS: [AgendaBucket, string][] = [
+  ["overdue", "Vencidos"],
+  ["today", "Hoy"],
+  ["week", "Esta semana"],
+  ["later", "Más adelante"],
+  ["undated", "Sin fecha"],
+];
+const SECONDARY: Record<string, string> = {
+  completed: "Historial de realizados",
+  paused: "Pausados",
+  archived: "Archivados",
+  notes: "Notas",
+};
+
 export default async function Page({
   searchParams,
 }: {
@@ -22,46 +36,28 @@ export default async function Page({
   const p = reminderFilters.safeParse(await searchParams),
     data = await getReminders(p.success ? p.data : {});
   const { records, categories, today, canEdit, userId, filters, count } = data;
+  const secondary = SECONDARY[filters.view];
   const sections =
     filters.view === "agenda"
-      ? [
-          {
-            title: "Vencidos",
-            rows: records.filter(
-              (r) =>
-                reminderStatus({ ...scheduleOf(r), kind: r.kind }, today) ===
-                "overdue",
-            ),
-          },
-          {
-            title: "Hoy",
-            rows: records.filter(
-              (r) =>
-                reminderStatus({ ...scheduleOf(r), kind: r.kind }, today) ===
-                "today",
-            ),
-          },
-          {
-            title: "Próximos",
-            rows: records.filter(
-              (r) =>
-                !["today", "overdue"].includes(
-                  reminderStatus({ ...scheduleOf(r), kind: r.kind }, today),
-                ),
-            ),
-          },
-        ]
+      ? BUCKETS.map(([bucket, title]) => ({
+          title,
+          rows: records.filter(
+            (r) =>
+              agendaBucket(
+                reminderStatus({ ...scheduleOf(r), kind: r.kind }, today),
+                r.effective_date,
+                today,
+              ) === bucket,
+          ),
+        }))
       : [
           {
-            title: (
-              {
-                calendar: filters.date ? `Para el ${filters.date}` : "Este mes",
-                notes: "Tus notas",
-                completed: "Realizados",
-                paused: "Pausados",
-                archived: "Archivados",
-              } as Record<string, string>
-            )[filters.view],
+            title:
+              filters.view === "calendar"
+                ? filters.date
+                  ? `Para el ${filters.date}`
+                  : "Este mes"
+                : "",
             rows: records,
           },
         ];
@@ -69,100 +65,98 @@ export default async function Page({
     `/reminders?${new URLSearchParams({
       ...Object.fromEntries(
         Object.entries(filters)
-          .filter(([, v]) => v != null)
+          .filter(([, v]) => v != null && v !== "")
           .map(([k, v]) => [k, String(v)]),
       ),
       page: String(page),
     })}`;
+  const tab = (view: string, label: string) => {
+    const active = filters.view === view;
+    return (
+      <Link
+        href={`/reminders${view === "agenda" ? "" : `?view=${view}`}`}
+        aria-current={active ? "page" : undefined}
+        className={`rounded-lg px-4 py-1.5 text-sm ${active ? "bg-background text-foreground shadow-xs" : "text-muted-foreground"}`}
+      >
+        {label}
+      </Link>
+    );
+  };
+
   return (
-    <div className="mx-auto max-w-6xl space-y-5">
+    <div className="mx-auto max-w-3xl space-y-5">
       <ReminderSync />
-      <header className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="flex items-center gap-2 text-2xl font-semibold">
-            <BellRing className="text-primary size-6" />
-            Recordatorios
-          </h1>
-          <p className="text-muted-foreground mt-1 text-sm">
-            Lo que quieres recordar. Lo que ya hiciste, siempre a mano.
-          </p>
-        </div>
+      <header className="flex items-center gap-2">
+        {secondary ? (
+          <Link
+            href="/reminders"
+            className="text-muted-foreground hover:bg-muted -ml-2 grid size-10 place-items-center rounded-xl"
+            aria-label="Volver a próximos"
+          >
+            <ArrowLeft className="size-5" />
+          </Link>
+        ) : null}
+        <h1 className="flex-1 text-2xl font-semibold tracking-tight">{secondary ?? "Recordatorios"}</h1>
+        <RemindersMenu categories={categories} canEdit={canEdit} />
         {canEdit && (
           <ReminderDialog
-            title="Nuevo registro"
+            title="Nuevo recordatorio"
             action={saveReminder}
             listenToNew
             trigger={
-              <button className="bg-primary text-primary-foreground inline-flex min-h-11 items-center gap-2 rounded-xl px-4 py-2 text-sm">
+              <button className="bg-primary text-primary-foreground inline-flex min-h-11 items-center gap-1.5 rounded-xl px-4 text-sm font-medium">
                 <Plus className="size-4" />
-                Nuevo recordatorio
+                Nuevo
               </button>
             }
           >
-            <ReminderForm
-              categories={categories}
-              today={today}
-              userId={userId}
-            />
+            <ReminderForm categories={categories} today={today} userId={userId} />
           </ReminderDialog>
         )}
       </header>
-      <nav
-        aria-label="Vistas de recordatorios"
-        className="flex flex-wrap gap-2"
-      >
-        {[
-          ["agenda", "Agenda"],
-          ["calendar", "Calendario"],
-          ["notes", "Notas"],
-          ["completed", "Realizados"],
-          ["paused", "Pausados"],
-          ["archived", "Archivados"],
-        ].map(([view, label]) => (
-          <Link
-            key={view}
-            href={`/reminders?view=${view}`}
-            aria-current={filters.view === view ? "page" : undefined}
-            className={`min-h-10 rounded-xl px-3 py-2 text-sm ${filters.view === view ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}
-          >
-            {label}
-          </Link>
-        ))}
-      </nav>
-      <div className="flex flex-wrap gap-2">
-        <ExportButtons target="reminders" label="Recordatorios" />
-        <ExportButtons target="reminder_events" label="Historial" />
-      </div>
-      <ReminderFiltersForm
-        key={JSON.stringify(filters)}
-        filters={filters}
+
+      {!secondary && (
+        <nav aria-label="Vistas de recordatorios" className="bg-muted inline-flex rounded-xl p-1">
+          {tab("agenda", "Próximos")}
+          {tab("calendar", "Calendario")}
+        </nav>
+      )}
+
+      <RemindersFilters
+        key={`${filters.view}:${filters.category}`}
         categories={categories}
+        q={filters.q}
+        category={filters.category}
       />
+
       {filters.view === "calendar" && (
         <ReminderCalendar
           month={filters.month}
           today={today}
           selected={filters.date}
-          dates={records.flatMap((r) =>
-            r.effective_date ? [r.effective_date] : [],
-          )}
+          dates={records.flatMap((r) => (r.effective_date ? [r.effective_date] : []))}
         />
       )}
+
       {!records.length ? (
-        <section className="bg-card rounded-2xl border border-dashed p-8 text-center">
-          <BellRing className="text-primary mx-auto mb-3 size-8" />
-          <h2 className="font-medium">Nada por aquí todavía</h2>
-          <p className="text-muted-foreground mt-2 text-sm">
-            Crea una nota o programa algo que quieras tener presente.
-          </p>
+        <section className="text-muted-foreground rounded-2xl border border-dashed p-10 text-center text-sm">
+          {filters.q || filters.category
+            ? "Nada coincide con la búsqueda."
+            : secondary
+              ? "No hay nada aquí."
+              : "Nada pendiente. Toca «Nuevo» para recordar algo."}
         </section>
       ) : (
         sections
           .filter((s) => s.rows.length)
           .map((s) => (
-            <section key={s.title} className="space-y-3">
-              <h2 className="font-semibold">{s.title}</h2>
-              <div className="grid min-w-0 gap-3 lg:grid-cols-2">
+            <section key={s.title || "lista"} className="space-y-2">
+              {s.title && (
+                <h2 className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
+                  {s.title} <span className="font-normal">· {s.rows.length}</span>
+                </h2>
+              )}
+              <div className="stagger grid gap-2">
                 {s.rows.map((record) => (
                   <ReminderCard
                     key={record.id}
@@ -177,36 +171,15 @@ export default async function Page({
             </section>
           ))
       )}
+
       {count > 50 && (
-        <nav
-          className="flex items-center justify-between gap-3 text-sm"
-          aria-label="Paginación"
-        >
-          {filters.page > 1 ? (
-            <Link href={href(filters.page - 1)}>← Anterior</Link>
-          ) : (
-            <span />
-          )}
-          <span>
+        <nav className="flex items-center justify-between gap-3 text-sm" aria-label="Paginación">
+          {filters.page > 1 ? <Link href={href(filters.page - 1)}>← Anterior</Link> : <span />}
+          <span className="text-muted-foreground">
             Página {filters.page} · {count} registros
           </span>
-          {filters.page * 50 < count && (
-            <Link href={href(filters.page + 1)}>Siguiente →</Link>
-          )}
+          {filters.page * 50 < count ? <Link href={href(filters.page + 1)}>Siguiente →</Link> : <span />}
         </nav>
-      )}
-      {canEdit && (
-        <details className="bg-card rounded-2xl border p-4">
-          <summary className="cursor-pointer text-sm font-medium">
-            Administrar categorías
-          </summary>
-          <div className="mt-4 flex flex-wrap gap-2">
-            {categories.map((c) => (
-              <CategoryDialog key={c.id} category={c} />
-            ))}
-            <CategoryDialog />
-          </div>
-        </details>
       )}
     </div>
   );

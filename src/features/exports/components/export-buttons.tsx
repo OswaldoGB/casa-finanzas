@@ -4,15 +4,48 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { csvText, type ExportRow } from "../format";
 
+
+async function fetchExport(
+  target: string,
+  format: string,
+  filters: Record<string, string> = {},
+) {
+  const params = new URLSearchParams(window.location.search);
+  Object.entries(filters).forEach(([key, value]) => params.set(key, value));
+  params.set("table", target);
+  params.set("format", format);
+  const response = await fetch(`/api/export?${params}`);
+  if (!response.ok || !response.headers.get("content-disposition")) {
+    const detail = await response.json().catch(() => null);
+    throw new Error(detail?.error ?? "No se pudo descargar. Revisa tu sesión.");
+  }
+  return response.blob();
+}
+
+function saveFile(file: Blob, name: string) {
+  const url = URL.createObjectURL(file);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = name;
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+/** Descarga desde fuera de ExportButtons (p. ej. un menú), con aviso si falla. */
+export async function downloadExport(target: string, format: "csv" | "xlsx") {
+  try {
+    saveFile(await fetchExport(target, format), `casa-finanzas-${target}.${format}`);
+  } catch (error) {
+    toast.error(error instanceof Error ? error.message : "No se pudo descargar.");
+  }
+}
+
 export function ExportButtons({
   target,
   filters = {},
   rows,
-  label,
 }: {
   target: string;
-  /** Qué se descarga, cuando hay varias exportaciones en la misma vista. */
-  label?: string;
   filters?: Record<string, string>;
   rows?: ExportRow[];
 }) {
@@ -36,27 +69,9 @@ export function ExportButtons({
                 },
               );
       } else {
-        const params = new URLSearchParams(window.location.search);
-        Object.entries(filters).forEach(([key, value]) =>
-          params.set(key, value),
-        );
-        params.set("table", target);
-        params.set("format", format);
-        const response = await fetch(`/api/export?${params}`);
-        if (!response.ok || !response.headers.get("content-disposition")) {
-          const detail = await response.json().catch(() => null);
-          throw new Error(
-            detail?.error ?? "No se pudo descargar. Revisa tu sesión.",
-          );
-        }
-        file = await response.blob();
+        file = await fetchExport(target, format, filters);
       }
-      const url = URL.createObjectURL(file);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `casa-finanzas-${target}.${format}`;
-      link.click();
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      saveFile(file, `casa-finanzas-${target}.${format}`);
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "No se pudo descargar.",
@@ -66,11 +81,7 @@ export function ExportButtons({
     }
   }
   return (
-    <div
-      className="flex flex-wrap gap-2"
-      role="group"
-      aria-label={label ? `Exportar ${label.toLowerCase()}` : "Exportar datos"}
-    >
+<div className="flex flex-wrap gap-2" aria-label="Exportar datos">
       {["csv", "xlsx"].map((format) => (
         <button
           key={format}
@@ -81,7 +92,9 @@ export function ExportButtons({
         >
           {pending
             ? "Preparando…"
-            : `${label ?? "Descargar"} ${format === "csv" ? "CSV" : "Excel"}`}
+            : format === "csv"
+              ? "Descargar CSV"
+              : "Descargar Excel"}
         </button>
       ))}
     </div>
