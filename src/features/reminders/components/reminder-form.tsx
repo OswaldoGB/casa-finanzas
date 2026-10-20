@@ -4,26 +4,11 @@ import { FormSelect } from "@/components/ui/form-select";
 import { fieldClass } from "@/features/shopping-lists/components/forms";
 import type { ReminderCategory, ReminderRecord } from "../types";
 import { nextOccurrence, type ReminderSchedule } from "../schedule";
+import { ReminderLogFields } from "./reminder-log-form";
+import { ALERTS, REPEAT_PRESETS, check, chip } from "./form-options";
 
 type Unit = NonNullable<ReminderSchedule["repeatUnit"]>;
-// "Se repite": atajos comunes; "custom" abre cada N + unidad.
-const REPEAT_PRESETS = [
-  { value: "none", label: "No se repite" },
-  { value: "week:1", label: "Cada semana" },
-  { value: "month:1", label: "Cada mes" },
-  { value: "month:3", label: "Cada 3 meses" },
-  { value: "month:6", label: "Cada 6 meses" },
-  { value: "year:1", label: "Cada año" },
-  { value: "custom", label: "Personalizado…" },
-];
-const ALERTS = [
-  { days: 0, label: "El mismo día" },
-  { days: 1, label: "1 día antes" },
-  { days: 7, label: "1 semana antes" },
-];
-const chip =
-  "inline-flex min-h-10 cursor-pointer items-center rounded-full border px-3 text-sm transition-colors has-[:checked]:border-primary/40 has-[:checked]:bg-primary/10 has-[:checked]:text-primary has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring";
-const check = "accent-primary size-4";
+
 
 export function ReminderForm({
   record,
@@ -61,6 +46,7 @@ export function ReminderForm({
   const [done, setDone] = useState(false);
   const [performed, setPerformed] = useState(today);
   const [performedKm, setPerformedKm] = useState("");
+  const [mode, setMode] = useState<"remind" | "log">("remind");
 
   const dates = !noDate;
   const repeatsByDate = dates && preset !== "none";
@@ -127,8 +113,38 @@ export function ReminderForm({
     </label>
   );
 
+  const modeSwitch = !record && (
+    <div role="radiogroup" aria-label="¿Qué quieres hacer?" className="bg-muted grid grid-cols-2 rounded-xl p-1">
+      {(
+        [
+          ["remind", "Recordar algo"],
+          ["log", "Ya lo hice"],
+        ] as const
+      ).map(([value, label]) => (
+        <button
+          key={value}
+          type="button"
+          role="radio"
+          aria-checked={mode === value}
+          onClick={() => setMode(value)}
+          className={`min-h-10 rounded-lg text-sm ${mode === value ? "bg-background text-foreground font-medium shadow-xs" : "text-muted-foreground"}`}
+        >
+          {label}
+        </button>
+      ))}
+    </div>
+  );
+  if (mode === "log")
+    return (
+      <>
+        {modeSwitch}
+        <ReminderLogFields categories={categories} today={today} />
+      </>
+    );
+
   return (
     <>
+      {modeSwitch}
       {record && <input name="id" type="hidden" value={record.id} />}
       <input type="hidden" name="kind" value={kind} />
       {repeatsByDate && (
