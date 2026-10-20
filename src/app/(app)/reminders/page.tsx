@@ -130,8 +130,8 @@ export default async function Page({
         ))}
       </nav>
       <div className="flex flex-wrap gap-2">
-        <ExportButtons target="reminders" />
-        <ExportButtons target="reminder_events" />
+        <ExportButtons target="reminders" label="Recordatorios" />
+        <ExportButtons target="reminder_events" label="Historial" />
       </div>
       <ReminderFiltersForm
         key={JSON.stringify(filters)}

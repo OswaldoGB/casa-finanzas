@@ -8,8 +8,11 @@ export function ExportButtons({
   target,
   filters = {},
   rows,
+  label,
 }: {
   target: string;
+  /** Qué se descarga, cuando hay varias exportaciones en la misma vista. */
+  label?: string;
   filters?: Record<string, string>;
   rows?: ExportRow[];
 }) {
@@ -63,7 +66,11 @@ export function ExportButtons({
     }
   }
   return (
-    <div className="flex flex-wrap gap-2" aria-label="Exportar datos">
+    <div
+      className="flex flex-wrap gap-2"
+      role="group"
+      aria-label={label ? `Exportar ${label.toLowerCase()}` : "Exportar datos"}
+    >
       {["csv", "xlsx"].map((format) => (
         <button
           key={format}
@@ -74,9 +81,7 @@ export function ExportButtons({
         >
           {pending
             ? "Preparando…"
-            : format === "csv"
-              ? "Descargar CSV"
-              : "Descargar Excel"}
+            : `${label ?? "Descargar"} ${format === "csv" ? "CSV" : "Excel"}`}
         </button>
       ))}
     </div>
