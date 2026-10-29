@@ -209,9 +209,9 @@ export function makeTripFixture(): TripSnapshot {
     canViewTransactions: true,
     today: "2026-10-14",
     options: {
-      accounts: [{ id: id(91), name: "Efectivo" }],
+      accounts: [{ id: id(91), name: "Efectivo", type: "cash" }],
       categories: [{ id: id(92), name: "Viajes" }],
-      methods: [{ id: id(93), name: "Efectivo" }],
+      methods: [{ id: id(93), name: "Efectivo", type: "cash", account_id: null }],
       expenses: [],
     },
   };

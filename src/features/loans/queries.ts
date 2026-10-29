@@ -14,6 +14,7 @@ export async function getLoans() {
         .select("id,name,type")
         .eq("household_id", profile.household_id)
         .eq("is_archived", false)
+        .order("sort_rank")
         .order("name"),
       supabase
         .from("accounts")

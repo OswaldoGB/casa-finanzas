@@ -34,6 +34,7 @@ export async function getAnalytics(
           "id,name,type,color,is_archived,statement_closing_day,payment_due_day,institution,card_network,card_product,card_last_four",
         )
         .eq("household_id", profile.household_id)
+        .order("sort_rank")
         .order("name"),
       supabase
         .from("categories")

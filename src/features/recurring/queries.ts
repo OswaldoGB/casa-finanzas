@@ -11,8 +11,9 @@ export async function getRecurringSettings() {
       .order("next_run_date"),
     supabase
       .from("accounts")
-      .select("id,name,is_archived")
+      .select("id,name,type,is_archived")
       .eq("household_id", profile.household_id)
+      .order("sort_rank")
       .order("name"),
     supabase
       .from("categories")
@@ -21,7 +22,7 @@ export async function getRecurringSettings() {
       .order("name"),
     supabase
       .from("payment_methods")
-      .select("id,name,is_archived")
+      .select("id,name,type,account_id,is_archived")
       .eq("household_id", profile.household_id)
       .order("name"),
   ]);

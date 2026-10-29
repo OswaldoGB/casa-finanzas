@@ -7,10 +7,11 @@ import type { Transaction } from "../queries";
 import { saveTransaction } from "../actions";
 import { FormSelect } from "@/components/ui/form-select";
 import { CategoryIcon } from "@/features/catalogs/components/category-icon";
+import { methodForAccount } from "@/features/catalogs/payment-defaults";
 
 type Options = {
   today: string;
-  accounts: { id: string; name: string; is_archived: boolean }[];
+  accounts: { id: string; name: string; type?: string; is_archived: boolean }[];
   categories: {
     id: string;
     name: string;
@@ -19,7 +20,13 @@ type Options = {
     icon: string;
     is_archived: boolean;
   }[];
-  methods: { id: string; name: string; is_archived: boolean }[];
+  methods: {
+    id: string;
+    name: string;
+    type?: string;
+    account_id?: string | null;
+    is_archived: boolean;
+  }[];
   projects: { id: string; name: string; status: string }[];
 };
 
@@ -198,6 +205,12 @@ export function TransactionForm({
           onValueChange={(value) => {
             setAccountId(value);
             if (value === destinationId) setDestinationId("");
+            // Tarjeta → "Tarjeta de crédito", banco → "Transferencia"… (se puede cambiar).
+            const method = methodForAccount(
+              accounts.find((item) => item.id === value),
+              options.methods,
+            );
+            if (method) setMethodId(method);
           }}
           placeholder="Seleccionar cuenta"
           options={accounts.map((item) => ({

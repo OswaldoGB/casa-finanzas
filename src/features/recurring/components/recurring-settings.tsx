@@ -1,5 +1,6 @@
 "use client";
 
+import { syncMethodSelect } from "@/features/catalogs/payment-defaults";
 import { useActionState, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -15,7 +16,13 @@ import {
 } from "../actions";
 
 type Rule = Database["public"]["Tables"]["recurring_rules"]["Row"];
-type Option = { id: string; name: string; is_archived: boolean };
+type Option = {
+  id: string;
+  name: string;
+  is_archived: boolean;
+  type?: string;
+  account_id?: string | null;
+};
 type Category = Option & { type: "income" | "expense" };
 
 type Props = {
@@ -118,6 +125,7 @@ function RuleForm({
           onChange={(event) => {
             setAccountId(event.target.value);
             if (event.target.value === destinationId) setDestinationId("");
+            syncMethodSelect(event.currentTarget, accounts, methods, "paymentMethodId");
           }}
           required
         >

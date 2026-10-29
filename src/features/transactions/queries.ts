@@ -27,8 +27,9 @@ export async function getTransactionOptions() {
     await Promise.all([
       supabase
         .from("accounts")
-        .select("id,name,is_archived")
+        .select("id,name,type,is_archived")
         .eq("household_id", household)
+        .order("sort_rank")
         .order("name"),
       supabase
         .from("categories")
@@ -37,7 +38,7 @@ export async function getTransactionOptions() {
         .order("name"),
       supabase
         .from("payment_methods")
-        .select("id,name,is_archived")
+        .select("id,name,type,account_id,is_archived")
         .eq("household_id", household)
         .order("name"),
       supabase

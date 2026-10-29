@@ -68,6 +68,23 @@ export const NAV: { label: string; items: NavItem[] }[] = [
     ],
   },
   {
+    label: "Ahorro y deudas",
+    items: [
+      {
+        module: "loans",
+        href: "/loans",
+        label: "Préstamos",
+        icon: HandCoins,
+      },
+      {
+        module: "savings",
+        href: "/savings",
+        label: "Ahorros",
+        icon: PiggyBank,
+      },
+    ],
+  },
+  {
     label: "Hogar",
     items: [
       {
@@ -101,23 +118,6 @@ export const NAV: { label: string; items: NavItem[] }[] = [
         icon: FolderKanban,
       },
       { module: "projects", href: "/trips", label: "Viajes", icon: Plane },
-    ],
-  },
-  {
-    label: "Ahorro y deudas",
-    items: [
-      {
-        module: "loans",
-        href: "/loans",
-        label: "Préstamos",
-        icon: HandCoins,
-      },
-      {
-        module: "savings",
-        href: "/savings",
-        label: "Ahorros",
-        icon: PiggyBank,
-      },
     ],
   },
 ];

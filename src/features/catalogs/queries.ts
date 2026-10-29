@@ -20,6 +20,7 @@ export async function getCatalogs() {
       .from("accounts")
       .select("id,name,is_archived")
       .eq("household_id", profile.household_id)
+      .order("sort_rank")
       .order("name"),
   ]);
   if (categories.error || methods.error || accounts.error)

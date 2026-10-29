@@ -175,5 +175,19 @@ it("keeps SQL recurrence aligned with previews and preserves snoozed anchors", a
     )
   ).rows[0].r;
   expect(done.anchor_date).toBe("2026-10-01");
-  expect(done.due_date).toBe("2026-10-22");
+  // Calendario fijo: la siguiente ocasión semanal desde el ancla que caiga después
+  // de hoy real (la función usa now()), no una fecha fija que caduca con el tiempo.
+  const today = (
+    await db.query<{ d: string }>(
+      "select (now() at time zone h.timezone)::date::text d from reminders x join households h on h.id = x.household_id where x.id = $1",
+      [r.id],
+    )
+  ).rows[0].d;
+  let expected = "2026-10-01";
+  while (expected <= today || expected <= "2026-10-16") {
+    const next = new Date(`${expected}T00:00:00Z`);
+    next.setUTCDate(next.getUTCDate() + 7);
+    expected = next.toISOString().slice(0, 10);
+  }
+  expect(done.due_date).toBe(expected);
 });

@@ -1,5 +1,6 @@
 "use client";
 
+import { syncMethodSelect } from "@/features/catalogs/payment-defaults";
 import { MoneyInput } from "@/components/ui/money-input";
 
 import { useActionState, useEffect, useRef } from "react";
@@ -330,9 +331,9 @@ export function CloseListForm({
 }: {
   id: string;
   options: {
-    accounts: { id: string; name: string }[];
+    accounts: { id: string; name: string; type?: string }[];
     categories: { id: string; name: string }[];
-    methods: { id: string; name: string }[];
+    methods: { id: string; name: string; type?: string; account_id?: string | null }[];
   };
   disabled: boolean;
 }) {
@@ -386,6 +387,11 @@ export function CloseListForm({
             name={String(name)}
             required={name !== "payment_method_id"}
             defaultValue=""
+            onChange={
+              name === "account_id"
+                ? (e) => syncMethodSelect(e.currentTarget, options.accounts, options.methods)
+                : undefined
+            }
             className={fieldClass}
           >
             <option value="">Seleccionar</option>

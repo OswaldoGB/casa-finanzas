@@ -135,9 +135,10 @@ export async function getShoppingList(id: string) {
     ? await Promise.all([
         supabase
           .from("accounts")
-          .select("id,name")
+          .select("id,name,type")
           .eq("household_id", profile.household_id)
           .eq("is_archived", false)
+          .order("sort_rank")
           .order("name"),
         supabase
           .from("categories")
@@ -148,7 +149,7 @@ export async function getShoppingList(id: string) {
           .order("name"),
         supabase
           .from("payment_methods")
-          .select("id,name")
+          .select("id,name,type,account_id")
           .eq("household_id", profile.household_id)
           .eq("is_archived", false)
           .order("name"),

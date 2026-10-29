@@ -1,5 +1,6 @@
 "use client";
 import { useActionState, useEffect, useState, useCallback } from "react";
+import { methodForAccount } from "@/features/catalogs/payment-defaults";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
@@ -24,9 +25,9 @@ type Props = {
   items: ShoppingItem[];
   today: string;
   options: {
-    accounts: { id: string; name: string }[];
+    accounts: { id: string; name: string; type?: string }[];
     categories: { id: string; name: string }[];
-    methods: { id: string; name: string }[];
+    methods: { id: string; name: string; type?: string; account_id?: string | null }[];
   };
 };
 export function PurchaseDialog(props: Props) {
@@ -74,6 +75,8 @@ function PurchaseForm({
   ...props
 }: Props & { onSuccess: (message: string) => void }) {
   const [key] = useState(() => crypto.randomUUID());
+  const [accountId, setAccountId] = useState("");
+  const [methodId, setMethodId] = useState("");
   const [state, action, pending] = useActionState(recordPurchase, undefined);
   useEffect(() => {
     if (state?.ok) onSuccess(state.ok);
@@ -113,6 +116,15 @@ function PurchaseForm({
         <FormSelect
           name="account_id"
           placeholder="Seleccionar cuenta"
+          value={accountId}
+          onValueChange={(value) => {
+            setAccountId(value);
+            const method = methodForAccount(
+              props.options.accounts.find((a) => a.id === value),
+              props.options.methods,
+            );
+            if (method) setMethodId(method);
+          }}
           options={props.options.accounts.map((a) => ({
             value: a.id,
             label: a.name,
@@ -135,6 +147,8 @@ function PurchaseForm({
         <FormSelect
           name="payment_method_id"
           placeholder="Sin especificar"
+          value={methodId}
+          onValueChange={setMethodId}
           options={props.options.methods.map((a) => ({
             value: a.id,
             label: a.name,

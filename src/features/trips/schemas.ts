@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { amount } from "../projects/schemas";
-import type { Json } from "../../lib/supabase/database.types";
+import type { Enums, Json } from "../../lib/supabase/database.types";
 export const uuid = z.string().uuid();
 export const optionalId = z
   .union([z.literal(""), z.literal("none"), uuid])
@@ -230,9 +230,14 @@ export type TripSnapshot = TripData & {
   canViewTransactions: boolean;
   today: string;
   options: {
-    accounts: { id: string; name: string }[];
+    accounts: { id: string; name: string; type: Enums<"account_type"> }[];
     categories: { id: string; name: string }[];
-    methods: { id: string; name: string }[];
+    methods: {
+      id: string;
+      name: string;
+      type: Enums<"payment_method_type">;
+      account_id: string | null;
+    }[];
     expenses: {
       id: string;
       description: string;

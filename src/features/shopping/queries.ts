@@ -15,9 +15,10 @@ export async function getShopping() {
       .order("created_at", { ascending: false }),
     supabase
       .from("accounts")
-      .select("id,name")
+      .select("id,name,type")
       .eq("household_id", household)
       .eq("is_archived", false)
+      .order("sort_rank")
       .order("name"),
     supabase
       .from("categories")
@@ -28,7 +29,7 @@ export async function getShopping() {
       .order("name"),
     supabase
       .from("payment_methods")
-      .select("id,name")
+      .select("id,name,type,account_id")
       .eq("household_id", household)
       .eq("is_archived", false)
       .order("name"),

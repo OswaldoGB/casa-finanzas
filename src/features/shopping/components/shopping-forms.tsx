@@ -1,4 +1,5 @@
 import { MoneyInput } from "@/components/ui/money-input";
+import { syncMethodSelect } from "@/features/catalogs/payment-defaults";
 import { ActionForm } from "@/features/projects/components/action-form";
 import { inputClass } from "@/features/projects/schemas";
 import { saveShopping, buyShopping } from "../actions";
@@ -132,6 +133,11 @@ export function BuyForm({
           <select
             name={name}
             required={name !== "payment_method_id"}
+            onChange={
+              name === "account_id"
+                ? (e) => syncMethodSelect(e.currentTarget, options.accounts, options.methods)
+                : undefined
+            }
             className={inputClass}
           >
             <option value="">Seleccionar</option>

@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { MoneyInput } from "@/components/ui/money-input";
 import { FormSelect } from "@/components/ui/form-select";
+import { methodForAccount } from "@/features/catalogs/payment-defaults";
 import { fieldClass } from "@/features/shopping-lists/components/forms";
 import { formatUSD } from "@/lib/format";
 import { recordTripExpense, linkCostTransaction } from "../actions";
@@ -33,6 +34,8 @@ export function ExpenseDialog({ snapshot, line }: Props) {
 }
 function ExpenseFields({ snapshot, line }: Props) {
   const [key] = useState(() => crypto.randomUUID());
+  const [accountId, setAccountId] = useState("");
+  const [methodId, setMethodId] = useState("");
   const totals = tripCostBreakdown(
     line,
     snapshot.costTransactions,
@@ -57,6 +60,15 @@ function ExpenseFields({ snapshot, line }: Props) {
         <FormSelect
           name="account_id"
           placeholder="Seleccionar cuenta"
+          value={accountId}
+          onValueChange={(value) => {
+            setAccountId(value);
+            const method = methodForAccount(
+              snapshot.options.accounts.find((a) => a.id === value),
+              snapshot.options.methods,
+            );
+            if (method) setMethodId(method);
+          }}
           options={snapshot.options.accounts.map((a) => ({
             value: a.id,
             label: a.name,
@@ -80,6 +92,8 @@ function ExpenseFields({ snapshot, line }: Props) {
         <FormSelect
           name="payment_method_id"
           placeholder="Sin especificar"
+          value={methodId}
+          onValueChange={setMethodId}
           options={snapshot.options.methods.map((m) => ({
             value: m.id,
             label: m.name,

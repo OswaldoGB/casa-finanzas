@@ -34,6 +34,7 @@ export async function getAccounts() {
       .select("*")
       .eq("household_id", profile.household_id)
       .order("is_archived")
+      .order("sort_rank")
       .order("name"),
     supabase.rpc("account_balances"),
   ]);
