@@ -2,16 +2,19 @@ import { ExportButtons } from "@/features/exports/components/export-buttons";
 import { getLoans } from "@/features/loans/queries";
 import {
   CreateLoanForm,
+  DebtForm,
   EditLoanForm,
+  PayDebtForm,
   RepayLoanForm,
   WriteOffLoanForm,
 } from "@/features/loans/components/loan-forms";
+import Link from "next/link";
 import { formatUSD } from "@/lib/format";
 import { organizeLoans, readLoanFilters } from "@/features/loans/filters";
 import type { Loan } from "@/features/loans/schemas";
-export const metadata = { title: "Préstamos" };
+export const metadata = { title: "Préstamos y deudas" };
 type LoansPageProps = {
-  searchParams: Promise<{ filter?: string; sort?: string }>;
+  searchParams: Promise<{ filter?: string; sort?: string; tab?: string }>;
 };
 
 function LoanCard({
@@ -21,6 +24,7 @@ function LoanCard({
   loan: Loan;
   data: Awaited<ReturnType<typeof getLoans>>;
 }) {
+  const owed = loan.direction === "borrowed";
   return (
     <article
       id={loan.id}
@@ -31,7 +35,9 @@ function LoanCard({
         <div className="flex shrink-0 items-center gap-2">
           <span className="text-sm">
             {loan.status === "paid"
-              ? "Pagado"
+              ? owed
+                ? "Pagada"
+                : "Pagado"
               : loan.status === "written_off"
                 ? "Incobrable"
                 : loan.overdue
@@ -48,7 +54,11 @@ function LoanCard({
                 ✎
               </summary>
               <div className="bg-card absolute top-9 right-0 z-10 w-80 rounded-xl border p-3 shadow-lg">
-                <EditLoanForm loan={loan} accounts={data.sourceAccounts} />
+                {owed ? (
+                  <DebtForm debt={loan} today={data.today} />
+                ) : (
+                  <EditLoanForm loan={loan} accounts={data.sourceAccounts} />
+                )}
               </div>
             </details>
           )}
@@ -56,15 +66,17 @@ function LoanCard({
       </div>
       <p className="mt-3 text-2xl font-semibold">{formatUSD(loan.pending)}</p>
       <p className="text-muted-foreground mt-1 text-sm">
-        Prestado {formatUSD(loan.lent)} · Recuperado {formatUSD(loan.recovered)}
+        {owed
+          ? `Te prestó ${formatUSD(loan.amount)} · Abonado ${formatUSD(loan.recovered)}`
+          : `Prestado ${formatUSD(loan.lent)} · Recuperado ${formatUSD(loan.recovered)}`}
       </p>
       <p className="text-muted-foreground mt-2 text-xs">
         Fecha: {loan.date}
         {loan.expected_payment_date
-          ? ` · Pago esperado: ${loan.expected_payment_date}`
+          ? ` · ${owed ? "Pagar antes de" : "Pago esperado"}: ${loan.expected_payment_date}`
           : ""}
       </p>
-      {loan.source_account_name && (
+      {!owed && loan.source_account_name && (
         <p className="text-muted-foreground mt-2 text-xs">
           Origen: {loan.source_account_name}
           {loan.source_account_type === "credit_card"
@@ -86,15 +98,19 @@ function LoanCard({
                 Registrar abono
               </summary>
               <div className="mt-3">
-                <RepayLoanForm
-                  loan={loan}
-                  today={data.today}
-                  accounts={data.depositAccounts}
-                />
+                {owed ? (
+                  <PayDebtForm debt={loan} today={data.today} accounts={data.sourceAccounts} />
+                ) : (
+                  <RepayLoanForm
+                    loan={loan}
+                    today={data.today}
+                    accounts={data.depositAccounts}
+                  />
+                )}
               </div>
             </details>
           )}
-          {data.canEdit && <WriteOffLoanForm loan={loan} />}
+          {data.canEdit && !owed && <WriteOffLoanForm loan={loan} />}
         </>
       )}
     </article>
@@ -103,30 +119,48 @@ function LoanCard({
 
 export default async function LoansPage({ searchParams }: LoansPageProps) {
   const data = await getLoans();
-  const { filter, sort } = readLoanFilters(await searchParams);
-  const organized = organizeLoans(data.loans, filter, sort);
+  const params = await searchParams;
+  const { filter, sort } = readLoanFilters(params);
+  const owed = params.tab === "debo";
+  const loans = data.loans.filter((l) => l.direction === (owed ? "borrowed" : "lent"));
+  const organized = organizeLoans(loans, filter, sort);
+  const tab = (value: string, label: string, active: boolean) => (
+    <Link
+      href={value ? `/loans?tab=${value}` : "/loans"}
+      aria-current={active ? "page" : undefined}
+      className={`rounded-lg px-4 py-1.5 text-sm ${active ? "bg-background text-foreground shadow-xs" : "text-muted-foreground"}`}
+    >
+      {label}
+    </Link>
+  );
   return (
     <div className="mx-auto max-w-6xl space-y-6">
       <header>
-        <h1 className="text-2xl font-semibold">Préstamos otorgados</h1>
+        <h1 className="text-2xl font-semibold">Préstamos y deudas</h1>
         <p className="text-muted-foreground mt-2 text-sm">
-          El dinero que prestas y lo que has recuperado.
+          {owed
+            ? "Lo que te prestaron o pagaron por ti, y lo que vas abonando."
+            : "El dinero que prestas y lo que has recuperado."}
         </p>
       </header>
+      <nav aria-label="Préstamos o deudas" className="bg-muted inline-flex rounded-xl p-1">
+        {tab("", "Me deben", !owed)}
+        {tab("debo", "Debo", owed)}
+      </nav>
       <ExportButtons target="loans" />
       <div className="stagger grid gap-3 sm:grid-cols-3">
         {[
           {
-            name: "Prestado",
-            value: data.loans.reduce((n, l) => n + l.lent, 0),
+            name: owed ? "Me prestaron" : "Prestado",
+            value: loans.reduce((n, l) => n + (owed ? l.amount : l.lent), 0),
           },
           {
-            name: "Recuperado",
-            value: data.loans.reduce((n, l) => n + l.recovered, 0),
+            name: owed ? "Abonado" : "Recuperado",
+            value: loans.reduce((n, l) => n + l.recovered, 0),
           },
           {
-            name: "Pendiente por cobrar",
-            value: data.loans.reduce((n, l) => n + l.pending, 0),
+            name: owed ? "Pendiente por pagar" : "Pendiente por cobrar",
+            value: loans.reduce((n, l) => n + l.pending, 0),
           },
         ].map((item) => (
           <section key={item.name} className="bg-card rounded-2xl border p-5">
@@ -140,6 +174,7 @@ export default async function LoansPage({ searchParams }: LoansPageProps) {
       <div className="grid items-start gap-6 lg:grid-cols-[1fr_340px]">
         <section className="space-y-4" aria-label="Préstamos">
           <form className="bg-card flex flex-wrap items-end gap-3 rounded-2xl border p-4">
+            {owed && <input type="hidden" name="tab" value="debo" />}
             <label className="grid gap-1 text-sm" htmlFor="loan-filter">
               Ver
               <select
@@ -173,7 +208,7 @@ export default async function LoansPage({ searchParams }: LoansPageProps) {
             </button>
           </form>
           <div className="flex items-center justify-between gap-3 pt-2">
-            <h2 className="font-semibold">Por cobrar</h2>
+            <h2 className="font-semibold">{owed ? "Por pagar" : "Por cobrar"}</h2>
             <span className="text-muted-foreground text-sm">
               {organized.current.length}
             </span>
@@ -184,13 +219,13 @@ export default async function LoansPage({ searchParams }: LoansPageProps) {
             ))
           ) : (
             <p className="bg-card text-muted-foreground rounded-2xl border p-6 text-sm">
-              No hay préstamos en este filtro.
+              {owed ? "No debes nada en este filtro." : "No hay préstamos en este filtro."}
             </p>
           )}
           {(filter === "all" || filter === "paid") && (
             <>
               <div className="flex items-center justify-between gap-3 pt-4">
-                <h2 className="font-semibold">Préstamos pagados</h2>
+                <h2 className="font-semibold">{owed ? "Deudas pagadas" : "Préstamos pagados"}</h2>
                 <span className="text-muted-foreground text-sm">
                   {organized.paid.length}
                 </span>
@@ -201,15 +236,21 @@ export default async function LoansPage({ searchParams }: LoansPageProps) {
                 ))
               ) : (
                 <p className="bg-card text-muted-foreground rounded-2xl border p-6 text-sm">
-                  Aún no hay préstamos pagados.
+                  {owed ? "Aún no hay deudas pagadas." : "Aún no hay préstamos pagados."}
                 </p>
               )}
             </>
           )}
         </section>
         <aside id="new-loan" className="bg-card rounded-2xl border p-5">
-          <h2 className="mb-4 font-semibold">Nuevo préstamo</h2>
-          {data.canOperate ? (
+          <h2 className="mb-4 font-semibold">{owed ? "Nueva deuda" : "Nuevo préstamo"}</h2>
+          {owed ? (
+            data.canEdit ? (
+              <DebtForm today={data.today} />
+            ) : (
+              <p className="text-muted-foreground text-sm">Necesitas permiso de edición en préstamos.</p>
+            )
+          ) : data.canOperate ? (
             <CreateLoanForm
               today={data.today}
               sourceAccounts={data.sourceAccounts}

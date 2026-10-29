@@ -73,3 +73,71 @@ describe("catálogo base y orden", () => {
     expect(r.rows[0].name).toBe("Visa");
   });
 });
+
+describe("reservas de fondos", () => {
+  it("«Ya lo compré» usa lo apartado y reinicia el ciclo con la misma duración", async () => {
+    const p = "00000000-0000-4000-8000-000000000010";
+    await db.exec(`
+      insert into savings_goals(id,household_id,created_by,name,type,target_amount,target_date,cadence,cycle_start)
+        values ('${p}','${home}','${user}','Detergente grande','provision',25,'2026-12-01','quincenal','2026-09-01');
+      insert into transactions(household_id,created_by,type,amount,date,savings_goal_id)
+        values ('${home}','${user}','goal_contribution',20,'2026-09-15','${p}');
+      insert into accounts(id,household_id,created_by,name,type,opening_balance)
+        values ('00000000-0000-4000-8000-000000000011','${home}','${user}','Billetera','cash',500);
+    `);
+    const cat = (await db.query<{ id: string }>("select id from categories where household_id=$1 and type='expense' limit 1", [home])).rows[0].id;
+    const tx = (
+      await db.query<{ id: string }>(
+        `insert into transactions(household_id,created_by,type,amount,date,account_id,category_id,description)
+         values ($1,$2,'expense',24,'2026-10-10','00000000-0000-4000-8000-000000000011',$3,'Detergente') returning id`,
+        [home, user, cat],
+      )
+    ).rows[0].id;
+    await db.query("select provision_restart($1,$2)", [p, tx]);
+    const g = (
+      await db.query<{ cycle_start: string; target_date: string; last_purchase_transaction_id: string; bal: string }>(
+        `select cycle_start::text, target_date::text, last_purchase_transaction_id,
+           (select sum(case when type='goal_contribution' then amount else -amount end) from transactions where savings_goal_id=g.id)::text bal
+         from savings_goals g where id=$1`,
+        [p],
+      )
+    ).rows[0];
+    expect(g).toEqual({ cycle_start: "2026-10-10", target_date: "2027-01-09", last_purchase_transaction_id: tx, bal: "0.00" });
+  });
+});
+
+describe("deudas que debo", () => {
+  const cash = "00000000-0000-4000-8000-000000000011";
+  const balance = async () =>
+    Number((await db.query<{ b: string }>("select balance::text b from account_balances() where account_id=$1", [cash])).rows[0].b);
+  const worth = async () => {
+    const r = await db.query<{ s: { netWorth: { balance: number }[] } }>(
+      "select analytics_snapshot('2026-10-01','2026-10-31','dashboard') s",
+    );
+    return Number(r.rows[0].s.netWorth.at(-1)!.balance);
+  };
+
+  it("crear no mueve dinero; resta del patrimonio; abonar sale de la cuenta y liquida", async () => {
+    const before = { cash: await balance(), worth: await worth() };
+    const id = (await db.query<{ id: string }>("select debt_create('Hermano',80,'2026-10-01',null,'Entrada del concierto') id")).rows[0].id;
+    expect(await balance()).toBe(before.cash);
+    expect(await worth()).toBeCloseTo(before.worth - 80);
+
+    await db.query("select debt_pay($1,30,'2026-10-05',$2)", [id, cash]);
+    expect(await balance()).toBeCloseTo(before.cash - 30);
+    // Pagar baja la cuenta y la deuda por igual: el patrimonio queda igual que antes del abono.
+    expect(await worth()).toBeCloseTo(before.worth - 80);
+    let loan = (await db.query<{ recovered_amount: string; status: string }>("select recovered_amount::text, status from loans where id=$1", [id])).rows[0];
+    expect(loan).toEqual({ recovered_amount: "30.00", status: "active" });
+
+    await db.query("select debt_pay($1,50,'2026-10-06',$2)", [id, cash]);
+    loan = (await db.query<{ recovered_amount: string; status: string }>("select recovered_amount::text, status from loans where id=$1", [id])).rows[0];
+    expect(loan).toEqual({ recovered_amount: "80.00", status: "paid" });
+    expect(await worth()).toBeCloseTo(before.worth - 80);
+
+    await expect(db.query("select debt_pay($1,1,'2026-10-07',$2)", [id, cash])).rejects.toThrow();
+    await expect(db.query("select loan_repay($1,5,'2026-10-07',$2)", [id, cash])).rejects.toThrow("Préstamo no disponible");
+    const snap = (await db.query<{ s: { id: string; direction: string; pending: number }[] }>("select loan_snapshot('loans') s")).rows[0].s;
+    expect(snap.find((l) => l.id === id)).toMatchObject({ direction: "borrowed", pending: 0 });
+  });
+});

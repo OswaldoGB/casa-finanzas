@@ -5,17 +5,24 @@ import {
   GoalForm,
   GoalOperationForm,
   DeleteGoalForm,
+  RestartProvisionForm,
 } from "@/features/savings/components/savings-forms";
+import { provisionPlan } from "@/features/savings/paydays";
 import { formatUSD } from "@/lib/format";
-export const metadata = { title: "Ahorros y provisiones" };
+export const metadata = { title: "Ahorros y reservas" };
 export default async function SavingsPage() {
   const data = await getSavings();
+  const reserved = data.goals
+    .filter((g) => g.type === "provision" && !g.account_id)
+    .reduce((sum, g) => sum + g.balance, 0);
   return (
     <div className="mx-auto max-w-6xl space-y-6">
       <header>
-        <h1 className="text-2xl font-semibold">Ahorros y provisiones</h1>
+        <h1 className="text-2xl font-semibold">Ahorros y reservas</h1>
         <p className="text-muted-foreground mt-2 text-sm">
-          Aparta para tus metas y para gastos que ya sabes que vendrán.
+          Aparta para tus metas y para compras que ya sabes que vendrán.
+          {reserved > 0 &&
+            ` Tienes ${formatUSD(reserved)} reservado dentro de tus cuentas.`}
         </p>
       </header>
       <ExportButtons target="savings" />
@@ -36,6 +43,8 @@ export default async function SavingsPage() {
                 data.today,
                 goal.target_date,
               );
+              const plan = provisionPlan(goal, data.today);
+              const period = goal.cadence === "mensual" ? "este mes" : "esta quincena";
               return (
                 <article
                   key={goal.id}
@@ -85,6 +94,17 @@ export default async function SavingsPage() {
                       de {formatUSD(goal.target_amount)}
                     </span>
                   </p>
+                  {plan ? (
+                    <p
+                      className={`mt-2 text-sm ${plan.due ? "text-primary font-medium" : "text-muted-foreground"}`}
+                    >
+                      {plan.missing === 0
+                        ? "Reserva completa. Cuando lo compres, ligas el gasto y vuelve a empezar."
+                        : plan.due
+                          ? `Te toca apartar ${formatUSD(plan.perPayday)} ${period}.`
+                          : `Al día. Próximo aporte: ${formatUSD(plan.perPayday)} el ${plan.nextPayday}.`}
+                    </p>
+                  ) : (
                   <p className="text-muted-foreground mt-2 text-sm">
                     {monthly === null
                       ? "Agrega una fecha para calcular el aporte mensual."
@@ -92,6 +112,12 @@ export default async function SavingsPage() {
                         ? "Objetivo alcanzado."
                         : `Aporte sugerido: ${formatUSD(monthly)} al mes`}
                   </p>
+                  )}
+                  {goal.last_purchase_date && (
+                    <p className="text-muted-foreground mt-1 text-xs">
+                      Última compra: {goal.last_purchase_date}
+                    </p>
+                  )}
                   {goal.target_date && (
                     <p className="text-muted-foreground mt-1 text-xs">
                       Fecha objetivo: {goal.target_date}
@@ -116,13 +142,23 @@ export default async function SavingsPage() {
                       </div>
                     </details>
                   )}
+                  {data.canOperate && goal.type === "provision" && (
+                    <details className="mt-4">
+                      <summary className="cursor-pointer text-sm">
+                        Ya lo compré
+                      </summary>
+                      <div className="mt-3">
+                        <RestartProvisionForm goal={goal} expenses={data.expenses} />
+                      </div>
+                    </details>
+                  )}
                   {data.canEdit && (
                     <details className="mt-4">
                       <summary className="cursor-pointer text-sm">
                         Editar meta
                       </summary>
                       <div className="mt-3">
-                        <GoalForm goal={goal} accounts={data.accounts} />
+                        <GoalForm goal={goal} accounts={data.accounts} today={data.today} />
                         <DeleteGoalForm goal={goal} />
                       </div>
                     </details>
@@ -138,8 +174,8 @@ export default async function SavingsPage() {
         </section>
         {data.canEdit && (
           <aside id="new-savings" className="bg-card rounded-2xl border p-5">
-            <h2 className="mb-4 font-semibold">Nueva meta o provisión</h2>
-            <GoalForm accounts={data.accounts} />
+            <h2 className="mb-4 font-semibold">Nueva meta o reserva</h2>
+            <GoalForm accounts={data.accounts} today={data.today} />
           </aside>
         )}
       </div>

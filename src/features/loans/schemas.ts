@@ -46,9 +46,24 @@ export const loanSourceSchema = z.object({
 export const loanEditSchema = z
   .object({ id: z.string().uuid() })
   .and(loanSchema);
+// Deudas que debo: no mueven dinero al crearse.
+export const debtSchema = z
+  .object({
+    id: z.union([z.literal(""), z.string().uuid()]).optional().transform((v) => v || null),
+    creditor: z.string().trim().min(1, "Escribe a quién le debes").max(100),
+    amount: moneyInput,
+    date: z.string().date(),
+    expected_payment_date: optionalDate,
+    notes: z.string().trim().max(2000).default(""),
+  })
+  .refine(
+    (v) => !v.expected_payment_date || v.expected_payment_date >= v.date,
+    { path: ["expected_payment_date"], message: "La fecha de pago no puede ser anterior a la deuda" },
+  );
 export const loanSnapshotSchema = z.array(
   z.object({
     id: z.string().uuid(),
+    direction: z.enum(["lent", "borrowed"]).default("lent"),
     debtor: z.string(),
     amount: z.number(),
     date: z.string(),

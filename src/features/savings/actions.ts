@@ -4,7 +4,7 @@ import { z } from "zod";
 import { requireModule } from "@/features/permissions/queries";
 import { canAccess } from "@/features/permissions/modules";
 import type { FormState } from "@/features/auth/schemas";
-import { goalSchema, goalOperationSchema } from "./schemas";
+import { goalSchema, goalOperationSchema, restartSchema } from "./schemas";
 function refresh() {
   for (const path of [
     "/savings",
@@ -52,6 +52,21 @@ export async function saveGoal(
     return { error: result.error?.message ?? "No se pudo guardar la meta." };
   refresh();
   return { ok: "Meta guardada." };
+}
+export async function restartProvision(
+  _: FormState,
+  form: FormData,
+): Promise<FormState> {
+  const { supabase } = await requireModule("savings", "edit");
+  const parsed = restartSchema.safeParse(Object.fromEntries(form));
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+  const result = await supabase.rpc("provision_restart", {
+    p_goal_id: parsed.data.id,
+    p_transaction_id: parsed.data.transaction_id,
+  });
+  if (result.error) return { error: result.error.message };
+  refresh();
+  return { ok: "Compra ligada. La reserva vuelve a empezar desde $0." };
 }
 export async function operateGoal(
   _: FormState,

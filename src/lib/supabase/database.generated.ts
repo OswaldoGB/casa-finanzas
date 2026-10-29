@@ -41,6 +41,7 @@ export type Database = {
     Tables: {
       accounts: {
         Row: {
+          sort_rank: number
           card_last_four: string | null;
           card_network: string | null;
           card_product: string | null;
@@ -760,6 +761,7 @@ export type Database = {
       };
       loans: {
         Row: {
+          direction: string
           already_recorded: boolean;
           amount: number;
           created_at: string;
@@ -777,6 +779,7 @@ export type Database = {
           written_off_at: string | null;
         };
         Insert: {
+          direction?: string
           already_recorded?: boolean;
           amount: number;
           created_at?: string;
@@ -794,6 +797,7 @@ export type Database = {
           written_off_at?: string | null;
         };
         Update: {
+          direction?: string
           already_recorded?: boolean;
           amount?: number;
           created_at?: string;
@@ -1179,6 +1183,10 @@ export type Database = {
       };
       savings_goals: {
         Row: {
+          cadence: string | null
+          cycle_start: string | null
+          last_purchase_date: string | null
+          last_purchase_transaction_id: string | null
           account_id: string | null;
           color: string;
           created_at: string;
@@ -1193,6 +1201,10 @@ export type Database = {
           updated_at: string;
         };
         Insert: {
+          cadence?: string | null
+          cycle_start?: string | null
+          last_purchase_date?: string | null
+          last_purchase_transaction_id?: string | null
           account_id?: string | null;
           color?: string;
           created_at?: string;
@@ -1207,6 +1219,10 @@ export type Database = {
           updated_at?: string;
         };
         Update: {
+          cadence?: string | null
+          cycle_start?: string | null
+          last_purchase_date?: string | null
+          last_purchase_transaction_id?: string | null
           account_id?: string | null;
           color?: string;
           created_at?: string;
@@ -2488,6 +2504,29 @@ export type Database = {
         };
         Returns: string;
       };
+      provision_restart: {
+        Args: { p_goal_id: string; p_transaction_id: string }
+        Returns: undefined
+      }
+      debt_create: {
+        Args: {
+          p_amount: number
+          p_creditor: string
+          p_date: string
+          p_expected_payment_date?: string
+          p_notes?: string
+        }
+        Returns: string
+      }
+      debt_pay: {
+        Args: {
+          p_account_id: string
+          p_amount: number
+          p_date: string
+          p_loan_id: string
+        }
+        Returns: string
+      }
       savings_goal_operation: {
         Args: {
           p_amount: number;

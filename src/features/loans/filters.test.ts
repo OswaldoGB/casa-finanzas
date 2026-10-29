@@ -4,6 +4,7 @@ import { organizeLoans } from "./filters";
 
 const loan = (overrides: Partial<Loan>): Loan => ({
   id: crypto.randomUUID(),
+  direction: "lent",
   debtor: "Ana",
   amount: 100,
   date: "2026-09-01",

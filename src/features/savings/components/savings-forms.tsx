@@ -2,10 +2,10 @@
 
 import { MoneyInput } from "@/components/ui/money-input";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import type { FormState } from "@/features/auth/schemas";
-import { saveGoal, operateGoal, deleteGoal } from "../actions";
+import { saveGoal, operateGoal, deleteGoal, restartProvision } from "../actions";
 import type { SavingsGoal } from "../schemas";
 const field =
   "border-input bg-background h-11 w-full rounded-lg border px-3 text-sm";
@@ -30,11 +30,16 @@ function Feedback({ state }: { state: FormState }) {
 export function GoalForm({
   goal,
   accounts,
+  today,
 }: {
   goal?: SavingsGoal;
   accounts: { id: string; name: string }[];
+  today: string;
 }) {
   const [state, action, pending] = useActionState(saveGoal, undefined);
+  const [type, setType] = useState(goal?.type ?? "goal");
+  const [cadence, setCadence] = useState<string>(goal?.cadence ?? (goal ? "" : "quincenal"));
+  const scheduled = type === "provision" && cadence !== "";
   const prefix = goal?.id ?? "new-goal";
   const choices =
     goal?.account_id && !accounts.some((a) => a.id === goal.account_id)
@@ -62,13 +67,31 @@ export function GoalForm({
         <select
           id={`${prefix}-type`}
           name="type"
-          defaultValue={goal?.type ?? "goal"}
+          value={type}
+          onChange={(e) => setType(e.target.value as typeof type)}
           className={field}
         >
-          <option value="goal">Meta de ahorro</option>
-          <option value="provision">Provisión para un gasto futuro</option>
+          <option value="goal">Meta de ahorro (viaje, carro…)</option>
+          <option value="provision">Reserva para una compra que se repite</option>
         </select>
       </label>
+      {type === "provision" && (
+        <label className="grid gap-1.5 text-sm" htmlFor={`${prefix}-cadence`}>
+          ¿Cada cuándo apartas?
+          <select
+            id={`${prefix}-cadence`}
+            name="cadence"
+            value={cadence}
+            onChange={(e) => setCadence(e.target.value)}
+            className={field}
+          >
+            <option value="quincenal">Cada quincena (15 y fin de mes)</option>
+            <option value="mensual">Cada mes (fin de mes)</option>
+            <option value="">Sin calendario, cuando yo quiera</option>
+          </select>
+        </label>
+      )}
+      <input type="hidden" name="cycle_start" value={goal?.cycle_start ?? today} />
       <label className="grid gap-1.5 text-sm" htmlFor={`${prefix}-target`}>
         Objetivo (USD)
         <MoneyInput
@@ -85,11 +108,13 @@ export function GoalForm({
         />
       </label>
       <label className="grid gap-1.5 text-sm" htmlFor={`${prefix}-date`}>
-        Fecha objetivo (opcional)
+        {scheduled ? "¿Para cuándo lo vas a necesitar?" : "Fecha objetivo (opcional)"}
         <input
           id={`${prefix}-date`}
           name="target_date"
           type="date"
+          required={scheduled}
+          min={scheduled ? today : undefined}
           defaultValue={goal?.target_date ?? ""}
           className={field}
         />
@@ -268,6 +293,92 @@ export function DeleteGoalForm({ goal }: { goal: SavingsGoal }) {
         }}
       />
       <Feedback state={state} />
+    </form>
+  );
+}
+
+/** "Ya lo compré": liga el gasto, usa lo apartado y reinicia la reserva desde $0. */
+export function RestartProvisionForm({
+  goal,
+  expenses,
+}: {
+  goal: SavingsGoal;
+  expenses: { id: string; description: string; amount: number; date: string }[];
+}) {
+  const [state, action, pending] = useActionState(restartProvision, undefined);
+  return (
+    <form action={action} className="grid gap-3">
+      <input type="hidden" name="id" value={goal.id} />
+      <label className="grid gap-1.5 text-sm">
+        ¿Cuál fue el gasto de la compra?
+        <select name="transaction_id" required defaultValue="" className={field}>
+          <option value="" disabled>
+            Elige un gasto reciente
+          </option>
+          {expenses.map((e) => (
+            <option key={e.id} value={e.id}>
+              {e.date} · {e.description || "Gasto"} · ${Number(e.amount).toFixed(2)}
+            </option>
+          ))}
+        </select>
+      </label>
+      <p className="text-muted-foreground text-xs">
+        ¿No aparece? Regístralo primero en Movimientos. Lo apartado se usa para esa compra y la
+        reserva vuelve a empezar desde $0
+        {goal.cadence && goal.cycle_start && goal.target_date ? ", con la misma duración" : ""}.
+      </p>
+      <Feedback state={state} />
+      <button className={button} disabled={pending || !expenses.length}>
+        {pending ? "Guardando…" : "Ya lo compré"}
+      </button>
+    </form>
+  );
+}
+
+/** Aviso de quincena: aparta lo sugerido con un toque (el monto se puede ajustar). */
+export function QuickReserveForm({
+  goal,
+  amount,
+  today,
+}: {
+  goal: SavingsGoal;
+  amount: number;
+  today: string;
+}) {
+  const [state, action, pending] = useActionState(operateGoal, undefined);
+  if (state?.ok)
+    return (
+      <p role="status" className="text-income text-sm">
+        {goal.name}: apartado ✓
+      </p>
+    );
+  return (
+    <form action={action} className="flex items-center gap-2">
+      <input type="hidden" name="id" value={goal.id} />
+      <input type="hidden" name="type" value="goal_contribution" />
+      <input type="hidden" name="date" value={today} />
+      <span className="min-w-0 flex-1 truncate text-sm">{goal.name}</span>
+      <MoneyInput
+        name="amount"
+        type="number"
+        min="0.01"
+        step="0.01"
+        inputMode="decimal"
+        defaultValue={amount}
+        aria-label={`Monto a apartar para ${goal.name}`}
+        className="border-input bg-background h-9 w-24 rounded-lg border px-2 text-right text-sm tabular-nums"
+      />
+      <button
+        disabled={pending}
+        className="bg-primary text-primary-foreground h-9 shrink-0 rounded-lg px-3 text-sm font-medium disabled:opacity-50"
+      >
+        {pending ? "…" : "Apartar"}
+      </button>
+      {state?.error && (
+        <span role="alert" className="text-destructive text-xs">
+          {state.error}
+        </span>
+      )}
     </form>
   );
 }

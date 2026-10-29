@@ -4,7 +4,7 @@ import { z } from "zod";
 import { requireModule } from "@/features/permissions/queries";
 import { canAccess } from "@/features/permissions/modules";
 import type { FormState } from "@/features/auth/schemas";
-import { loanEditSchema, loanSchema, repaymentSchema } from "./schemas";
+import { debtSchema, loanEditSchema, loanSchema, repaymentSchema } from "./schemas";
 function refresh() {
   for (const path of [
     "/loans",
@@ -77,6 +77,56 @@ export async function updateLoan(
   if (result.error) return { error: result.error.message };
   refresh();
   return { ok: "Préstamo actualizado." };
+}
+export async function saveDebt(
+  _: FormState,
+  form: FormData,
+): Promise<FormState> {
+  const { supabase } = await requireModule("loans", "edit");
+  const parsed = debtSchema.safeParse(Object.fromEntries(form));
+  if (!parsed.success)
+    return { error: parsed.error.issues[0].message, fieldErrors: parsed.error.flatten().fieldErrors };
+  const v = parsed.data;
+  const result = v.id
+    ? await supabase.rpc("loan_update", {
+        p_loan_id: v.id,
+        p_debtor: v.creditor,
+        p_amount: v.amount,
+        p_date: v.date,
+        p_expected_payment_date: v.expected_payment_date || undefined,
+        p_notes: v.notes,
+        p_already_recorded: false,
+      })
+    : await supabase.rpc("debt_create", {
+        p_creditor: v.creditor,
+        p_amount: v.amount,
+        p_date: v.date,
+        p_expected_payment_date: v.expected_payment_date || undefined,
+        p_notes: v.notes,
+      });
+  if (result.error) return { error: result.error.message };
+  refresh();
+  return { ok: v.id ? "Deuda actualizada." : "Deuda registrada." };
+}
+export async function payDebt(
+  _: FormState,
+  form: FormData,
+): Promise<FormState> {
+  const { supabase, profile, permissions } = await requireModule("loans", "edit");
+  if (!canAccess(profile.role, permissions, "transactions", "edit"))
+    return { error: "Necesitas permiso para editar movimientos." };
+  const parsed = repaymentSchema.safeParse(Object.fromEntries(form));
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+  const v = parsed.data;
+  const result = await supabase.rpc("debt_pay", {
+    p_loan_id: v.id,
+    p_amount: v.amount,
+    p_date: v.date,
+    p_account_id: v.account_id,
+  });
+  if (result.error) return { error: result.error.message };
+  refresh();
+  return { ok: "Abono registrado." };
 }
 export async function repayLoan(
   _: FormState,

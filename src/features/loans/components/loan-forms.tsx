@@ -5,7 +5,7 @@ import { MoneyInput } from "@/components/ui/money-input";
 import { useActionState } from "react";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import type { FormState } from "@/features/auth/schemas";
-import { createLoan, repayLoan, updateLoan, writeOffLoan } from "../actions";
+import { createLoan, payDebt, repayLoan, saveDebt, updateLoan, writeOffLoan } from "../actions";
 import type { Loan } from "../schemas";
 const field =
   "border-input bg-background h-11 w-full rounded-lg border px-3 text-sm";
@@ -340,6 +340,104 @@ export function WriteOffLoanForm({ loan }: { loan: Loan }) {
         }}
       />
       <Feedback state={state} />
+    </form>
+  );
+}
+
+/** Deuda que debo: a quién, cuánto y para cuándo. No mueve dinero al guardarla. */
+export function DebtForm({ today, debt }: { today: string; debt?: Loan }) {
+  const [state, action, pending] = useActionState(saveDebt, undefined);
+  const prefix = debt?.id ?? "new-debt";
+  return (
+    <form action={action} className="grid gap-3">
+      {debt && <input type="hidden" name="id" value={debt.id} />}
+      <label className="grid gap-1.5 text-sm" htmlFor={`${prefix}-creditor`}>
+        ¿A quién le debes?
+        <input
+          id={`${prefix}-creditor`}
+          name="creditor"
+          required
+          maxLength={100}
+          defaultValue={debt?.debtor}
+          placeholder="Mi hermano"
+          className={field}
+        />
+      </label>
+      <label className="grid gap-1.5 text-sm" htmlFor={`${prefix}-amount`}>
+        ¿Cuánto? (USD)
+        <MoneyInput
+          id={`${prefix}-amount`}
+          name="amount"
+          type="number"
+          min="0.01"
+          step="0.01"
+          inputMode="decimal"
+          required
+          defaultValue={debt?.amount}
+          className={field}
+        />
+      </label>
+      <label className="grid gap-1.5 text-sm" htmlFor={`${prefix}-date`}>
+        Fecha
+        <input id={`${prefix}-date`} name="date" type="date" required defaultValue={debt?.date ?? today} className={field} />
+      </label>
+      <label className="grid gap-1.5 text-sm" htmlFor={`${prefix}-expected`}>
+        ¿Para cuándo quieres terminar de pagar? (opcional)
+        <input
+          id={`${prefix}-expected`}
+          name="expected_payment_date"
+          type="date"
+          defaultValue={debt?.expected_payment_date ?? ""}
+          className={field}
+        />
+      </label>
+      <label className="grid gap-1.5 text-sm" htmlFor={`${prefix}-notes`}>
+        Nota (opcional)
+        <input
+          id={`${prefix}-notes`}
+          name="notes"
+          maxLength={2000}
+          defaultValue={debt?.notes ?? ""}
+          placeholder="Entrada del concierto"
+          className={field}
+        />
+      </label>
+      <p className="text-muted-foreground text-xs">
+        Solo lleva la cuenta de lo que debes; no cuenta como gasto ni mueve tus saldos. Cada abono
+        sí sale de la cuenta que elijas.
+      </p>
+      <Feedback state={state} />
+      <button className={button} disabled={pending}>
+        {pending ? "Guardando…" : debt ? "Guardar cambios" : "Registrar deuda"}
+      </button>
+    </form>
+  );
+}
+
+export function PayDebtForm({
+  debt,
+  today,
+  accounts,
+}: {
+  debt: Loan;
+  today: string;
+  accounts: { id: string; name: string; type?: string }[];
+}) {
+  const [state, action, pending] = useActionState(payDebt, undefined);
+  return (
+    <form action={action} className="grid gap-3">
+      <input type="hidden" name="id" value={debt.id} />
+      <MoneyDateAccount
+        prefix={`pay-${debt.id}`}
+        today={today}
+        accounts={accounts}
+        max={debt.pending}
+        accountLabel="¿De qué cuenta sale el abono?"
+      />
+      <Feedback state={state} />
+      <button className={button} disabled={pending}>
+        {pending ? "Guardando…" : "Registrar abono"}
+      </button>
     </form>
   );
 }

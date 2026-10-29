@@ -1,3 +1,5 @@
+import { provisionPlan } from "@/features/savings/paydays";
+import { QuickReserveForm } from "@/features/savings/components/savings-forms";
 import { CountUp } from "@/components/count-up";
 import {
   AlertTriangle,
@@ -53,9 +55,11 @@ export default async function DashboardPage() {
     ),
     getDashboardSavings(),
   ]);
+  // Lo que me deben suma; lo que debo resta.
   const pendingLoans =
     savings.loans.reduce(
-      (sum, loan) => sum + Math.round(loan.pending * 100),
+      (sum, loan) =>
+        sum + (loan.direction === "borrowed" ? -1 : 1) * Math.round(loan.pending * 100),
       0,
     ) / 100;
   const worth =
@@ -70,7 +74,13 @@ export default async function DashboardPage() {
   const cashFlow = cashFlowPoints(data.today, data.accounts, upcoming);
   const projected = cashFlow.at(-1)?.balance ?? 0;
   const lowest = Math.min(...cashFlow.map((point) => point.balance));
-  const overdueLoans = savings.loans.filter((loan) => loan.overdue);
+  const overdueLoans = savings.loans.filter(
+    (loan) => loan.overdue && loan.direction === "lent",
+  );
+  const dueReserves = savings.goals.flatMap((goal) => {
+    const plan = goal.account_id ? null : provisionPlan(goal, data.today);
+    return plan?.due ? [{ goal, plan }] : [];
+  });
   const atRiskBudgets = budgets.filter((budget) => {
     const status = budgetProgress(budget.available, budget.spent).status;
     return status === "danger" || status === "exceeded";
@@ -328,7 +338,7 @@ export default async function DashboardPage() {
                     className={`size-2 shrink-0 rounded-full ${loan.overdue ? "bg-expense" : "bg-primary"}`}
                   />
                   <span className="min-w-0 flex-1 truncate text-sm">
-                    {loan.debtor}
+                    {loan.direction === "borrowed" ? `Debes a ${loan.debtor}` : loan.debtor}
                   </span>
                   <strong className="text-sm tabular-nums">
                     {money.format(loan.pending)}
@@ -340,7 +350,7 @@ export default async function DashboardPage() {
         </section>
         <section className="bg-card rounded-2xl border p-5">
           <div className="flex items-center justify-between gap-3">
-            <h2 className="font-semibold">Metas y provisiones</h2>
+            <h2 className="font-semibold">Metas y reservas</h2>
             <Link
               href="/savings"
               className="text-primary inline-flex items-center gap-1 text-xs font-medium"
@@ -348,6 +358,18 @@ export default async function DashboardPage() {
               Ver metas <ChevronRight className="size-3.5" aria-hidden />
             </Link>
           </div>
+          {dueReserves.length > 0 && (
+            <div className="border-primary/30 bg-primary/5 mt-3 rounded-xl border p-3">
+              <p className="text-sm font-medium">Reservas de esta quincena</p>
+              <ul className="mt-2 space-y-2">
+                {dueReserves.map(({ goal, plan }) => (
+                  <li key={goal.id}>
+                    <QuickReserveForm goal={goal} amount={plan.perPayday} today={data.today} />
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
           {savings.goals.length ? (
             <ul className="mt-3 space-y-3">
               {savings.goals.slice(0, 4).map((goal) => (

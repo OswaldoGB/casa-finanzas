@@ -2,7 +2,7 @@ const labels: Record<string, string> = {
   income: "Ingreso",
   expense: "Gasto",
   transfer: "Transferencia",
-  loan_out: "Préstamo otorgado",
+  loan_out: "Préstamo o abono a deuda",
   loan_repayment: "Abono de préstamo",
   goal_contribution: "Aporte a meta",
   goal_withdrawal: "Retiro de meta",

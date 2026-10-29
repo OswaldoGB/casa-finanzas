@@ -213,7 +213,7 @@ export default async function ReportsPage({
         <section className="bg-card min-w-0 rounded-2xl border p-5">
           <h2 className="text-base font-semibold">Evolución del patrimonio</h2>
           <p className="text-muted-foreground mt-1 mb-4 text-xs">
-            Cuentas menos tarjetas, más préstamos pendientes por cobrar.
+            Cuentas menos tarjetas, más lo que te deben y menos lo que debes.
           </p>
           <NetWorthChart netWorth={data.accounts.length ? data.netWorth : []} />
         </section>

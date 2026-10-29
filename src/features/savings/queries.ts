@@ -5,7 +5,8 @@ import { todayInTimeZone } from "@/features/recurring/processing";
 import { savingsSnapshotSchema } from "./schemas";
 export async function getSavings() {
   const { supabase, profile, permissions } = await requireModule("savings");
-  const [snapshot, accounts, household] = await Promise.all([
+  const canSeeExpenses = canAccess(profile.role, permissions, "transactions", "view");
+  const [snapshot, accounts, household, expenses] = await Promise.all([
     supabase.rpc("savings_snapshot", { p_module: "savings" }),
     supabase
       .from("accounts")
@@ -19,12 +20,24 @@ export async function getSavings() {
       .select("timezone")
       .eq("id", profile.household_id)
       .single(),
+    // Para "Ya lo compré": gastos recientes que se pueden ligar a una reserva.
+    canSeeExpenses
+      ? supabase
+          .from("transactions")
+          .select("id,description,amount,date")
+          .eq("household_id", profile.household_id)
+          .eq("type", "expense")
+          .eq("status", "posted")
+          .order("date", { ascending: false })
+          .limit(40)
+      : Promise.resolve({ data: [], error: null }),
   ]);
   if (snapshot.error || accounts.error || household.error)
     throw new Error("No se pudieron cargar las metas.");
   return {
     goals: savingsSnapshotSchema.parse(snapshot.data),
     accounts: accounts.data ?? [],
+    expenses: expenses.data ?? [],
     today: todayInTimeZone(new Date(), household.data!.timezone),
     canEdit: canAccess(profile.role, permissions, "savings", "edit"),
     canOperate:
