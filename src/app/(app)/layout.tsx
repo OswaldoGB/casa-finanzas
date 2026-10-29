@@ -5,16 +5,13 @@ import { GlobalSearch } from "@/components/app-shell/global-search";
 import { AccentSync } from "@/components/accent-sync";
 import { PageTransition } from "@/components/app-shell/page-transition";
 import { PrivacyToggle } from "@/components/privacy-toggle";
-import {
-  SidebarInset,
-  SidebarProvider,
-  SidebarTrigger,
-} from "@/components/ui/sidebar";
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+import { ToolsRail } from "@/components/app-shell/tools-rail";
+import { visibleManuals } from "@/features/help/registry";
 import { getAccess } from "@/features/permissions/queries";
 import { processRecurringForHousehold } from "@/features/recurring/process-due";
 import { canAccess } from "@/features/permissions/modules";
 import { getNotificationUnreadCount } from "@/features/notifications/queries";
-import { NotificationBell } from "@/features/notifications/components/notification-bell";
 
 export default async function AppLayout({
   children,
@@ -56,15 +53,8 @@ export default async function AppLayout({
       />
       <SidebarInset className="min-w-0 overflow-x-clip">
         <header className="flex h-14 items-center gap-2 px-4">
-          <SidebarTrigger
-            className="max-md:hidden"
-            aria-label="Mostrar u ocultar menú"
-          />
           <GlobalSearch role={profile.role} permissions={permissions} />
           <PrivacyToggle />
-          {hasReminders && (
-            <NotificationBell unread={unread} userId={profile.id} />
-          )}
         </header>
         <div
           id="main-content"
@@ -74,6 +64,12 @@ export default async function AppLayout({
           <PageTransition>{children}</PageTransition>
         </div>
       </SidebarInset>
+      <ToolsRail
+        unread={unread}
+        userId={profile.id}
+        hasReminders={hasReminders}
+        manuals={visibleManuals(profile.role, permissions)}
+      />
       <BottomNav role={profile.role} permissions={permissions} />
     </SidebarProvider>
   );

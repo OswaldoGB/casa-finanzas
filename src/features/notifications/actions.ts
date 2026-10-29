@@ -3,6 +3,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireModule } from "@/features/permissions/queries";
 import type { FormState } from "@/features/auth/schemas";
+import { getNotifications } from "./queries";
 export async function refreshMyNotices() {
   const { supabase } = await requireModule("reminders");
   const { error } = await supabase.rpc("refresh_my_reminder_notifications", {});
@@ -42,4 +43,10 @@ export async function saveNotificationPreferences(
   if (error) return { error: "No se guardaron las preferencias." };
   revalidatePath("/notifications");
   return { ok: "Preferencias guardadas." };
+}
+
+/** Avisos recientes para el panel de la botonera (se piden al abrirlo). */
+export async function recentNotices() {
+  const { notifications, records, unread } = await getNotifications(1);
+  return { notifications: notifications.slice(0, 6), records, unread };
 }
