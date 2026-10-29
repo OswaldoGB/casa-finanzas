@@ -151,3 +151,59 @@ export async function removeInstallment(
   refresh(card.data);
   return { ok: "Financiación retirada. El gasto y la deuda se conservan." };
 }
+
+// Abonos a una compra: seguir/dejar de seguir y abonar (un pago real de tarjeta).
+export async function trackPurchase(
+  _: FormState,
+  form: FormData,
+): Promise<FormState> {
+  const { supabase } = await requireModule("accounts", "edit");
+  const card = accountIdSchema.safeParse(form.get("card_id"));
+  const tx = accountIdSchema.safeParse(form.get("transaction_id"));
+  if (!card.success || !tx.success) return { error: "Elige una compra de la tarjeta." };
+  const { error } = await supabase.rpc("track_card_purchase", { p_transaction_id: tx.data });
+  if (error) return { error: error.message };
+  refresh(card.data);
+  return { ok: "Compra en seguimiento. Ya puedes irle abonando." };
+}
+
+export async function untrackPurchase(formData: FormData) {
+  const { supabase } = await requireModule("accounts", "edit");
+  const card = accountIdSchema.safeParse(formData.get("card_id"));
+  const track = accountIdSchema.safeParse(formData.get("track_id"));
+  if (!card.success || !track.success) return;
+  const { error } = await supabase.rpc("untrack_card_purchase", { p_track_id: track.data });
+  if (error) throw new Error(error.message);
+  refresh(card.data);
+}
+
+export async function payTrackedPurchase(
+  _: FormState,
+  form: FormData,
+): Promise<FormState> {
+  const { supabase } = await requireModule("accounts", "edit");
+  await requireModule("transactions", "edit");
+  const ids = {
+    request: accountIdSchema.safeParse(form.get("request_id")),
+    card: accountIdSchema.safeParse(form.get("card_id")),
+    track: accountIdSchema.safeParse(form.get("track_id")),
+    account: accountIdSchema.safeParse(form.get("account_id")),
+  };
+  const date = String(form.get("date") ?? "");
+  const rawAmount = String(form.get("amount") ?? "").trim();
+  const amount = Number(rawAmount);
+  if (Object.values(ids).some((r) => !r.success)) return { error: "Elige la cuenta de la que sale el abono." };
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return { error: "Fecha inválida." };
+  if (!/^\d{1,12}(\.\d{1,2})?$/.test(rawAmount) || amount <= 0)
+    return { error: "Escribe un monto válido." };
+  const { error } = await supabase.rpc("pay_tracked_purchase", {
+    p_id: ids.request.data!,
+    p_track_id: ids.track.data!,
+    p_date: date,
+    p_account_id: ids.account.data!,
+    p_amount: amount,
+  });
+  if (error) return { error: error.message };
+  refresh(ids.card.data!);
+  return { ok: "Abono registrado. Bajó la deuda de la tarjeta." };
+}

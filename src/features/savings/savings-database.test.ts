@@ -141,3 +141,59 @@ describe("deudas que debo", () => {
     expect(snap.find((l) => l.id === id)).toMatchObject({ direction: "borrowed", pending: 0 });
   });
 });
+
+describe("abonos a una compra de la tarjeta", () => {
+  const card = "00000000-0000-4000-8000-000000000021",
+    bank = "00000000-0000-4000-8000-000000000022";
+  const cardDebt = async () =>
+    Number((await db.query<{ b: string }>("select balance::text b from account_balances() where account_id=$1", [card])).rows[0].b);
+  const paidOn = async (track: string) =>
+    Number((await db.query<{ p: string }>("select coalesce(sum(amount),0)::text p from card_purchase_track_payments where track_id=$1", [track])).rows[0].p);
+
+  it("sigue una compra, le abona con pagos reales a la tarjeta y no deja pasarse", async () => {
+    await db.exec(`
+      insert into accounts(id,household_id,created_by,name,type,opening_balance,credit_limit,statement_closing_day,payment_due_day)
+        values ('${card}','${home}','${user}','Visa TV','credit_card',0,2000,7,25);
+      insert into accounts(id,household_id,created_by,name,type,opening_balance)
+        values ('${bank}','${home}','${user}','Ahorro','checking',1000);
+    `);
+    const cat = (await db.query<{ id: string }>("select id from categories where household_id=$1 and type='expense' limit 1", [home])).rows[0].id;
+    const tx = (
+      await db.query<{ id: string }>(
+        `insert into transactions(household_id,created_by,type,amount,date,account_id,category_id,description)
+         values ($1,$2,'expense',600,'2026-10-01',$3,$4,'Televisor') returning id`,
+        [home, user, card, cat],
+      )
+    ).rows[0].id;
+    const track = (await db.query<{ id: string }>("select track_card_purchase($1) id", [tx])).rows[0].id;
+    expect((await db.query<{ id: string }>("select track_card_purchase($1) id", [tx])).rows[0].id).toBe(track);
+    const debt0 = await cardDebt();
+
+    const p1 = "00000000-0000-4000-8000-000000000031";
+    await db.query("select pay_tracked_purchase($1,$2,'2026-10-02',$3,200)", [p1, track, bank]);
+    await db.query("select pay_tracked_purchase($1,$2,'2026-10-02',$3,200)", [p1, track, bank]); // doble toque
+    await db.query("select pay_tracked_purchase($1,$2,'2026-10-03',$3,300)", ["00000000-0000-4000-8000-000000000032", track, bank]);
+    expect(await paidOn(track)).toBe(500);
+    expect(await cardDebt()).toBeCloseTo(debt0 - 500);
+    await expect(
+      db.query("select pay_tracked_purchase($1,$2,'2026-10-04',$3,150)", ["00000000-0000-4000-8000-000000000033", track, bank]),
+    ).rejects.toThrow("El abono supera lo que falta de esta compra");
+
+    await db.query("select untrack_card_purchase($1)", [track]);
+    const left = await db.query<{ n: number }>("select count(*)::int n from card_payments where id in ($1,'00000000-0000-4000-8000-000000000032')", [p1]);
+    expect(left.rows[0].n).toBe(2);
+    expect(await cardDebt()).toBeCloseTo(debt0 - 500);
+  });
+
+  it("solo se pueden seguir gastos hechos con tarjeta", async () => {
+    const cat = (await db.query<{ id: string }>("select id from categories where household_id=$1 and type='expense' limit 1", [home])).rows[0].id;
+    const tx = (
+      await db.query<{ id: string }>(
+        `insert into transactions(household_id,created_by,type,amount,date,account_id,category_id,description)
+         values ($1,$2,'expense',10,'2026-10-01',$3,$4,'Café') returning id`,
+        [home, user, bank, cat],
+      )
+    ).rows[0].id;
+    await expect(db.query("select track_card_purchase($1)", [tx])).rejects.toThrow("Elige un gasto hecho con esta tarjeta");
+  });
+});

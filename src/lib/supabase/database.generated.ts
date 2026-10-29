@@ -363,6 +363,57 @@ export type Database = {
           },
         ];
       };
+      card_purchase_tracks: {
+        Row: {
+          card_id: string;
+          created_at: string;
+          created_by: string;
+          household_id: string;
+          id: string;
+          transaction_id: string;
+        };
+        Insert: {
+          card_id: string;
+          created_at?: string;
+          created_by: string;
+          household_id: string;
+          id?: string;
+          transaction_id: string;
+        };
+        Update: {
+          card_id?: string;
+          created_at?: string;
+          created_by?: string;
+          household_id?: string;
+          id?: string;
+          transaction_id?: string;
+        };
+        Relationships: [];
+      };
+      card_purchase_track_payments: {
+        Row: {
+          amount: number;
+          card_payment_id: string;
+          created_at: string;
+          household_id: string;
+          track_id: string;
+        };
+        Insert: {
+          amount: number;
+          card_payment_id: string;
+          created_at?: string;
+          household_id: string;
+          track_id: string;
+        };
+        Update: {
+          amount?: number;
+          card_payment_id?: string;
+          created_at?: string;
+          household_id?: string;
+          track_id?: string;
+        };
+        Relationships: [];
+      };
       card_payments: {
         Row: {
           card_id: string;
@@ -2501,6 +2552,24 @@ export type Database = {
           p_project_id: string;
           p_start_date: string;
           p_status: string;
+        };
+        Returns: string;
+      };
+      track_card_purchase: {
+        Args: { p_transaction_id: string };
+        Returns: string;
+      };
+      untrack_card_purchase: {
+        Args: { p_track_id: string };
+        Returns: undefined;
+      };
+      pay_tracked_purchase: {
+        Args: {
+          p_account_id: string;
+          p_amount: number;
+          p_date: string;
+          p_id: string;
+          p_track_id: string;
         };
         Returns: string;
       };

@@ -70,6 +70,20 @@ export default {
       ],
     },
     {
+      title: "Abonarle a una compra",
+      text: "En la pestaña **Abonos** de la tarjeta sigues una compra hecha con ella y le vas abonando hasta liquidarla.",
+      steps: [
+        "Elige la compra en **Compra a la que quieres irle abonando** y toca **Seguir compra**.",
+        "En la compra, escribe el monto, la fecha y la cuenta de la que sale, y toca **Abonar**.",
+        "Ves cuánto llevas abonado y cuánto falta. Al completar el total queda **Liquidada**.",
+      ],
+      tips: [
+        "Cada abono es un pago real a la tarjeta: baja la deuda y se aplica al corte más antiguo, como cualquier pago.",
+        "No puedes abonar más de lo que falta de esa compra.",
+        "Si dejas de seguir una compra, los pagos que ya hiciste a la tarjeta se conservan.",
+      ],
+    },
+    {
       title: "Ten en cuenta",
       tips: [
         "El saldo de una tarjeta es deuda: sube con cada compra y baja con cada pago.",

@@ -74,6 +74,8 @@ export default async function AccountPage({
     paymentAccounts,
     statements,
     payments,
+    tracked,
+    trackable,
   } = result;
   const card = account.type === "credit_card";
   const categoryById = new Map(
@@ -152,6 +154,8 @@ export default async function AccountPage({
         paymentAccounts={paymentAccounts}
         statements={statements}
         payments={payments}
+        tracked={tracked}
+        trackable={trackable}
         movements={movements}
       />
     );

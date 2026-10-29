@@ -14,6 +14,15 @@ import {
 
 export type Account = Database["public"]["Tables"]["accounts"]["Row"];
 export type AccountWithBalance = Account & { balance: number };
+export type TrackedPurchase = {
+  id: string;
+  transactionId: string;
+  description: string;
+  date: string;
+  amount: number;
+  paid: number;
+};
+export type PurchaseOption = { id: string; description: string; date: string; amount: number };
 export type CardPaymentSummary = {
   id: string;
   date: string;
@@ -121,6 +130,8 @@ export async function getAccount(id: string) {
   let categories: { id: string; name: string }[] = [];
   let statements: CardStatementSummary[] = [];
   let payments: CardPaymentSummary[] = [];
+  let tracked: TrackedPurchase[] = [];
+  let trackable: PurchaseOption[] = [];
   const canTransact = canAccess(
     profile.role,
     permissions,
@@ -311,6 +322,48 @@ export async function getAccount(id: string) {
           amount: Number(line.amount),
         })),
       }));
+      // Abonos a compras: lo que falta se calcula aquí con los pagos vinculados.
+      const [tracks, recent] = await Promise.all([
+        supabase.from("card_purchase_tracks").select("id,transaction_id").eq("card_id", id),
+        supabase
+          .from("transactions")
+          .select("id,description,amount,date")
+          .eq("account_id", id)
+          .eq("type", "expense")
+          .eq("status", "posted")
+          .order("date", { ascending: false })
+          .limit(60),
+      ]);
+      if (tracks.error || recent.error) throw new Error("No se pudieron cargar los abonos a compras.");
+      const [links, purchases] = await Promise.all([
+        tracks.data.length
+          ? supabase
+              .from("card_purchase_track_payments")
+              .select("track_id,amount")
+              .in("track_id", tracks.data.map((t) => t.id))
+          : Promise.resolve({ data: [], error: null }),
+        tracks.data.length
+          ? supabase
+              .from("transactions")
+              .select("id,description,amount,date")
+              .in("id", tracks.data.map((t) => t.transaction_id))
+          : Promise.resolve({ data: [], error: null }),
+      ]);
+      if (links.error || purchases.error) throw new Error("No se pudieron cargar los abonos a compras.");
+      tracked = tracks.data.flatMap((t) => {
+        const tx = purchases.data?.find((x) => x.id === t.transaction_id);
+        if (!tx) return [];
+        const paid =
+          (links.data ?? [])
+            .filter((l) => l.track_id === t.id)
+            .reduce((sum, l) => sum + Math.round(Number(l.amount) * 100), 0) / 100;
+        return [{ id: t.id, transactionId: tx.id, description: tx.description, date: tx.date, amount: Number(tx.amount), paid }];
+      });
+      tracked.sort((a, b) => b.date.localeCompare(a.date));
+      const followed = new Set(tracks.data.map((t) => t.transaction_id));
+      trackable = (recent.data ?? [])
+        .filter((tx) => !followed.has(tx.id))
+        .map((tx) => ({ id: tx.id, description: tx.description, date: tx.date, amount: Number(tx.amount) }));
     }
   }
   return {
@@ -326,6 +379,8 @@ export async function getAccount(id: string) {
     categories,
     statements,
     payments,
+    tracked,
+    trackable,
     canTransact,
     paymentAccounts: accounts.filter(
       (item) => !item.is_archived && item.type !== "credit_card",

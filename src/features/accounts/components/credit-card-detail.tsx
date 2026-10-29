@@ -21,7 +21,13 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import type { Database } from "@/lib/supabase/database.types";
-import type { AccountWithBalance, CardPaymentSummary } from "../queries";
+import type {
+  AccountWithBalance,
+  CardPaymentSummary,
+  PurchaseOption,
+  TrackedPurchase,
+} from "../queries";
+import { CardTrackedPurchases } from "./card-tracked-purchases";
 import {
   cardCutSummary,
   installmentProgress,
@@ -72,6 +78,8 @@ type Props = {
   categories: { id: string; name: string }[];
   paymentAccounts: AccountWithBalance[];
   payments: CardPaymentSummary[];
+  tracked: TrackedPurchase[];
+  trackable: PurchaseOption[];
   movements: ReactNode;
 };
 type Modal =
@@ -91,7 +99,7 @@ export function CreditCardDetail(props: Props) {
     payments,
   } = props;
   const [section, setSection] = useState(
-    ["summary", "installments", "history", "movements"].includes(
+    ["summary", "installments", "abonos", "history", "movements"].includes(
       props.initialSection ?? "",
     )
       ? props.initialSection!
@@ -515,6 +523,7 @@ export function CreditCardDetail(props: Props) {
         {[
           ["summary", "Resumen"],
           ["installments", `Cuotas (${active.length})`],
+          ["abonos", `Abonos (${props.tracked.filter((t) => t.paid < t.amount).length})`],
           ["history", "Historial"],
           ["movements", "Movimientos"],
         ].map(([value, label]) => (
@@ -571,6 +580,17 @@ export function CreditCardDetail(props: Props) {
             )}
           </div>
         </section>
+      )}
+      {section === "abonos" && (
+        <CardTrackedPurchases
+          cardId={account.id}
+          tracked={props.tracked}
+          trackable={props.trackable}
+          paymentAccounts={props.paymentAccounts}
+          today={today}
+          editable={editable}
+          canTransact={canTransact}
+        />
       )}
       {section === "installments" && (
         <section className="space-y-5">
