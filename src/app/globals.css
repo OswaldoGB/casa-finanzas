@@ -298,3 +298,13 @@ html {
     @apply font-sans;
   }
 }
+
+/* Modo privado (ojo en la barra superior): difumina montos para mostrar la app o
+   tomar capturas. tabular-nums cubre el primer pintado; data-money lo marca
+   PrivacyToggle en cualquier texto con forma de monto (incluye gráficos). */
+html.hide-money [data-money],
+html.hide-money .tabular-nums:not(input):not(select):not(textarea),
+html.hide-money input[inputmode="decimal"]:not(:focus) {
+  filter: blur(7px);
+  user-select: none;
+}

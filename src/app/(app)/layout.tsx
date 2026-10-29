@@ -4,6 +4,7 @@ import { BottomNav } from "@/components/app-shell/bottom-nav";
 import { GlobalSearch } from "@/components/app-shell/global-search";
 import { AccentSync } from "@/components/accent-sync";
 import { PageTransition } from "@/components/app-shell/page-transition";
+import { PrivacyToggle } from "@/components/privacy-toggle";
 import {
   SidebarInset,
   SidebarProvider,
@@ -60,6 +61,7 @@ export default async function AppLayout({
             aria-label="Mostrar u ocultar menú"
           />
           <GlobalSearch role={profile.role} permissions={permissions} />
+          <PrivacyToggle />
           {hasReminders && (
             <NotificationBell unread={unread} userId={profile.id} />
           )}
