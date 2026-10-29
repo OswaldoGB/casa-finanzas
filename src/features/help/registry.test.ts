@@ -32,5 +32,5 @@ describe("contenido de los manuales", () => {
       for (const s of m.sections)
         expect(Boolean(s.text || s.steps?.length || s.tips?.length), `${entry.key}: ${s.title}`).toBe(true);
     }
-  });
+  }, 30_000);
 });

@@ -9,6 +9,7 @@ import {
   CheckCircle2,
   ChevronRight,
   CreditCard,
+  HandCoins,
   Landmark,
   ReceiptText,
   Wallet,
@@ -62,8 +63,15 @@ export default async function DashboardPage() {
         sum + (loan.direction === "borrowed" ? -1 : 1) * Math.round(loan.pending * 100),
       0,
     ) / 100;
-  const worth =
+  // Principal: cuentas − tarjetas + lo que me deben (sin restar lo que debo en "Debo").
+  // Secundario: el mismo número menos lo que debo.
+  const owedDebts =
+    savings.loans
+      .filter((loan) => loan.direction === "borrowed")
+      .reduce((sum, loan) => sum + Math.round(loan.pending * 100), 0) / 100;
+  const worthWithDebts =
     Math.round((accountNetWorth(data.accounts) + pendingLoans) * 100) / 100;
+  const worth = Math.round((worthWithDebts + owedDebts) * 100) / 100;
   const monthlyNet = data.totals.income - data.totals.expense;
   const until = new Date(`${data.today}T00:00:00Z`);
   until.setUTCDate(until.getUTCDate() + 14);
@@ -128,7 +136,7 @@ export default async function DashboardPage() {
       <UpcomingReminders />
       <section
         aria-label="Resumen financiero"
-        className="stagger grid gap-3 sm:grid-cols-3"
+        className="stagger grid grid-cols-2 gap-3 lg:grid-cols-4"
       >
         <div className="bg-primary text-primary-foreground rounded-2xl p-5 sm:p-6">
           <div className="flex items-center justify-between">
@@ -139,7 +147,21 @@ export default async function DashboardPage() {
             <CountUp value={worth} />
           </p>
           <p className="mt-2 text-xs opacity-75">
-            Cuentas menos tarjetas, más préstamos por cobrar
+            Cuentas menos tarjetas, más lo que te deben
+          </p>
+        </div>
+        <div className="bg-card rounded-2xl border p-5 sm:p-6">
+          <div className="flex items-center justify-between">
+            <h2 className="text-muted-foreground text-sm">Patrimonio con lo que debes</h2>
+            <HandCoins className="text-muted-foreground size-5" aria-hidden />
+          </div>
+          <p className="mt-5 text-3xl font-semibold tracking-tight tabular-nums">
+            <CountUp value={worthWithDebts} />
+          </p>
+          <p className="text-muted-foreground mt-2 text-xs">
+            {owedDebts > 0
+              ? `Restando ${money.format(owedDebts)} que debes`
+              : "No tienes deudas en «Debo»"}
           </p>
         </div>
         <div className="bg-card rounded-2xl border p-5 sm:p-6">

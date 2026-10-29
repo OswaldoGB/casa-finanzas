@@ -20,10 +20,7 @@ export default {
     {
       title: "Permisos",
       text: "En **Permisos de** tu pareja eliges, para cada módulo, **Sin acceso**, **Ver** o **Editar**.",
-      steps: [
-        "Marca el nivel de cada módulo.",
-        "Toca **Guardar permisos**.",
-      ],
+      steps: ["Marca el nivel de cada módulo.", "Toca **Guardar permisos**."],
       tips: [
         "**Ver** permite solo lectura. **Editar** permite crear, cambiar y borrar.",
         "Un miembro nuevo empieza sin acceso a ningún módulo.",
