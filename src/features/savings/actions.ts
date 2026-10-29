@@ -118,3 +118,28 @@ export async function deleteGoal(
   refresh();
   return { ok: "Meta eliminada." };
 }
+export type ExpenseOption = { id: string; description: string; amount: number; date: string };
+/** Busca en todo el histórico de gastos (descripción o monto exacto) para "Ya lo compré". */
+export async function searchExpenses(q: string): Promise<ExpenseOption[]> {
+  const { supabase, profile, permissions } = await requireModule("savings", "edit");
+  if (!canAccess(profile.role, permissions, "transactions", "view")) return [];
+  // Solo letras, números, espacios y . - para no romper el filtro de PostgREST.
+  const term = String(q ?? "").replace(/[^\p{L}\p{N} .-]/gu, "").trim().slice(0, 80);
+  let query = supabase
+    .from("transactions")
+    .select("id,description,amount,date")
+    .eq("household_id", profile.household_id)
+    .eq("type", "expense")
+    .eq("status", "posted")
+    .order("date", { ascending: false })
+    .limit(50);
+  if (term) {
+    const amount = /^\d+(\.\d{1,2})?$/.test(term) ? Number(term) : null;
+    query = query.or(
+      amount !== null ? `description.ilike.%${term}%,amount.eq.${amount}` : `description.ilike.%${term}%`,
+    );
+  }
+  const { data, error } = await query;
+  if (error) throw new Error("No se pudo buscar en tus gastos.");
+  return data ?? [];
+}

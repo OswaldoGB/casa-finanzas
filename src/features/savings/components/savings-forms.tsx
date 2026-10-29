@@ -2,10 +2,17 @@
 
 import { MoneyInput } from "@/components/ui/money-input";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState, useTransition } from "react";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import type { FormState } from "@/features/auth/schemas";
-import { saveGoal, operateGoal, deleteGoal, restartProvision } from "../actions";
+import {
+  saveGoal,
+  operateGoal,
+  deleteGoal,
+  restartProvision,
+  searchExpenses,
+  type ExpenseOption,
+} from "../actions";
 import type { SavingsGoal } from "../schemas";
 const field =
   "border-input bg-background h-11 w-full rounded-lg border px-3 text-sm";
@@ -303,32 +310,83 @@ export function RestartProvisionForm({
   expenses,
 }: {
   goal: SavingsGoal;
-  expenses: { id: string; description: string; amount: number; date: string }[];
+  expenses: ExpenseOption[];
 }) {
   const [state, action, pending] = useActionState(restartProvision, undefined);
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<ExpenseOption[] | null>(null);
+  const [searching, startSearch] = useTransition();
+  const [selected, setSelected] = useState("");
+  // Sin texto: los recientes que ya trae la página. Con texto: todo el histórico.
+  useEffect(() => {
+    const term = query.trim();
+    if (!term) return;
+    const t = setTimeout(
+      () => startSearch(async () => setResults(await searchExpenses(term))),
+      300,
+    );
+    return () => clearTimeout(t);
+  }, [query]);
+  const list = query.trim() ? (results ?? []) : expenses;
   return (
     <form action={action} className="grid gap-3">
       <input type="hidden" name="id" value={goal.id} />
+      <input type="hidden" name="transaction_id" value={selected} />
       <label className="grid gap-1.5 text-sm">
         ¿Cuál fue el gasto de la compra?
-        <select name="transaction_id" required defaultValue="" className={field}>
-          <option value="" disabled>
-            Elige un gasto reciente
-          </option>
-          {expenses.map((e) => (
-            <option key={e.id} value={e.id}>
-              {e.date} · {e.description || "Gasto"} · ${Number(e.amount).toFixed(2)}
-            </option>
-          ))}
-        </select>
+        <input
+          type="search"
+          value={query}
+          onChange={(e) => {
+            setQuery(e.target.value);
+            if (!e.target.value.trim()) setResults(null);
+          }}
+          placeholder="Buscar en todos tus gastos: detergente, 24.50…"
+          className={field}
+        />
       </label>
+      <div
+        role="radiogroup"
+        aria-label="Gastos"
+        aria-busy={searching}
+        className="max-h-64 overflow-y-auto rounded-lg border"
+      >
+        {list.length ? (
+          list.map((e) => (
+            <label
+              key={e.id}
+              className="has-[:checked]:bg-primary/10 flex cursor-pointer items-center gap-3 border-b px-3 py-2.5 text-sm last:border-b-0"
+            >
+              <input
+                type="radio"
+                name="expense_choice"
+                value={e.id}
+                checked={selected === e.id}
+                onChange={() => setSelected(e.id)}
+                className="accent-primary size-4"
+              />
+              <span className="min-w-0 flex-1 truncate">{e.description || "Gasto"}</span>
+              <span className="text-muted-foreground text-xs tabular-nums">{e.date}</span>
+              <span className="tabular-nums">${Number(e.amount).toFixed(2)}</span>
+            </label>
+          ))
+        ) : (
+          <p className="text-muted-foreground p-3 text-sm">
+            {searching
+              ? "Buscando…"
+              : query.trim()
+                ? "Ningún gasto coincide. Prueba con otra palabra o el monto."
+                : "Aún no hay gastos registrados."}
+          </p>
+        )}
+      </div>
       <p className="text-muted-foreground text-xs">
-        ¿No aparece? Regístralo primero en Movimientos. Lo apartado se usa para esa compra y la
-        reserva vuelve a empezar desde $0
+        {query.trim() ? "Buscando en todo tu historial." : "Mostrando los más recientes; escribe para buscar en todo el historial."}{" "}
+        Lo apartado se usa para esa compra y la reserva vuelve a empezar desde $0
         {goal.cadence && goal.cycle_start && goal.target_date ? ", con la misma duración" : ""}.
       </p>
       <Feedback state={state} />
-      <button className={button} disabled={pending || !expenses.length}>
+      <button className={button} disabled={pending || !selected}>
         {pending ? "Guardando…" : "Ya lo compré"}
       </button>
     </form>
