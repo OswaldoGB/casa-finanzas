@@ -1,3 +1,4 @@
+import { PackageManager } from "@/features/inventory/components/package-manager";
 import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
@@ -19,6 +20,11 @@ export default async function InventoryDetail({
   const item = items.find((row) => row.id === id);
   if (!item) notFound();
   const { supabase } = await requireModule("inventory");
+  const [packageResult, eventResult] = await Promise.all([
+    supabase.from("inventory_packages").select("*").eq("item_id", id).order("created_at"),
+    supabase.from("inventory_package_events").select("*").eq("item_id", id).order("created_at", { ascending: false }).limit(100),
+  ]);
+  if (packageResult.error || eventResult.error) throw new Error("No se pudieron cargar los envases.");
   const photo = item.photo_path
     ? await supabase.storage
         .from("inventory")
@@ -30,6 +36,7 @@ export default async function InventoryDetail({
         ← Inventario
       </Link>
       <h1 className="text-2xl font-semibold">{item.name}</h1>
+      <PackageManager itemId={id} packages={packageResult.data} events={eventResult.data} canEdit={canEdit} threshold={item.lowStockThreshold} />
       <div className="grid items-start gap-6 md:grid-cols-2">
         <section className="bg-card space-y-4 rounded-2xl border p-5">
           {photo?.data?.signedUrl && (
@@ -46,7 +53,7 @@ export default async function InventoryDetail({
             {[
               ["Ubicación", item.location],
               ["Categoría", item.category],
-              ["Cantidad", item.quantity],
+              ["Cantidad inicial registrada", item.quantity],
               [
                 "Precio por unidad",
                 item.purchase_price == null

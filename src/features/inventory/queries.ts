@@ -5,7 +5,7 @@ import { todayInTimeZone } from "@/features/recurring/processing";
 
 export async function getInventory() {
   const { supabase, profile, permissions } = await requireModule("inventory");
-  const [result, household] = await Promise.all([
+  const [result, household, packages] = await Promise.all([
     supabase
       .from("inventory_items")
       .select("*")
@@ -16,8 +16,9 @@ export async function getInventory() {
       .select("timezone")
       .eq("id", profile.household_id)
       .single(),
+    supabase.from("inventory_packages").select("item_id,remaining,is_open"),
   ]);
-  if (result.error || household.error)
+  if (result.error || household.error || packages.error)
     throw new Error("No se pudo cargar el inventario.");
   const paths = result.data.flatMap((item) =>
     item.photo_path ? [item.photo_path] : [],
@@ -49,6 +50,8 @@ export async function getInventory() {
     transactions: transactionResult?.data ?? [],
     items: result.data.map((item) => ({
       ...item,
+      lowStockThreshold: (item as typeof item & { low_stock_threshold: number | null }).low_stock_threshold,
+      packages: (packages.data ?? []).filter((entry) => entry.item_id === item.id),
       photoUrl: item.photo_path ? urls.get(item.photo_path) : undefined,
     })),
     today: todayInTimeZone(new Date(), household.data.timezone),

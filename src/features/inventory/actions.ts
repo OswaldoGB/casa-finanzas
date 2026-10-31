@@ -18,6 +18,11 @@ export async function saveInventory(
   const id = String(form.get("id") ?? "");
   if (id && !z.string().uuid().safeParse(id).success)
     return { error: "Artículo inválido." };
+  if (id) {
+    const current = await supabase.from("inventory_items").select("quantity").eq("id", id).eq("household_id", profile.household_id).maybeSingle();
+    if (current.error || !current.data) return { error: "Artículo no encontrado." };
+    parsed.data.quantity = current.data.quantity;
+  }
   const result = id
     ? await supabase
         .from("inventory_items")
@@ -126,4 +131,38 @@ export async function savePhoto(id: string, path: string, size: number) {
   if (item.photo_path && item.photo_path !== path)
     await supabase.storage.from("inventory").remove([item.photo_path]);
   revalidatePath("/inventory");
+}
+
+export async function addInventoryPackages(_: FormState, form: FormData): Promise<FormState> {
+  const { packageEntrySchema } = await import("./packages");
+  const id = z.string().uuid().safeParse(form.get("item_id"));
+  const data = packageEntrySchema.safeParse(Object.fromEntries(form));
+  if (!id.success || !data.success) return { error: "Revisa la presentación y las cantidades." };
+  const { supabase } = await requireModule("inventory", "edit");
+  const result = await supabase.rpc("inventory_add_packages", { p_item: id.data, p_label: data.data.name, p_count: data.data.count, p_capacity: data.data.capacity, p_group_name: String(form.get("group_name") ?? "").trim().slice(0, 60) });
+  if (result.error) return { error: "No se pudieron registrar los envases." };
+  revalidatePath(`/inventory/${id.data}`); revalidatePath("/inventory");
+  return { ok: "Envases agregados." };
+}
+
+export async function changeInventoryPackage(_: FormState, form: FormData): Promise<FormState> {
+  const parsed = z.object({ item_id: z.string().uuid(), package_id: z.string().uuid(), operation: z.enum(["open", "consume", "correct"]), amount: z.coerce.number().min(0).max(9999999).multipleOf(0.001), note: z.string().trim().max(500) }).safeParse(Object.fromEntries(form));
+  if (!parsed.success || (parsed.data.operation === "consume" && parsed.data.amount <= 0) || (parsed.data.operation === "correct" && !parsed.data.note)) return { error: "Revisa la cantidad y explica las correcciones." };
+  const { supabase } = await requireModule("inventory", "edit");
+  const result = await supabase.rpc("inventory_package_change", { p_package: parsed.data.package_id, p_action: parsed.data.operation, p_amount: parsed.data.amount, p_note: parsed.data.note });
+  if (result.error) return { error: "No se pudo aplicar el cambio. Revisa la cantidad disponible y vuelve a intentarlo." };
+  revalidatePath(`/inventory/${parsed.data.item_id}`); revalidatePath("/inventory");
+  return { ok: "Inventario actualizado." };
+}
+
+export async function setInventoryThreshold(_: FormState, form: FormData): Promise<FormState> {
+  const id = z.string().uuid().safeParse(form.get("item_id"));
+  const raw = String(form.get("threshold") ?? "").trim();
+  const threshold = raw === "" ? null : Number(raw);
+  if (!id.success || (threshold !== null && (!Number.isInteger(threshold) || threshold < 0 || threshold > 1000000))) return { error: "Introduce un mínimo válido." };
+  const { supabase } = await requireModule("inventory", "edit");
+  const result = await supabase.rpc("inventory_set_threshold", { p_item: id.data, p_threshold: threshold });
+  if (result.error) return { error: "No se pudo guardar el mínimo." };
+  revalidatePath(`/inventory/${id.data}`); revalidatePath("/inventory");
+  return { ok: "Aviso de reposición actualizado." };
 }

@@ -9,6 +9,8 @@ export const BACKUP_TABLES = [
   "card_payments",
   "categories",
   "inventory_items",
+  "inventory_packages",
+  "inventory_package_events",
   "loans",
   "payment_methods",
   "profiles",

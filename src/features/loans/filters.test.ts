@@ -42,3 +42,9 @@ it("filtra los préstamos parciales y ordena por mayor valor", () => {
   expect(result.current.map((item) => item.debtor)).toEqual(["Parcial"]);
   expect(result.paid).toEqual([]);
 });
+
+ it("agrupa los incobrables con los préstamos cerrados", () => {
+  const result = organizeLoans([...loans, loan({ debtor: "Incobrable", status: "written_off" })], "all", "date_desc");
+  expect(result.current.map((item) => item.debtor)).not.toContain("Incobrable");
+  expect(result.paid.map((item) => item.debtor)).toContain("Incobrable");
+});

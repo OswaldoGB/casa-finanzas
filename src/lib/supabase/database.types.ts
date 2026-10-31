@@ -1,3 +1,4 @@
+import type { InventoryTables, InventoryFunctions } from "./inventory-local.types";
 import type { Database as GeneratedDatabase } from "./database.generated";
 import type {
   ReminderTables,
@@ -43,7 +44,7 @@ type Overrides = {
 };
 export type Database = Omit<GeneratedDatabase, "public"> & {
   public: Omit<GeneratedDatabase["public"], "Functions" | "Tables"> & {
-    Tables: GeneratedDatabase["public"]["Tables"] & ReminderTables;
-    Functions: Omit<Functions, keyof Overrides> & Overrides & ReminderFunctions;
+    Tables: GeneratedDatabase["public"]["Tables"] & ReminderTables & InventoryTables;
+    Functions: Omit<Functions, keyof Overrides> & Overrides & ReminderFunctions & InventoryFunctions;
   };
 };

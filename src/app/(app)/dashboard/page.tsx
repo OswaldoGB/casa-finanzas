@@ -138,7 +138,7 @@ export default async function DashboardPage() {
         aria-label="Resumen financiero"
         className="stagger grid grid-cols-2 gap-3 lg:grid-cols-4"
       >
-        <div className="bg-primary text-primary-foreground rounded-2xl p-5 sm:p-6">
+        <Link href="/accounts" className="bg-primary text-primary-foreground rounded-2xl p-5 transition-opacity hover:opacity-90 sm:p-6">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-medium">Patrimonio neto</h2>
             <Wallet className="size-5 opacity-75" aria-hidden />
@@ -149,8 +149,8 @@ export default async function DashboardPage() {
           <p className="mt-2 text-xs opacity-75">
             Cuentas menos tarjetas, más lo que te deben
           </p>
-        </div>
-        <div className="bg-card rounded-2xl border p-5 sm:p-6">
+        </Link>
+        <Link href="/loans?tab=debo" className="bg-card hover:border-primary rounded-2xl border p-5 transition-colors sm:p-6">
           <div className="flex items-center justify-between">
             <h2 className="text-muted-foreground text-sm">Patrimonio con lo que debes</h2>
             <HandCoins className="text-muted-foreground size-5" aria-hidden />
@@ -163,8 +163,8 @@ export default async function DashboardPage() {
               ? `Restando ${money.format(owedDebts)} que debes`
               : "No tienes deudas en «Debo»"}
           </p>
-        </div>
-        <div className="bg-card rounded-2xl border p-5 sm:p-6">
+        </Link>
+        <Link href="/transactions" className="bg-card hover:border-primary rounded-2xl border p-5 transition-colors sm:p-6">
           <div className="flex items-center justify-between">
             <h2 className="text-muted-foreground text-sm">Ingresos del mes</h2>
             <ArrowDownLeft className="text-income size-5" aria-hidden />
@@ -175,8 +175,8 @@ export default async function DashboardPage() {
           <p className="text-muted-foreground mt-2 text-xs">
             Solo movimientos publicados
           </p>
-        </div>
-        <div className="bg-card rounded-2xl border p-5 sm:p-6">
+        </Link>
+        <Link href="/transactions" className="bg-card hover:border-primary rounded-2xl border p-5 transition-colors sm:p-6">
           <div className="flex items-center justify-between">
             <h2 className="text-muted-foreground text-sm">Gastos del mes</h2>
             <ArrowUpRight className="text-expense size-5" aria-hidden />
@@ -190,8 +190,64 @@ export default async function DashboardPage() {
               {money.format(monthlyNet)}
             </strong>
           </p>
-        </div>
+        </Link>
       </section>
+        <section
+          aria-labelledby="balances-title"
+          className="bg-card min-w-0 rounded-2xl border p-5 sm:p-6"
+        >
+          <h2 id="balances-title" className="font-semibold">
+            Tu billetera
+          </h2>
+          <div className="text-muted-foreground mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs">
+            <span>Disponible: {money.format(liquidBalance)}</span>
+            <span>Tarjetas: {money.format(cardDebt)}</span>
+          </div>
+          {data.accounts.length === 0 ? (
+            <div className="text-muted-foreground py-12 text-center text-sm">
+              <Wallet className="mx-auto mb-3 size-8 opacity-50" aria-hidden />
+              <p>Aún no tienes cuentas registradas.</p>
+            </div>
+          ) : (
+            <ul className="divide-border mt-4 divide-y">
+              {data.accounts.slice(0, 6).map((account) => (
+                <li key={account.id}>
+                <Link href={`/accounts/${account.id}`} className="hover:bg-muted/50 focus-visible:ring-ring flex items-center gap-3 rounded-lg py-3 transition-colors focus-visible:ring-2">
+                  {account.type === "credit_card" ? (
+                    <CardArtwork account={account} compact />
+                  ) : (
+                    <span
+                      className="size-2 shrink-0 rounded-full"
+                      style={{ backgroundColor: account.color }}
+                    />
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium">
+                      {account.name}
+                    </p>
+                    {account.type === "credit_card" && (
+                      <p className="text-muted-foreground text-xs">
+                        Deuda de tarjeta
+                      </p>
+                    )}
+                  </div>
+                  <strong className="shrink-0 text-right text-sm tabular-nums">
+                    {money.format(account.balance)}
+                  </strong>
+                </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+          {data.accounts.length > 0 && (
+            <Link
+              href="/accounts"
+              className="text-primary mt-3 inline-flex items-center gap-1 text-xs font-medium"
+            >
+              Ver billetera <ChevronRight className="size-3.5" aria-hidden />
+            </Link>
+          )}
+        </section>
       <section
         aria-labelledby="priorities-title"
         className="bg-card rounded-2xl border p-5 sm:p-6"
@@ -304,7 +360,7 @@ export default async function DashboardPage() {
             {budgets.map((budget) => {
               const progress = budgetProgress(budget.available, budget.spent);
               return (
-                <div key={budget.id}>
+                <Link href="/budgets" key={budget.id} className="rounded-lg transition-opacity hover:opacity-75">
                   <div className="mb-2 flex justify-between gap-2 text-sm">
                     <span>{budget.name}</span>
                     <span className="tabular-nums">
@@ -321,7 +377,7 @@ export default async function DashboardPage() {
                   <p className="text-muted-foreground mt-1 text-xs">
                     {progress.percent.toFixed(0)}% utilizado
                   </p>
-                </div>
+                </Link>
               );
             })}
           </div>
@@ -355,7 +411,7 @@ export default async function DashboardPage() {
           {openLoans.length > 0 && (
             <ul className="divide-border mt-4 divide-y border-t">
               {openLoans.slice(0, 3).map((loan) => (
-                <li key={loan.id} className="flex items-center gap-3 py-2.5">
+                <li key={loan.id}><Link href={`/loans${loan.direction === "borrowed" ? "?tab=debo" : ""}#${loan.id}`} className="hover:bg-muted/50 flex items-center gap-3 rounded-lg py-2.5">
                   <span
                     className={`size-2 shrink-0 rounded-full ${loan.overdue ? "bg-expense" : "bg-primary"}`}
                   />
@@ -365,7 +421,7 @@ export default async function DashboardPage() {
                   <strong className="text-sm tabular-nums">
                     {money.format(loan.pending)}
                   </strong>
-                </li>
+                </Link></li>
               ))}
             </ul>
           )}
@@ -396,6 +452,7 @@ export default async function DashboardPage() {
             <ul className="mt-3 space-y-3">
               {savings.goals.slice(0, 4).map((goal) => (
                 <li key={goal.id}>
+                  <Link href="/savings" className="block rounded-lg transition-opacity hover:opacity-75">
                   <div className="flex justify-between gap-3 text-sm">
                     <span>{goal.name}</span>
                     <span>
@@ -409,6 +466,7 @@ export default async function DashboardPage() {
                     value={Math.min(goal.target_amount, goal.balance)}
                     className="accent-primary mt-1 h-2 w-full"
                   />
+                  </Link>
                 </li>
               ))}
             </ul>
@@ -422,7 +480,7 @@ export default async function DashboardPage() {
       <div className="grid min-w-0 gap-6 lg:grid-cols-3">
         <section
           aria-labelledby="monthly-trend-title"
-          className="bg-card min-w-0 rounded-2xl border p-5 sm:p-6 lg:col-span-2"
+          className="bg-card min-w-0 rounded-2xl border p-5 sm:p-6 lg:col-span-3"
         >
           <h2 id="monthly-trend-title" className="font-semibold">
             Ingresos y gastos
@@ -442,60 +500,7 @@ export default async function DashboardPage() {
             </div>
           )}
         </section>
-        <section
-          aria-labelledby="balances-title"
-          className="bg-card min-w-0 rounded-2xl border p-5 sm:p-6"
-        >
-          <h2 id="balances-title" className="font-semibold">
-            Tu billetera
-          </h2>
-          <div className="text-muted-foreground mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs">
-            <span>Disponible: {money.format(liquidBalance)}</span>
-            <span>Tarjetas: {money.format(cardDebt)}</span>
-          </div>
-          {data.accounts.length === 0 ? (
-            <div className="text-muted-foreground py-12 text-center text-sm">
-              <Wallet className="mx-auto mb-3 size-8 opacity-50" aria-hidden />
-              <p>Aún no tienes cuentas registradas.</p>
-            </div>
-          ) : (
-            <ul className="divide-border mt-4 divide-y">
-              {data.accounts.slice(0, 6).map((account) => (
-                <li key={account.id} className="flex items-center gap-3 py-3">
-                  {account.type === "credit_card" ? (
-                    <CardArtwork account={account} compact />
-                  ) : (
-                    <span
-                      className="size-2 shrink-0 rounded-full"
-                      style={{ backgroundColor: account.color }}
-                    />
-                  )}
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium">
-                      {account.name}
-                    </p>
-                    {account.type === "credit_card" && (
-                      <p className="text-muted-foreground text-xs">
-                        Deuda de tarjeta
-                      </p>
-                    )}
-                  </div>
-                  <strong className="shrink-0 text-right text-sm tabular-nums">
-                    {money.format(account.balance)}
-                  </strong>
-                </li>
-              ))}
-            </ul>
-          )}
-          {data.accounts.length > 0 && (
-            <Link
-              href="/accounts"
-              className="text-primary mt-3 inline-flex items-center gap-1 text-xs font-medium"
-            >
-              Ver billetera <ChevronRight className="size-3.5" aria-hidden />
-            </Link>
-          )}
-        </section>
+
       </div>
       <div className="grid gap-6 lg:grid-cols-2">
         <section
@@ -523,8 +528,8 @@ export default async function DashboardPage() {
               {upcoming.map((item) => (
                 <li
                   key={`${item.kind}-${item.id}-${item.date}`}
-                  className="flex items-center gap-3 py-3"
                 >
+                  <Link href={item.kind === "card" ? `/accounts/${item.id.split(":")[0]}` : "/settings"} className="hover:bg-muted/50 flex items-center gap-3 rounded-lg py-3">
                   <span className="bg-muted text-muted-foreground grid size-9 shrink-0 place-items-center rounded-xl">
                     {item.kind === "card" ? (
                       <CreditCard className="size-4" aria-hidden />
@@ -545,6 +550,7 @@ export default async function DashboardPage() {
                     {item.amount > 0 ? "+" : "−"}
                     {money.format(Math.abs(item.amount))}
                   </strong>
+                  </Link>
                 </li>
               ))}
             </ul>

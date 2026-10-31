@@ -35,8 +35,8 @@ export function organizeLoans(
     if (sort === "date_asc") return a.date.localeCompare(b.date);
     return b.date.localeCompare(a.date);
   };
-  const paid = loans.filter((loan) => loan.status === "paid");
-  const current = loans.filter((loan) => !paid.includes(loan));
+  const paid = loans.filter((loan) => loan.status === "paid" || loan.status === "written_off");
+  const current = loans.filter((loan) => loan.status === "active");
   const filtered =
     filter === "paid"
       ? []

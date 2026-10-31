@@ -1,3 +1,4 @@
+import { NewLoanDialog } from "@/features/loans/components/new-loan-dialog";
 import { ExportButtons } from "@/features/exports/components/export-buttons";
 import { getLoans } from "@/features/loans/queries";
 import {
@@ -147,6 +148,27 @@ export default async function LoansPage({ searchParams }: LoansPageProps) {
         {tab("", "Me deben", !owed)}
         {tab("debo", "Debo", owed)}
       </nav>
+        <div className="mt-4">
+        <NewLoanDialog title={owed ? "Nueva deuda" : "Nuevo préstamo"}>
+          {owed ? (
+            data.canEdit ? (
+              <DebtForm today={data.today} />
+            ) : (
+              <p className="text-muted-foreground text-sm">Necesitas permiso de edición en préstamos.</p>
+            )
+          ) : data.canOperate ? (
+            <CreateLoanForm
+              today={data.today}
+              sourceAccounts={data.sourceAccounts}
+            />
+          ) : (
+            <p className="text-muted-foreground text-sm">
+              Necesitas permiso de edición en préstamos y movimientos para
+              registrar dinero prestado.
+            </p>
+          )}
+        </NewLoanDialog>
+        </div>
       <ExportButtons target="loans" />
       <div className="stagger grid gap-3 sm:grid-cols-3">
         {[
@@ -171,7 +193,7 @@ export default async function LoansPage({ searchParams }: LoansPageProps) {
           </section>
         ))}
       </div>
-      <div className="grid items-start gap-6 lg:grid-cols-[1fr_340px]">
+      <div>
         <section className="space-y-4" aria-label="Préstamos">
           <form className="bg-card flex flex-wrap items-end gap-3 rounded-2xl border p-4">
             {owed && <input type="hidden" name="tab" value="debo" />}
@@ -223,13 +245,14 @@ export default async function LoansPage({ searchParams }: LoansPageProps) {
             </p>
           )}
           {(filter === "all" || filter === "paid") && (
-            <>
-              <div className="flex items-center justify-between gap-3 pt-4">
-                <h2 className="font-semibold">{owed ? "Deudas pagadas" : "Préstamos pagados"}</h2>
+            <details className="bg-card rounded-2xl border p-5">
+              <summary className="flex cursor-pointer items-center justify-between gap-3 font-semibold">
+                <span>{owed ? "Deudas pagadas e incobrables" : "Préstamos pagados e incobrables"}</span>
                 <span className="text-muted-foreground text-sm">
                   {organized.paid.length}
                 </span>
-              </div>
+              </summary>
+              <div className="mt-4 space-y-4">
               {organized.paid.length ? (
                 organized.paid.map((loan) => (
                   <LoanCard key={loan.id} loan={loan} data={data} />
@@ -239,29 +262,11 @@ export default async function LoansPage({ searchParams }: LoansPageProps) {
                   {owed ? "Aún no hay deudas pagadas." : "Aún no hay préstamos pagados."}
                 </p>
               )}
-            </>
+              </div>
+            </details>
           )}
         </section>
-        <aside id="new-loan" className="bg-card rounded-2xl border p-5">
-          <h2 className="mb-4 font-semibold">{owed ? "Nueva deuda" : "Nuevo préstamo"}</h2>
-          {owed ? (
-            data.canEdit ? (
-              <DebtForm today={data.today} />
-            ) : (
-              <p className="text-muted-foreground text-sm">Necesitas permiso de edición en préstamos.</p>
-            )
-          ) : data.canOperate ? (
-            <CreateLoanForm
-              today={data.today}
-              sourceAccounts={data.sourceAccounts}
-            />
-          ) : (
-            <p className="text-muted-foreground text-sm">
-              Necesitas permiso de edición en préstamos y movimientos para
-              registrar dinero prestado.
-            </p>
-          )}
-        </aside>
+
       </div>
     </div>
   );

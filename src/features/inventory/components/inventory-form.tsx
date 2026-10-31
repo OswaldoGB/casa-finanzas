@@ -52,8 +52,9 @@ export function InventoryForm({
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="block space-y-1 text-sm">
-          Cantidad
+          {item ? "Cantidad inicial registrada" : "Cantidad inicial"}
           <input
+            readOnly={Boolean(item)}
             name="quantity"
             type="number"
             required
@@ -75,6 +76,7 @@ export function InventoryForm({
           />
         </label>
       </div>
+      {item && <p className="text-muted-foreground text-xs">Para cambiar las existencias, usa los controles de envases y su historial.</p>}
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="block space-y-1 text-sm">
           Fecha de compra

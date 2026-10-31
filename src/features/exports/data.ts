@@ -1,3 +1,4 @@
+import { getInventory } from "@/features/inventory/queries";
 import "server-only";
 import { z } from "zod";
 import { getAccess } from "@/features/permissions/queries";
@@ -141,6 +142,10 @@ export async function exportRows(
       proyecto_id: list.list.project_id,
     }));
   }
+  if (target === "inventory") {
+    const { items } = await getInventory();
+    return items.filter((item) => !params.get("location") || item.location === params.get("location")).map((item) => ({ id: item.id, name: item.name, location: item.location, category: item.category, cantidad_actual: item.packages.reduce((sum, pack) => sum + Number(pack.remaining), 0), low_stock_threshold: item.lowStockThreshold, notes: item.notes }));
+  }
   if (target === "loans") return (await getLoans()).loans;
   if (target === "savings") return (await getSavings()).goals;
   if (target === "projects")
@@ -216,8 +221,6 @@ export async function exportRows(
         .slice(0, 80);
       if (search) query = query.ilike("description", `%${search}%`);
     }
-    if (target === "inventory" && params.get("location"))
-      query = query.filter("location", "eq", params.get("location")!);
     if (target === "shopping") {
       const status = params.get("status") ?? "pending";
       if (["pending", "bought", "discarded"].includes(status))

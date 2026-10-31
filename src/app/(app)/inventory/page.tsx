@@ -2,9 +2,8 @@ import { ExportButtons } from "@/features/exports/components/export-buttons";
 import Link from "next/link";
 import Image from "next/image";
 import { getInventory } from "@/features/inventory/queries";
-import { inventoryValue, warrantyExpiring } from "@/features/inventory/schemas";
+import { warrantyExpiring } from "@/features/inventory/schemas";
 import { InventoryForm } from "@/features/inventory/components/inventory-form";
-import { formatUSD } from "@/lib/format";
 import { inputClass } from "@/features/projects/schemas";
 
 export const metadata = { title: "Inventario" };
@@ -35,7 +34,7 @@ export default async function InventoryPage({
       <ExportButtons target="inventory" />
       <div className="stagger grid gap-3 sm:grid-cols-3">
         {[
-          ["Valor registrado", formatUSD(inventoryValue(items))],
+          ["Necesitan reposición", String(items.filter((item) => item.packages.length > 0 && item.lowStockThreshold !== null && item.packages.reduce((sum, pack) => sum + Number(pack.remaining), 0) <= item.lowStockThreshold).length)],
           ["Artículos", String(items.length)],
           ["Garantías por vencer (30 días)", String(expiring.length)],
         ].map(([label, value]) => (
@@ -45,10 +44,6 @@ export default async function InventoryPage({
           </div>
         ))}
       </div>
-      <p className="text-muted-foreground text-xs">
-        Valor = cantidad × precio de compra. Los artículos sin precio no se
-        suman. El inventario no forma parte del patrimonio financiero.
-      </p>
       <form className="flex flex-wrap items-end gap-3">
         <label className="text-sm">
           Ubicación
@@ -94,7 +89,6 @@ export default async function InventoryPage({
                       "Artículo",
                       "Ubicación",
                       "Cantidad",
-                      "Valor",
                       "Garantía",
                     ].map((label) => (
                       <th key={label} className="p-3">
@@ -115,10 +109,7 @@ export default async function InventoryPage({
                         </Link>
                       </td>
                       <td className="p-3">{item.location || "—"}</td>
-                      <td className="p-3">{item.quantity}</td>
-                      <td className="p-3">
-                        {formatUSD(inventoryValue([item]))}
-                      </td>
+                      <td className="p-3">{item.packages.reduce((sum, pack) => sum + Number(pack.remaining), 0)}</td>
                       <td className="p-3">{item.warranty_until ?? "—"}</td>
                     </tr>
                   ))}
@@ -149,10 +140,8 @@ export default async function InventoryPage({
                     {item.category || "Sin categoría"}
                   </p>
                   <p className="text-sm">
-                    {item.quantity} unidades ·{" "}
-                    {item.purchase_price == null
-                      ? "Sin precio"
-                      : formatUSD(inventoryValue([item]))}
+                    {item.packages.length ? `${item.packages.reduce((sum, pack) => sum + Number(pack.remaining), 0)} unidades en envases` : `${item.quantity} unidades registradas`}
+                    {item.packages.length > 0 && item.lowStockThreshold !== null && item.packages.reduce((sum, pack) => sum + Number(pack.remaining), 0) <= item.lowStockThreshold && <span className="text-amber-500"> · Reponer</span>}
                   </p>
                   {item.warranty_until && (
                     <p
