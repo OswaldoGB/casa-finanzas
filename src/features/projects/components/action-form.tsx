@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useId, type ReactNode } from "react";
+import { useActionState, useEffect, useId, type ReactNode } from "react";
 import type { FormState } from "@/features/auth/schemas";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
@@ -10,15 +10,18 @@ export function ActionForm({
   label = "Guardar",
   className = "space-y-4",
   confirm,
+  onSuccess,
 }: {
   action: (state: FormState, data: FormData) => Promise<FormState>;
   children: ReactNode;
   label?: string;
   className?: string;
   confirm?: string;
+  onSuccess?: () => void;
 }) {
   const [state, submit, pending] = useActionState(action, undefined);
   const formId = useId();
+  useEffect(() => { if (state?.ok && onSuccess) onSuccess(); }, [state, onSuccess]);
   return (
     <form id={formId} action={submit} className={className}>
       {children}

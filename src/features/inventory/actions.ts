@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { requireModule } from "@/features/permissions/queries";
 import type { FormState } from "@/features/auth/schemas";
 import { inventorySchema } from "./schemas";
+import { initialStockSchema } from "./create-stock";
 
 export async function saveInventory(
   _: FormState,
@@ -22,6 +23,16 @@ export async function saveInventory(
     const current = await supabase.from("inventory_items").select("quantity").eq("id", id).eq("household_id", profile.household_id).maybeSingle();
     if (current.error || !current.data) return { error: "Artículo no encontrado." };
     parsed.data.quantity = current.data.quantity;
+  }
+  const stock = !id ? initialStockSchema.safeParse(Object.fromEntries(form)) : null;
+  if (stock && !stock.success) return { error: "Revisa las cantidades y la presentación." };
+  if (stock?.success && stock.data.mode === "packages") {
+    const total = stock.data.package_count * stock.data.package_capacity;
+    if (total > 9999999) return { error: "La cantidad total es demasiado grande." };
+    const result = await supabase.rpc("inventory_create_with_packages", { p_item: parsed.data, p_label: stock.data.package_name, p_count: stock.data.package_count, p_capacity: stock.data.package_capacity, p_group: stock.data.group_name });
+    if (result.error) return { error: "No se pudo guardar el artículo. Revisa el movimiento vinculado." };
+    revalidatePath("/inventory");
+    return { ok: "Artículo guardado." };
   }
   const result = id
     ? await supabase

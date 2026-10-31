@@ -7,6 +7,7 @@ export type InventoryTables = {
   inventory_package_events: Table<InventoryPackageEvent>;
 };
 export type InventoryFunctions = {
+  inventory_create_with_packages: { Args: { p_item: import("./database.generated").Json; p_label: string; p_count: number; p_capacity: number; p_group: string }; Returns: string };
   inventory_set_threshold: { Args: { p_item: string; p_threshold: number | null }; Returns: undefined };
   inventory_add_packages: { Args: { p_item: string; p_label: string; p_count: number; p_capacity: number; p_group_name?: string }; Returns: undefined };
   inventory_package_change: { Args: { p_package: string; p_action: string; p_amount: number; p_note: string }; Returns: undefined };

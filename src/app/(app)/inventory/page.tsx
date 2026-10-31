@@ -3,7 +3,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { getInventory } from "@/features/inventory/queries";
 import { warrantyExpiring } from "@/features/inventory/schemas";
-import { InventoryForm } from "@/features/inventory/components/inventory-form";
+import { NewInventoryDialog } from "@/features/inventory/components/new-inventory-dialog";
 import { inputClass } from "@/features/projects/schemas";
 
 export const metadata = { title: "Inventario" };
@@ -31,6 +31,7 @@ export default async function InventoryPage({
           Lo que tienes en casa, dónde está y su garantía.
         </p>
       </header>
+      {canEdit && <NewInventoryDialog transactions={transactions} />}
       <ExportButtons target="inventory" />
       <div className="stagger grid gap-3 sm:grid-cols-3">
         {[
@@ -73,7 +74,7 @@ export default async function InventoryPage({
           Aplicar
         </button>
       </form>
-      <div className="grid items-start gap-6 lg:grid-cols-[1fr_360px]">
+      <div>
         <section>
           {visible.length === 0 && (
             <p className="text-muted-foreground rounded-2xl border p-6 text-sm">
@@ -158,12 +159,6 @@ export default async function InventoryPage({
             </div>
           )}
         </section>
-        {canEdit && (
-          <aside id="new-inventory" className="bg-card rounded-2xl border p-5">
-            <h2 className="mb-4 font-semibold">Nuevo artículo</h2>
-            <InventoryForm transactions={transactions} />
-          </aside>
-        )}
       </div>
     </div>
   );
