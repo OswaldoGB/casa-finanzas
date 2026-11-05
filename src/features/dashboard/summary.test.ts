@@ -1,7 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { accountNetWorth, cashFlowPoints, spendableBalance } from "./summary";
+import { accountNetWorth, cashFlowPoints, spendableBalance, availableNetWorth } from "./summary";
 
 describe("dashboard summary", () => {
+  it("muestra el patrimonio menos lo apartado y lo recupera al retirar", () => {
+    expect(availableNetWorth(389.6, 200)).toBe(189.6);
+    expect(availableNetWorth(389.6, 150)).toBe(239.6);
+    expect(availableNetWorth(389.6, 0)).toBe(389.6);
+    expect(availableNetWorth(100.01, 200.02)).toBe(-100.01);
+  });
   it("descuenta lo apartado de las cuentas líquidas sin afectar el patrimonio", () => {
     const accounts = [{ id: "multi", type: "savings", balance: 400 }, { id: "investment", type: "investment", balance: 500 }];
     const goals = [{ account_id: "multi", balance: 200 }, { account_id: "investment", balance: 100 }, { account_id: null, balance: 50 }];

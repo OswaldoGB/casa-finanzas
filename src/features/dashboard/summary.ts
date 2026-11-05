@@ -3,6 +3,10 @@ import { decimalToCents } from "../finance/balances";
 type AccountBalance = { type: string; balance: number };
 type CashEvent = { date: string; cashImpact: number };
 
+export function availableNetWorth(worth: number, reserved: number) {
+  return (decimalToCents(worth) - decimalToCents(reserved)) / 100;
+}
+
 export function spendableBalance(
   accounts: readonly (AccountBalance & { id: string })[],
   goals: readonly { account_id: string | null; balance: number }[],

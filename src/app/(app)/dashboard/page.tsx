@@ -20,7 +20,7 @@ import {
   CashFlowChart,
   MonthlyTrendChart,
 } from "@/features/dashboard/components/dashboard-charts";
-import { accountNetWorth, cashFlowPoints, spendableBalance } from "@/features/dashboard/summary";
+import { accountNetWorth, availableNetWorth, cashFlowPoints, spendableBalance } from "@/features/dashboard/summary";
 import { dashboardPriorities } from "@/features/dashboard/priorities";
 import { getDashboardBudgets } from "@/features/budgets/queries";
 import { budgetProgress } from "@/features/budgets/schemas";
@@ -138,26 +138,27 @@ export default async function DashboardPage() {
       >
         <Link href="/accounts" className="bg-primary text-primary-foreground rounded-2xl p-5 transition-opacity hover:opacity-90 sm:p-6">
           <div className="flex items-center justify-between">
-            <h2 className="text-sm font-medium">Patrimonio neto</h2>
+            <h2 className="text-sm font-medium">Patrimonio neto disponible</h2>
             <Wallet className="size-5 opacity-75" aria-hidden />
           </div>
           <p className="mt-5 text-3xl font-semibold tracking-tight tabular-nums">
-            <CountUp value={worth} />
+            <CountUp value={availableNetWorth(worth, funds.reserved)} />
           </p>
           <p className="mt-2 text-xs opacity-75">
-            Cuentas menos tarjetas, más lo que te deben
+            Cuentas menos tarjetas y metas apartadas en cuentas, más lo que te deben
           </p>
           <p className="mt-3 border-t border-current/20 pt-3 text-sm">
-            Disponible para gastar: <strong>{money.format(funds.available)}</strong>
+            Patrimonio incluyendo metas: <strong>{money.format(worth)}</strong><br />
+            Disponible en cuentas: <strong>{money.format(funds.available)}</strong>
           </p>
         </Link>
         <Link href="/loans?tab=debo" className="bg-card hover:border-primary rounded-2xl border p-5 transition-colors sm:p-6">
           <div className="flex items-center justify-between">
-            <h2 className="text-muted-foreground text-sm">Patrimonio con lo que debes</h2>
+            <h2 className="text-muted-foreground text-sm">Patrimonio disponible con lo que debes</h2>
             <HandCoins className="text-muted-foreground size-5" aria-hidden />
           </div>
           <p className="mt-5 text-3xl font-semibold tracking-tight tabular-nums">
-            <CountUp value={worthWithDebts} />
+            <CountUp value={availableNetWorth(worthWithDebts, funds.reserved)} />
           </p>
           <p className="text-muted-foreground mt-2 text-xs">
             {owedDebts > 0
