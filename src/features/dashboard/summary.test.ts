@@ -1,7 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { accountNetWorth, cashFlowPoints } from "./summary";
+import { accountNetWorth, cashFlowPoints, spendableBalance } from "./summary";
 
 describe("dashboard summary", () => {
+  it("descuenta lo apartado de las cuentas líquidas sin afectar el patrimonio", () => {
+    const accounts = [{ id: "multi", type: "savings", balance: 400 }, { id: "investment", type: "investment", balance: 500 }];
+    const goals = [{ account_id: "multi", balance: 200 }, { account_id: "investment", balance: 100 }, { account_id: null, balance: 50 }];
+    expect(spendableBalance(accounts, goals)).toEqual({ liquid: 400, reserved: 200, available: 200 });
+    expect(accountNetWorth(accounts)).toBe(900);
+    expect(spendableBalance(accounts, [{ account_id: "multi", balance: 150 }]).available).toBe(250);
+  });
   it("subtracts card debt from account assets", () => {
     expect(
       accountNetWorth([

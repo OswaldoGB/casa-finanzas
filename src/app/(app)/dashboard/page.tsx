@@ -20,7 +20,7 @@ import {
   CashFlowChart,
   MonthlyTrendChart,
 } from "@/features/dashboard/components/dashboard-charts";
-import { accountNetWorth, cashFlowPoints } from "@/features/dashboard/summary";
+import { accountNetWorth, cashFlowPoints, spendableBalance } from "@/features/dashboard/summary";
 import { dashboardPriorities } from "@/features/dashboard/priorities";
 import { getDashboardBudgets } from "@/features/budgets/queries";
 import { budgetProgress } from "@/features/budgets/schemas";
@@ -79,6 +79,7 @@ export default async function DashboardPage() {
   const upcoming = data.upcoming
     .filter((item) => item.date >= data.today && item.date <= end)
     .sort((a, b) => a.date.localeCompare(b.date));
+  const funds = spendableBalance(data.accounts, savings.goals);
   const cashFlow = cashFlowPoints(data.today, data.accounts, upcoming);
   const projected = cashFlow.at(-1)?.balance ?? 0;
   const lowest = Math.min(...cashFlow.map((point) => point.balance));
@@ -106,9 +107,6 @@ export default async function DashboardPage() {
     upcomingCount: upcoming.length,
     nextUpcomingDate: upcoming[0]?.date,
   });
-  const liquidBalance = data.accounts
-    .filter((account) => ["cash", "checking", "savings"].includes(account.type))
-    .reduce((sum, account) => sum + account.balance, 0);
   const cardDebt = data.accounts
     .filter((account) => account.type === "credit_card")
     .reduce((sum, account) => sum + account.balance, 0);
@@ -148,6 +146,9 @@ export default async function DashboardPage() {
           </p>
           <p className="mt-2 text-xs opacity-75">
             Cuentas menos tarjetas, más lo que te deben
+          </p>
+          <p className="mt-3 border-t border-current/20 pt-3 text-sm">
+            Disponible para gastar: <strong>{money.format(funds.available)}</strong>
           </p>
         </Link>
         <Link href="/loans?tab=debo" className="bg-card hover:border-primary rounded-2xl border p-5 transition-colors sm:p-6">
@@ -200,9 +201,11 @@ export default async function DashboardPage() {
             Tu billetera
           </h2>
           <div className="text-muted-foreground mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs">
-            <span>Disponible: {money.format(liquidBalance)}</span>
+            <span>Disponible: {money.format(funds.available)}</span>
+            <span>Apartado en cuentas: {money.format(funds.reserved)}</span>
             <span>Tarjetas: {money.format(cardDebt)}</span>
           </div>
+          <p className="text-muted-foreground mt-2 text-xs">El disponible descuenta metas vinculadas a efectivo y cuentas bancarias; los apartados virtuales no están asociados a una cuenta.</p>
           {data.accounts.length === 0 ? (
             <div className="text-muted-foreground py-12 text-center text-sm">
               <Wallet className="mx-auto mb-3 size-8 opacity-50" aria-hidden />
@@ -566,10 +569,10 @@ export default async function DashboardPage() {
           className="bg-card rounded-2xl border p-5 sm:p-6"
         >
           <h2 id="cash-flow-title" className="font-semibold">
-            Disponible después de lo programado
+            Saldo previsto después de lo programado
           </h2>
           <p className="text-muted-foreground mt-1 text-xs">
-            Efectivo y bancos, con los movimientos de los próximos 14 días.
+            Efectivo y bancos con los movimientos de los próximos 14 días; no descuenta lo apartado para metas.
           </p>
           <div className="mt-5 flex flex-wrap items-end justify-between gap-3">
             <div>

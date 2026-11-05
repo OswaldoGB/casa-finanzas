@@ -3,6 +3,17 @@ import { decimalToCents } from "../finance/balances";
 type AccountBalance = { type: string; balance: number };
 type CashEvent = { date: string; cashImpact: number };
 
+export function spendableBalance(
+  accounts: readonly (AccountBalance & { id: string })[],
+  goals: readonly { account_id: string | null; balance: number }[],
+) {
+  const liquidAccounts = accounts.filter((account) => ["cash", "checking", "savings"].includes(account.type));
+  const ids = new Set(liquidAccounts.map((account) => account.id));
+  const liquid = liquidAccounts.reduce((sum, account) => sum + decimalToCents(account.balance), 0);
+  const reserved = goals.reduce((sum, goal) => sum + (goal.account_id && ids.has(goal.account_id) ? decimalToCents(goal.balance) : 0), 0);
+  return { liquid: liquid / 100, reserved: reserved / 100, available: (liquid - reserved) / 100 };
+}
+
 export function accountNetWorth(accounts: readonly AccountBalance[]) {
   return (
     accounts.reduce(
