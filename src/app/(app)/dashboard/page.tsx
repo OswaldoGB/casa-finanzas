@@ -43,6 +43,9 @@ const day = new Intl.DateTimeFormat("es", {
   month: "short",
   timeZone: "UTC",
 });
+const summaryCard = "row-span-3 grid min-w-0 grid-rows-subgrid gap-y-2 rounded-2xl border p-3 sm:p-5";
+const summaryHeading = "flex items-start justify-between gap-2 text-sm font-medium";
+const summaryAmount = "text-xl font-semibold leading-tight tracking-tight tabular-nums wrap-anywhere sm:text-2xl xl:text-3xl";
 
 export default async function DashboardPage() {
   // Ahorros no depende de nada; presupuestos solo necesita el "hoy" del hogar.
@@ -136,56 +139,53 @@ export default async function DashboardPage() {
         aria-label="Resumen financiero"
         className="stagger grid grid-cols-2 gap-3 lg:grid-cols-4"
       >
-        <Link href="/accounts" className="bg-primary text-primary-foreground rounded-2xl p-5 transition-opacity hover:opacity-90 sm:p-6">
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-medium">Patrimonio neto disponible</h2>
-            <Wallet className="size-5 opacity-75" aria-hidden />
-          </div>
-          <p className="mt-5 text-3xl font-semibold tracking-tight tabular-nums">
+        <Link href="/accounts" className={`${summaryCard} border-transparent bg-primary text-primary-foreground transition-opacity hover:opacity-90`}>
+          <h2 className={summaryHeading}>
+            Patrimonio neto disponible
+            <Wallet className="size-4 shrink-0 opacity-75" aria-hidden />
+          </h2>
+          <p className={summaryAmount}>
             <CountUp value={availableNetWorth(worth, funds.reserved)} />
           </p>
-          <p className="mt-2 text-xs opacity-75">
-            Cuentas menos tarjetas y metas apartadas en cuentas, más lo que te deben
-          </p>
-          <p className="mt-3 border-t border-current/20 pt-3 text-sm">
+          <p className="text-xs">
             Patrimonio incluyendo metas: <strong>{money.format(worth)}</strong>
           </p>
         </Link>
-        <Link href="/loans?tab=debo" className="bg-card hover:border-primary rounded-2xl border p-5 transition-colors sm:p-6">
-          <div className="flex items-center justify-between">
-            <h2 className="text-muted-foreground text-sm">Patrimonio disponible con lo que debes</h2>
-            <HandCoins className="text-muted-foreground size-5" aria-hidden />
-          </div>
-          <p className="mt-5 text-3xl font-semibold tracking-tight tabular-nums">
+        <Link href="/loans?tab=debo" className={`${summaryCard} bg-card transition-colors hover:border-primary`}>
+          <h2 className={`${summaryHeading} text-muted-foreground`}>
+            Patrimonio después de deudas
+            <HandCoins className="size-4 shrink-0" aria-hidden />
+          </h2>
+          <p className={summaryAmount}>
             <CountUp value={availableNetWorth(worthWithDebts, funds.reserved)} />
           </p>
-          <p className="text-muted-foreground mt-2 text-xs">
+          <p className="text-muted-foreground text-xs">
             {owedDebts > 0
               ? `Restando ${money.format(owedDebts)} que debes`
               : "No tienes deudas en «Debo»"}
           </p>
         </Link>
-        <Link href="/transactions" className="bg-card hover:border-primary rounded-2xl border p-5 transition-colors sm:p-6">
-          <div className="flex items-center justify-between">
-            <h2 className="text-muted-foreground text-sm">Ingresos del mes</h2>
-            <ArrowDownLeft className="text-income size-5" aria-hidden />
-          </div>
-          <p className="mt-5 text-3xl font-semibold tracking-tight tabular-nums">
+        <Link href="/transactions" className={`${summaryCard} bg-card transition-colors hover:border-primary`}>
+          <h2 className={`${summaryHeading} text-muted-foreground`}>
+            Ingresos del mes
+            <ArrowDownLeft className="text-income size-4 shrink-0" aria-hidden />
+          </h2>
+          <p className={summaryAmount}>
             <CountUp value={data.totals.income} />
           </p>
-          <p className="text-muted-foreground mt-2 text-xs">
+          <p className="text-muted-foreground text-xs">
             Solo movimientos publicados
           </p>
         </Link>
-        <Link href="/transactions" className="bg-card hover:border-primary rounded-2xl border p-5 transition-colors sm:p-6">
-          <div className="flex items-center justify-between">
-            <h2 className="text-muted-foreground text-sm">Gastos del mes</h2>
-            <ArrowUpRight className="text-expense size-5" aria-hidden />
-          </div>
-          <p className="mt-5 text-3xl font-semibold tracking-tight tabular-nums">
+        <Link href="/transactions" className={`${summaryCard} bg-card transition-colors hover:border-primary`}>
+          <h2 className={`${summaryHeading} text-muted-foreground`}>
+            Gastos del mes
+            <ArrowUpRight className="text-expense size-4 shrink-0" aria-hidden />
+          </h2>
+          <p className={summaryAmount}>
             <CountUp value={data.totals.expense} />
           </p>
-          <p className="text-muted-foreground mt-2 text-xs">
+          <p className="text-muted-foreground text-xs">
             Balance del mes:{" "}
             <strong className={monthlyNet < 0 ? "text-expense" : "text-income"}>
               {money.format(monthlyNet)}
