@@ -148,8 +148,7 @@ export default async function DashboardPage() {
             Cuentas menos tarjetas y metas apartadas en cuentas, más lo que te deben
           </p>
           <p className="mt-3 border-t border-current/20 pt-3 text-sm">
-            Patrimonio incluyendo metas: <strong>{money.format(worth)}</strong><br />
-            Disponible en cuentas: <strong>{money.format(funds.available)}</strong>
+            Patrimonio incluyendo metas: <strong>{money.format(worth)}</strong>
           </p>
         </Link>
         <Link href="/loans?tab=debo" className="bg-card hover:border-primary rounded-2xl border p-5 transition-colors sm:p-6">
