@@ -41,6 +41,27 @@ const move = (type: string, amount: number) =>
   );
 
 describe("metas de ahorro", () => {
+  it("aparta y libera dinero que ya está en la cuenta vinculada sin mover su saldo", async () => {
+    await db.exec("begin");
+    const account = "00000000-0000-4000-8000-000000000021";
+    const linkedGoal = "00000000-0000-4000-8000-000000000022";
+    await db.query("insert into accounts(id,household_id,created_by,name,type,opening_balance) values ($1,$2,$3,'MULTIMONEY','savings',400)", [account, home, user]);
+    await db.query("insert into savings_goals(id,household_id,created_by,name,type,target_amount,account_id) values ($1,$2,$3,'Viaje','goal',500,$4)", [linkedGoal, home, user, account]);
+    await db.query("select savings_goal_operation($1,'goal_contribution',200,'2026-10-01',$2)", [linkedGoal, account]);
+    const balance = await db.query<{ balance: string }>("select balance::text from account_balances() where account_id=$1", [account]);
+    expect(Number(balance.rows[0].balance)).toBe(400);
+    const reserved = await db.query<{ total: string }>("select sum(amount)::text total from transactions where savings_goal_id=$1", [linkedGoal]);
+    expect(Number(reserved.rows[0].total)).toBe(200);
+    await db.query("select savings_goal_operation($1,'goal_withdrawal',50,'2026-10-02',$2)", [linkedGoal, account]);
+    expect(Number((await db.query<{ balance: string }>("select balance::text from account_balances() where account_id=$1", [account])).rows[0].balance)).toBe(400);
+    const other = "00000000-0000-4000-8000-000000000023";
+    await db.query("insert into accounts(id,household_id,created_by,name,type,opening_balance) values ($1,$2,$3,'Efectivo','cash',100)", [other, home, user]);
+    await db.query("select savings_goal_operation($1,'goal_contribution',25,'2026-10-03',$2)", [linkedGoal, other]);
+    const balances = await db.query<{ account_id: string; balance: string }>("select account_id,balance::text from account_balances() where account_id in ($1,$2)", [account, other]);
+    expect(Object.fromEntries(balances.rows.map((row) => [row.account_id, Number(row.balance)]))).toEqual({ [account]: 425, [other]: 75 });
+    await expect(db.query("select savings_goal_operation($1,'goal_withdrawal',500,'2026-10-04',$2)", [linkedGoal, account])).rejects.toThrow("El retiro supera el dinero apartado");
+    await db.exec("rollback");
+  });
   it("aporta y retira (regresión: `amount` sin calificar en el guardián)", async () => {
     await move("goal_contribution", 10);
     await move("goal_withdrawal", 4);
@@ -84,6 +105,7 @@ describe("reservas de fondos", () => {
         values ('${home}','${user}','goal_contribution',20,'2026-09-15','${p}');
       insert into accounts(id,household_id,created_by,name,type,opening_balance)
         values ('00000000-0000-4000-8000-000000000011','${home}','${user}','Billetera','cash',500);
+      update accounts set created_at='2026-09-01T00:00:00Z' where id='00000000-0000-4000-8000-000000000011';
     `);
     const cat = (await db.query<{ id: string }>("select id from categories where household_id=$1 and type='expense' limit 1", [home])).rows[0].id;
     const tx = (

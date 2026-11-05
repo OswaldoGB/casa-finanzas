@@ -194,7 +194,8 @@ export function GoalOperationForm({
   accounts: { id: string; name: string }[];
 }) {
   const [state, action, pending] = useActionState(operateGoal, undefined);
-  const choices = accounts.filter((a) => a.id !== goal.account_id);
+  const [selectedAccount, setSelectedAccount] = useState("");
+  const choices = accounts;
   return (
     <form action={action} className="grid gap-3">
       <input type="hidden" name="id" value={goal.id} />
@@ -235,20 +236,21 @@ export function GoalOperationForm({
           className="grid gap-1.5 text-sm"
           htmlFor={`${goal.id}-counterparty`}
         >
-          Otra cuenta (origen al aportar / destino al retirar)
+          Cuenta (origen al aportar / destino al retirar)
           <select
             id={`${goal.id}-counterparty`}
             name="counterparty_account_id"
             defaultValue=""
+            onChange={(event) => setSelectedAccount(event.target.value)}
             required
             className={field}
           >
             <option value="" disabled>
-              Elige otra cuenta
+              Elige una cuenta
             </option>
             {choices.map((a) => (
               <option key={a.id} value={a.id}>
-                {a.name}
+                {a.name}{a.id === goal.account_id ? " · Cuenta vinculada" : ""}
               </option>
             ))}
           </select>
@@ -258,7 +260,9 @@ export function GoalOperationForm({
       )}
       <p className="text-muted-foreground text-xs">
         {goal.account_id
-          ? "Se registra una transferencia. El retiro no puede superar lo aportado."
+          ? selectedAccount === goal.account_id
+            ? "Se registra el apartado sin cambiar el saldo ni bloquear fondos en el banco."
+            : "Entre cuentas distintas se registra una transferencia. El retiro no puede superar lo aportado."
           : "Se actualiza el apartado virtual sin cambiar los saldos de cuentas."}
       </p>
       <Feedback state={state} />
