@@ -44,6 +44,8 @@ export function CardArtwork({
     "Tarjeta";
   const imageUrl =
     failedImage === appearance.imageUrl ? null : appearance.imageUrl;
+  const compactSize = appearance.imageCrop ? "162px" : "48px";
+  const fullSize = appearance.imageCrop ? "1292px" : "(max-width: 640px) 100vw, 384px";
 
   return (
     <div
@@ -51,14 +53,16 @@ export function CardArtwork({
       aria-label={`${issuer} ${appearance.label}${account.card_last_four ? ` terminada en ${account.card_last_four}` : ""}`}
     >
       {imageUrl && (
-        <Image
-          fill
-          sizes={compact ? "48px" : "(max-width: 640px) 100vw, 384px"}
-          src={imageUrl}
-          alt=""
-          className="object-cover"
-          onError={() => setFailedImage(imageUrl)}
-        />
+        <div className={appearance.imageCrop ? "absolute" : "absolute inset-0"} style={appearance.imageCrop}>
+          <Image
+            fill
+            sizes={compact ? compactSize : fullSize}
+            src={imageUrl}
+            alt=""
+            className="object-cover"
+            onError={() => setFailedImage(imageUrl)}
+          />
+        </div>
       )}
     </div>
   );

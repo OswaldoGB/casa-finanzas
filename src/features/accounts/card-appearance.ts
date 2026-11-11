@@ -25,6 +25,7 @@ type Product = {
   value: string;
   label: string;
   imageUrl?: string;
+  imageCrop?: { left: string; top: string; width: string; height: string };
   fallback: string;
 };
 
@@ -43,6 +44,13 @@ const products: Record<Institution, Product[]> = {
   ],
   bac: [
     { value: "clasica", label: "Clásica", fallback: "bac" },
+    {
+      value: "walmart_clasica",
+      label: "Walmart Clásica Mastercard",
+      imageUrl: "/cards/bac-walmart-clasica.png",
+      imageCrop: { left: "-20.67%", top: "-12.78%", width: "336.43%", height: "125.28%" },
+      fallback: "bac",
+    },
     { value: "dorada", label: "Dorada", fallback: "bac" },
     { value: "platinum", label: "Platinum", fallback: "bac" },
     { value: "black", label: "Black", fallback: "bac" },
@@ -133,6 +141,7 @@ export function cardAppearance({
   return {
     label: match.label,
     imageUrl: match.imageUrl ?? null,
+    imageCrop: match.imageCrop,
     fallback: match.fallback,
     networkLabel,
   };
