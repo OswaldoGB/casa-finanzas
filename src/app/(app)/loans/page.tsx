@@ -14,7 +14,8 @@ import { formatUSD } from "@/lib/format";
 import { decimalToCents } from "@/features/finance/balances";
 import { FormSelect } from "@/components/ui/form-select";
 import { ActionForm } from "@/features/projects/components/action-form";
-import { createLoanPerson, setLoanPerson } from "@/features/loans/actions";
+import { setLoanPerson } from "@/features/loans/actions";
+import { LoanPersonForm, PersonAvatar } from "@/features/loans/components/person-form";
 import { organizeLoans, readLoanFilters } from "@/features/loans/filters";
 import type { Loan } from "@/features/loans/schemas";
 export const metadata = { title: "Préstamos y deudas" };
@@ -37,7 +38,10 @@ function LoanCard({
       className={`bg-card rounded-2xl border p-5 ${loan.overdue ? "border-destructive" : ""}`}
     >
       <div className="flex items-start justify-between gap-3">
-        <h3 className="min-w-0 break-words font-semibold">{person?.name ?? loan.debtor}</h3>
+        <h3 className="flex min-w-0 items-center gap-2 font-semibold">
+          {person && <PersonAvatar emoji={person.emoji} color={person.color} />}
+          <span className="min-w-0 wrap-anywhere">{person?.name ?? loan.debtor}</span>
+        </h3>
         <div className="flex shrink-0 items-center gap-2">
           <span className="text-sm">
             {loan.status === "paid"
@@ -111,7 +115,12 @@ function LoanCard({
               name="person_id"
               defaultValue={loan.person_id ?? "manual"}
               placeholder="Elige una persona"
-              options={[{ value: "manual", label: "Sin vincular" }, ...data.people.map(({ id, name }) => ({ value: id, label: name }))]}
+              options={[
+                { value: "manual", label: "Sin vincular" },
+                ...data.people.map(({ id, name, emoji, color }) => ({
+                  value: id, label: name, leading: <PersonAvatar emoji={emoji} color={color} />,
+                })),
+              ]}
             />
           </ActionForm>
         </details>
@@ -150,12 +159,7 @@ function LoansByPerson({ data }: { data: Awaited<ReturnType<typeof getLoans>> })
       {data.canEdit && (
         <details className="bg-card rounded-2xl border p-4">
           <summary className="cursor-pointer font-semibold">Agregar persona</summary>
-          <ActionForm action={createLoanPerson} label="Guardar persona" className="mt-4 max-w-sm space-y-3">
-            <label className="grid gap-1.5 text-sm">
-              Nombre
-              <input name="name" required maxLength={100} className="border-input bg-background rounded-lg border px-3 py-2.5" />
-            </label>
-          </ActionForm>
+          <LoanPersonForm />
         </details>
       )}
       {data.people.length === 0 && <p className="text-muted-foreground text-sm">Todavía no hay personas en el catálogo.</p>}
@@ -166,13 +170,22 @@ function LoansByPerson({ data }: { data: Awaited<ReturnType<typeof getLoans>> })
         return (
           <details key={person.id} className="bg-card rounded-2xl border p-4">
             <summary className="cursor-pointer">
-              <span className="font-semibold">{person.name}</span>
+              <span className="inline-flex items-center gap-2 align-middle font-semibold">
+                <PersonAvatar emoji={person.emoji} color={person.color} />
+                {person.name}
+              </span>
               <span className="text-muted-foreground mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm">
                 <span>Me debe <strong className="text-foreground tabular-nums">{formatUSD(pending("lent"))}</strong></span>
                 <span>Le debo <strong className="text-foreground tabular-nums">{formatUSD(pending("borrowed"))}</strong></span>
               </span>
             </summary>
             <div className="mt-4 space-y-3">
+              {data.canEdit && (
+                <details className="rounded-xl border p-3">
+                  <summary className="cursor-pointer text-sm">Cambiar emoji y color</summary>
+                  <LoanPersonForm person={person} />
+                </details>
+              )}
               {loans.length ? loans.map((loan) => <LoanCard key={loan.id} loan={loan} data={data} />) : (
                 <p className="text-muted-foreground text-sm">Todavía no hay préstamos vinculados.</p>
               )}

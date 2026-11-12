@@ -8,6 +8,7 @@ import { FormSelect } from "@/components/ui/form-select";
 import type { FormState } from "@/features/auth/schemas";
 import { createLoan, payDebt, repayLoan, saveDebt, updateLoan, writeOffLoan } from "../actions";
 import type { Loan, LoanPerson } from "../schemas";
+import { PersonAvatar } from "./person-form";
 const field =
   "border-input bg-background h-11 w-full rounded-lg border px-3 text-sm";
 const button =
@@ -107,7 +108,12 @@ function LoanPersonField({ people, name }: { people: LoanPerson[]; name: "debtor
             value={selected}
             onValueChange={setSelected}
             placeholder="Elige una persona"
-            options={[...people.map(({ id, name }) => ({ value: id, label: name })), { value: "manual", label: "Escribir nombre sin vincular" }]}
+            options={[
+              ...people.map(({ id, name, emoji, color }) => ({
+                value: id, label: name, leading: <PersonAvatar emoji={emoji} color={color} />,
+              })),
+              { value: "manual", label: "Escribir nombre sin vincular" },
+            ]}
           />
         </>
       )}

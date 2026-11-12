@@ -18,9 +18,9 @@ export { Constants } from "./database.generated";
 // the generator does not infer argument nullability from function bodies.
 type Functions = GeneratedDatabase["public"]["Functions"];
 type LoanPeopleTable = {
-  Row: { id: string; household_id: string; name: string };
-  Insert: { id?: string; household_id: string; name: string };
-  Update: { name?: string };
+  Row: { id: string; household_id: string; name: string; emoji: string; color: string };
+  Insert: { id?: string; household_id: string; name: string; emoji?: string; color?: string };
+  Update: { emoji?: string; color?: string };
   Relationships: [];
 };
 type LoanPeopleFunctions = {

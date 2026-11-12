@@ -18,7 +18,11 @@ export const optionalDate = z
 export const loanPersonName = z.string().trim().min(1, "Escribe un nombre").max(100);
 export const loanPersonSelection = z.union([z.literal("manual"), optionalId])
   .transform((value) => value === "manual" ? null : value);
-export type LoanPerson = { id: string; name: string };
+export const loanPersonAppearance = z.object({
+  emoji: z.string().max(32).regex(new RegExp("^\\p{RGI_Emoji}$", "v"), "Elige un emoji del selector"),
+  color: z.string().regex(/^#[0-9a-fA-F]{6}$/, "Elige un color válido"),
+});
+export type LoanPerson = { id: string; name: string; emoji: string; color: string };
 export const loanSchema = z
   .object({
     debtor: z.string().trim().min(1, "Escribe el deudor").max(100),

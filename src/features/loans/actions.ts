@@ -4,7 +4,7 @@ import { z } from "zod";
 import { requireModule } from "@/features/permissions/queries";
 import { canAccess } from "@/features/permissions/modules";
 import type { FormState } from "@/features/auth/schemas";
-import { debtSchema, loanEditSchema, loanPersonName, loanPersonSelection, loanSchema, repaymentSchema } from "./schemas";
+import { debtSchema, loanEditSchema, loanPersonAppearance, loanPersonName, loanPersonSelection, loanSchema, repaymentSchema } from "./schemas";
 function refresh() {
   for (const path of [
     "/loans",
@@ -16,11 +16,29 @@ function refresh() {
   ])
     revalidatePath(path);
 }
-export async function createLoanPerson(_: FormState, form: FormData): Promise<FormState> {
+export async function saveLoanPerson(_: FormState, form: FormData): Promise<FormState> {
   const { supabase, profile } = await requireModule("loans", "edit");
+  const appearance = loanPersonAppearance.safeParse(Object.fromEntries(form));
+  if (!appearance.success) return { error: appearance.error.issues[0].message };
+  const id = form.get("id");
+  if (id) {
+    const person = z.string().uuid().safeParse(id);
+    if (!person.success) return { error: "Persona inválida." };
+    const { data, error } = await supabase.from("loan_people")
+      .update(appearance.data)
+      .eq("id", person.data)
+      .eq("household_id", profile.household_id)
+      .select("id")
+      .maybeSingle();
+    if (error || !data) return { error: "No se pudo actualizar la persona." };
+    revalidatePath("/loans");
+    return { ok: "Apariencia actualizada." };
+  }
   const name = loanPersonName.safeParse(form.get("name"));
   if (!name.success) return { error: name.error.issues[0].message };
-  const { error } = await supabase.from("loan_people").insert({ household_id: profile.household_id, name: name.data });
+  const { error } = await supabase.from("loan_people").insert({
+    household_id: profile.household_id, name: name.data, ...appearance.data,
+  });
   if (error) return { error: error.code === "23505" ? "Ya existe una persona con ese nombre." : "No se pudo guardar la persona." };
   revalidatePath("/loans");
   return { ok: "Persona agregada al catálogo." };

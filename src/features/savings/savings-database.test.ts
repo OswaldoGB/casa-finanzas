@@ -129,6 +129,13 @@ describe("personas de préstamos", () => {
       await db.exec("set local role authenticated; savepoint cross_household");
       const people = await db.query<{ id: string }>("select id from loan_people");
       expect(people.rows).toEqual([{ id: person }]);
+      const customized = await db.query<{ emoji: string; color: string }>(
+        "update loan_people set emoji='🦊', color='#db2777' where id=$1 returning emoji,color",
+        [person],
+      );
+      expect(customized.rows).toEqual([{ emoji: "🦊", color: "#db2777" }]);
+      const foreignUpdate = await db.query("update loan_people set color='#16a34a' where id=$1 returning id", [otherPerson]);
+      expect(foreignUpdate.rows).toEqual([]);
       await expect(db.query("select loan_set_person($1,$2)", [old, otherPerson])).rejects.toThrow("Persona no disponible");
       await db.exec("rollback to cross_household");
       await db.query("select loan_set_person($1,null)", [old]);

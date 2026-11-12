@@ -28,7 +28,7 @@ export async function getLoans() {
         .select("timezone")
         .eq("id", profile.household_id)
         .single(),
-      supabase.from("loan_people").select("id,name").eq("household_id", profile.household_id).order("name"),
+      supabase.from("loan_people").select("id,name,emoji,color").eq("household_id", profile.household_id).order("name"),
     ]);
   if (
     snapshot.error ||
