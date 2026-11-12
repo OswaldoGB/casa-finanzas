@@ -15,6 +15,10 @@ export const optionalId = z
 export const optionalDate = z
   .union([z.literal(""), z.string().date("Fecha inválida")])
   .transform((v) => v || null);
+export const loanPersonName = z.string().trim().min(1, "Escribe un nombre").max(100);
+export const loanPersonSelection = z.union([z.literal("manual"), optionalId])
+  .transform((value) => value === "manual" ? null : value);
+export type LoanPerson = { id: string; name: string };
 export const loanSchema = z
   .object({
     debtor: z.string().trim().min(1, "Escribe el deudor").max(100),
@@ -63,6 +67,7 @@ export const debtSchema = z
 export const loanSnapshotSchema = z.array(
   z.object({
     id: z.string().uuid(),
+    person_id: z.string().uuid().nullish(),
     direction: z.enum(["lent", "borrowed"]).default("lent"),
     debtor: z.string(),
     amount: z.number(),

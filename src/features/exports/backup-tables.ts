@@ -11,6 +11,7 @@ export const BACKUP_TABLES = [
   "inventory_items",
   "inventory_packages",
   "inventory_package_events",
+  "loan_people",
   "loans",
   "payment_methods",
   "profiles",

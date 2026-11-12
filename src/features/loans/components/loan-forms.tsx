@@ -2,11 +2,12 @@
 
 import { MoneyInput } from "@/components/ui/money-input";
 
-import { useActionState } from "react";
+import { useActionState, useId, useState } from "react";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { FormSelect } from "@/components/ui/form-select";
 import type { FormState } from "@/features/auth/schemas";
 import { createLoan, payDebt, repayLoan, saveDebt, updateLoan, writeOffLoan } from "../actions";
-import type { Loan } from "../schemas";
+import type { Loan, LoanPerson } from "../schemas";
 const field =
   "border-input bg-background h-11 w-full rounded-lg border px-3 text-sm";
 const button =
@@ -90,26 +91,51 @@ function MoneyDateAccount({
     </>
   );
 }
+function LoanPersonField({ people, name }: { people: LoanPerson[]; name: "debtor" | "creditor" }) {
+  const id = useId();
+  const [selected, setSelected] = useState("");
+  const person = people.find((entry) => entry.id === selected);
+  const label = name === "debtor" ? "Persona a quien prestas" : "¿A quién le debes?";
+  return (
+    <div className="grid gap-2">
+      {people.length > 0 && (
+        <>
+          <label htmlFor={id} className="text-sm">{label}</label>
+          <FormSelect
+            id={id}
+            name="person_id"
+            value={selected}
+            onValueChange={setSelected}
+            placeholder="Elige una persona"
+            options={[...people.map(({ id, name }) => ({ value: id, label: name })), { value: "manual", label: "Escribir nombre sin vincular" }]}
+          />
+        </>
+      )}
+      {person ? (
+        <input type="hidden" name={name} value={person.name} />
+      ) : (
+        <label className="grid gap-1.5 text-sm">
+          {people.length ? "Nombre sin vincular" : label}
+          <input name={name} maxLength={100} required className={field} />
+        </label>
+      )}
+    </div>
+  );
+}
+
 export function CreateLoanForm({
   today,
   sourceAccounts,
+  people,
 }: {
   today: string;
   sourceAccounts: { id: string; name: string; type: string }[];
+  people: LoanPerson[];
 }) {
   const [state, action, pending] = useActionState(createLoan, undefined);
   return (
     <form action={action} className="grid gap-4">
-      <label className="grid gap-1.5 text-sm" htmlFor="loan-debtor">
-        Persona a quien prestas
-        <input
-          id="loan-debtor"
-          name="debtor"
-          maxLength={100}
-          required
-          className={field}
-        />
-      </label>
+      <LoanPersonField people={people} name="debtor" />
       <MoneyDateAccount
         prefix="new-loan"
         today={today}
@@ -345,24 +371,24 @@ export function WriteOffLoanForm({ loan }: { loan: Loan }) {
 }
 
 /** Deuda que debo: a quién, cuánto y para cuándo. No mueve dinero al guardarla. */
-export function DebtForm({ today, debt }: { today: string; debt?: Loan }) {
+export function DebtForm({ today, debt, people = [] }: { today: string; debt?: Loan; people?: LoanPerson[] }) {
   const [state, action, pending] = useActionState(saveDebt, undefined);
   const prefix = debt?.id ?? "new-debt";
   return (
     <form action={action} className="grid gap-3">
       {debt && <input type="hidden" name="id" value={debt.id} />}
-      <label className="grid gap-1.5 text-sm" htmlFor={`${prefix}-creditor`}>
+      {debt ? <label className="grid gap-1.5 text-sm" htmlFor={`${prefix}-creditor`}>
         ¿A quién le debes?
         <input
           id={`${prefix}-creditor`}
           name="creditor"
           required
           maxLength={100}
-          defaultValue={debt?.debtor}
+          defaultValue={debt.debtor}
           placeholder="Mi hermano"
           className={field}
         />
-      </label>
+      </label> : <LoanPersonField people={people} name="creditor" />}
       <label className="grid gap-1.5 text-sm" htmlFor={`${prefix}-amount`}>
         ¿Cuánto? (USD)
         <MoneyInput

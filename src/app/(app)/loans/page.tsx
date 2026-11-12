@@ -11,6 +11,10 @@ import {
 } from "@/features/loans/components/loan-forms";
 import Link from "next/link";
 import { formatUSD } from "@/lib/format";
+import { decimalToCents } from "@/features/finance/balances";
+import { FormSelect } from "@/components/ui/form-select";
+import { ActionForm } from "@/features/projects/components/action-form";
+import { createLoanPerson, setLoanPerson } from "@/features/loans/actions";
 import { organizeLoans, readLoanFilters } from "@/features/loans/filters";
 import type { Loan } from "@/features/loans/schemas";
 export const metadata = { title: "Préstamos y deudas" };
@@ -26,13 +30,14 @@ function LoanCard({
   data: Awaited<ReturnType<typeof getLoans>>;
 }) {
   const owed = loan.direction === "borrowed";
+  const person = data.people.find((entry) => entry.id === loan.person_id);
   return (
     <article
       id={loan.id}
       className={`bg-card rounded-2xl border p-5 ${loan.overdue ? "border-destructive" : ""}`}
     >
       <div className="flex items-start justify-between gap-3">
-        <h3 className="min-w-0 font-semibold">{loan.debtor}</h3>
+        <h3 className="min-w-0 break-words font-semibold">{person?.name ?? loan.debtor}</h3>
         <div className="flex shrink-0 items-center gap-2">
           <span className="text-sm">
             {loan.status === "paid"
@@ -65,6 +70,9 @@ function LoanCard({
           )}
         </div>
       </div>
+      {person && person.name !== loan.debtor && (
+        <p className="text-muted-foreground mt-1 text-xs">Nombre registrado: {loan.debtor}</p>
+      )}
       <p className="mt-3 text-2xl font-semibold">{formatUSD(loan.pending)}</p>
       <p className="text-muted-foreground mt-1 text-sm">
         {owed
@@ -90,6 +98,23 @@ function LoanCard({
       )}
       {loan.notes && (
         <p className="mt-3 text-sm whitespace-pre-wrap">{loan.notes}</p>
+      )}
+      {data.canEdit && data.people.length > 0 && (
+        <details className="mt-4">
+          <summary className="cursor-pointer text-sm">{person ? "Cambiar persona vinculada" : "Vincular a una persona"}</summary>
+          <ActionForm action={setLoanPerson} label="Guardar vínculo" className="mt-3 max-w-sm space-y-2">
+            <input type="hidden" name="id" value={loan.id} />
+            <label htmlFor={`person-${loan.id}`} className="text-sm">Persona del catálogo</label>
+            <FormSelect
+              key={loan.person_id ?? "manual"}
+              id={`person-${loan.id}`}
+              name="person_id"
+              defaultValue={loan.person_id ?? "manual"}
+              placeholder="Elige una persona"
+              options={[{ value: "manual", label: "Sin vincular" }, ...data.people.map(({ id, name }) => ({ value: id, label: name }))]}
+            />
+          </ActionForm>
+        </details>
       )}
       {loan.status === "active" && (
         <>
@@ -118,11 +143,61 @@ function LoanCard({
   );
 }
 
+function LoansByPerson({ data }: { data: Awaited<ReturnType<typeof getLoans>> }) {
+  const unlinked = data.loans.filter((loan) => !loan.person_id);
+  return (
+    <section aria-label="Préstamos por persona" className="space-y-4">
+      {data.canEdit && (
+        <details className="bg-card rounded-2xl border p-4">
+          <summary className="cursor-pointer font-semibold">Agregar persona</summary>
+          <ActionForm action={createLoanPerson} label="Guardar persona" className="mt-4 max-w-sm space-y-3">
+            <label className="grid gap-1.5 text-sm">
+              Nombre
+              <input name="name" required maxLength={100} className="border-input bg-background rounded-lg border px-3 py-2.5" />
+            </label>
+          </ActionForm>
+        </details>
+      )}
+      {data.people.length === 0 && <p className="text-muted-foreground text-sm">Todavía no hay personas en el catálogo.</p>}
+      {data.people.map((person) => {
+        const loans = data.loans.filter((loan) => loan.person_id === person.id);
+        const pending = (direction: Loan["direction"]) =>
+          loans.reduce((total, loan) => total + (loan.direction === direction ? decimalToCents(loan.pending) : 0), 0) / 100;
+        return (
+          <details key={person.id} className="bg-card rounded-2xl border p-4">
+            <summary className="cursor-pointer">
+              <span className="font-semibold">{person.name}</span>
+              <span className="text-muted-foreground mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm">
+                <span>Me debe <strong className="text-foreground tabular-nums">{formatUSD(pending("lent"))}</strong></span>
+                <span>Le debo <strong className="text-foreground tabular-nums">{formatUSD(pending("borrowed"))}</strong></span>
+              </span>
+            </summary>
+            <div className="mt-4 space-y-3">
+              {loans.length ? loans.map((loan) => <LoanCard key={loan.id} loan={loan} data={data} />) : (
+                <p className="text-muted-foreground text-sm">Todavía no hay préstamos vinculados.</p>
+              )}
+            </div>
+          </details>
+        );
+      })}
+      {unlinked.length > 0 && (
+        <details className="bg-card rounded-2xl border p-4">
+          <summary className="cursor-pointer font-semibold">Sin persona vinculada ({unlinked.length})</summary>
+          <div className="mt-4 space-y-3">
+            {unlinked.map((loan) => <LoanCard key={loan.id} loan={loan} data={data} />)}
+          </div>
+        </details>
+      )}
+    </section>
+  );
+}
+
 export default async function LoansPage({ searchParams }: LoansPageProps) {
   const data = await getLoans();
   const params = await searchParams;
   const { filter, sort } = readLoanFilters(params);
   const owed = params.tab === "debo";
+  const byPerson = params.tab === "personas";
   const loans = data.loans.filter((l) => l.direction === (owed ? "borrowed" : "lent"));
   const organized = organizeLoans(loans, filter, sort);
   const tab = (value: string, label: string, active: boolean) => (
@@ -139,20 +214,21 @@ export default async function LoansPage({ searchParams }: LoansPageProps) {
       <header>
         <h1 className="text-2xl font-semibold">Préstamos y deudas</h1>
         <p className="text-muted-foreground mt-2 text-sm">
-          {owed
+          {byPerson ? "Consulta los saldos y préstamos de cada persona." : owed
             ? "Lo que te prestaron o pagaron por ti, y lo que vas abonando."
             : "El dinero que prestas y lo que has recuperado."}
         </p>
       </header>
-      <nav aria-label="Préstamos o deudas" className="bg-muted inline-flex rounded-xl p-1">
-        {tab("", "Me deben", !owed)}
+      <nav aria-label="Préstamos y deudas" className="bg-muted inline-flex flex-wrap rounded-xl p-1">
+        {tab("", "Me deben", !owed && !byPerson)}
         {tab("debo", "Debo", owed)}
+        {tab("personas", "Por persona", byPerson)}
       </nav>
         <div className="mt-4">
         <NewLoanDialog title={owed ? "Nueva deuda" : "Nuevo préstamo"}>
           {owed ? (
             data.canEdit ? (
-              <DebtForm today={data.today} />
+              <DebtForm today={data.today} people={data.people} />
             ) : (
               <p className="text-muted-foreground text-sm">Necesitas permiso de edición en préstamos.</p>
             )
@@ -160,6 +236,7 @@ export default async function LoansPage({ searchParams }: LoansPageProps) {
             <CreateLoanForm
               today={data.today}
               sourceAccounts={data.sourceAccounts}
+              people={data.people}
             />
           ) : (
             <p className="text-muted-foreground text-sm">
@@ -169,6 +246,7 @@ export default async function LoansPage({ searchParams }: LoansPageProps) {
           )}
         </NewLoanDialog>
         </div>
+      {byPerson ? <LoansByPerson data={data} /> : <>
       <ExportButtons target="loans" />
       <div className="stagger grid gap-3 sm:grid-cols-3">
         {[
@@ -268,6 +346,7 @@ export default async function LoansPage({ searchParams }: LoansPageProps) {
         </section>
 
       </div>
+      </>}
     </div>
   );
 }

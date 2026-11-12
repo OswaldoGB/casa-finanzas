@@ -95,6 +95,51 @@ describe("catálogo base y orden", () => {
   });
 });
 
+describe("personas de préstamos", () => {
+  it("agrupa los préstamos en ambas direcciones y permite vincular los anteriores sin crear abonos", async () => {
+    await db.exec("begin");
+    try {
+      const person = (await db.query<{ id: string }>(
+        "insert into loan_people(household_id,name) values ($1,'Ana') returning id",
+        [home],
+      )).rows[0].id;
+      const account = (await db.query<{ id: string }>(
+        "insert into accounts(household_id,created_by,name,type,opening_balance) values ($1,$2,'Caja','cash',100) returning id",
+        [home, user],
+      )).rows[0].id;
+      await db.query("select loan_create_for_person($1,'lent',25,'2026-10-01',p_account_id => $2)", [person, account]);
+      const old = (await db.query<{ id: string }>("select debt_create('Ana anterior',15,'2026-10-01') id")).rows[0].id;
+      await db.query("select loan_set_person($1,$2)", [old, person]);
+      await db.query("select loan_create_for_person($1,'borrowed',10,'2026-10-01')", [person]);
+      const { rows } = await db.query<{ snapshot: { person_id: string; direction: string; pending: number; debtor: string }[] }>(
+        "select loan_snapshot('loans') snapshot",
+      );
+      expect(rows[0].snapshot.filter((loan) => loan.person_id === person)).toEqual(expect.arrayContaining([
+        expect.objectContaining({ direction: "lent", pending: 25, debtor: "Ana" }),
+        expect.objectContaining({ direction: "borrowed", pending: 15, debtor: "Ana anterior" }),
+        expect.objectContaining({ direction: "borrowed", pending: 10, debtor: "Ana" }),
+      ]));
+      const movements = await db.query<{ count: number }>("select count(*)::int count from transactions where loan_id=$1", [old]);
+      expect(movements.rows[0].count).toBe(0);
+      const otherHome = (await db.query<{ id: string }>("insert into households(name) values ('Otro hogar') returning id")).rows[0].id;
+      const otherPerson = (await db.query<{ id: string }>(
+        "insert into loan_people(household_id,name) values ($1,'Persona de otro hogar') returning id",
+        [otherHome],
+      )).rows[0].id;
+      await db.exec("set local role authenticated; savepoint cross_household");
+      const people = await db.query<{ id: string }>("select id from loan_people");
+      expect(people.rows).toEqual([{ id: person }]);
+      await expect(db.query("select loan_set_person($1,$2)", [old, otherPerson])).rejects.toThrow("Persona no disponible");
+      await db.exec("rollback to cross_household");
+      await db.query("select loan_set_person($1,null)", [old]);
+      const unlinked = await db.query<{ snapshot: { id: string; person_id: string | null }[] }>("select loan_snapshot('loans') snapshot");
+      expect(unlinked.rows[0].snapshot.find((loan) => loan.id === old)?.person_id).toBeNull();
+    } finally {
+      await db.exec("rollback");
+    }
+  });
+});
+
 describe("reservas de fondos", () => {
   it("«Ya lo compré» usa lo apartado y reinicia el ciclo con la misma duración", async () => {
     const p = "00000000-0000-4000-8000-000000000010";

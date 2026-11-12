@@ -4,7 +4,7 @@ import { z } from "zod";
 import { requireModule } from "@/features/permissions/queries";
 import { canAccess } from "@/features/permissions/modules";
 import type { FormState } from "@/features/auth/schemas";
-import { debtSchema, loanEditSchema, loanSchema, repaymentSchema } from "./schemas";
+import { debtSchema, loanEditSchema, loanPersonName, loanPersonSelection, loanSchema, repaymentSchema } from "./schemas";
 function refresh() {
   for (const path of [
     "/loans",
@@ -16,6 +16,27 @@ function refresh() {
   ])
     revalidatePath(path);
 }
+export async function createLoanPerson(_: FormState, form: FormData): Promise<FormState> {
+  const { supabase, profile } = await requireModule("loans", "edit");
+  const name = loanPersonName.safeParse(form.get("name"));
+  if (!name.success) return { error: name.error.issues[0].message };
+  const { error } = await supabase.from("loan_people").insert({ household_id: profile.household_id, name: name.data });
+  if (error) return { error: error.code === "23505" ? "Ya existe una persona con ese nombre." : "No se pudo guardar la persona." };
+  revalidatePath("/loans");
+  return { ok: "Persona agregada al catálogo." };
+}
+
+export async function setLoanPerson(_: FormState, form: FormData): Promise<FormState> {
+  const { supabase } = await requireModule("loans", "edit");
+  const id = z.string().uuid().safeParse(form.get("id"));
+  const person = loanPersonSelection.safeParse(form.get("person_id"));
+  if (!id.success || !person.success) return { error: "Revisa el préstamo y la persona seleccionada." };
+  const { error } = await supabase.rpc("loan_set_person", { p_loan_id: id.data, p_person_id: person.data });
+  if (error) return { error: error.message };
+  refresh();
+  return { ok: person.data ? "Persona vinculada." : "Persona desvinculada." };
+}
+
 export async function createLoan(
   _: FormState,
   form: FormData,
@@ -33,15 +54,19 @@ export async function createLoan(
       fieldErrors: parsed.error.flatten().fieldErrors,
     };
   const v = parsed.data;
-  const result = await supabase.rpc("loan_create_with_balance_effect", {
-    p_debtor: v.debtor,
+  const person = loanPersonSelection.safeParse(form.get("person_id") ?? "");
+  if (!person.success) return { error: "Persona inválida." };
+  const values = {
     p_amount: v.amount,
     p_date: v.date,
     p_expected_payment_date: v.expected_payment_date || undefined,
     p_notes: v.notes,
     p_account_id: v.account_id,
     p_already_recorded: v.balance_effect === "already_recorded",
-  });
+  };
+  const result = person.data
+    ? await supabase.rpc("loan_create_for_person", { ...values, p_person_id: person.data, p_direction: "lent" })
+    : await supabase.rpc("loan_create_with_balance_effect", { ...values, p_debtor: v.debtor });
   if (result.error) return { error: result.error.message };
   refresh();
   return {
@@ -87,6 +112,8 @@ export async function saveDebt(
   if (!parsed.success)
     return { error: parsed.error.issues[0].message, fieldErrors: parsed.error.flatten().fieldErrors };
   const v = parsed.data;
+  const person = loanPersonSelection.safeParse(form.get("person_id") ?? "");
+  if (!person.success) return { error: "Persona inválida." };
   const result = v.id
     ? await supabase.rpc("loan_update", {
         p_loan_id: v.id,
@@ -97,7 +124,16 @@ export async function saveDebt(
         p_notes: v.notes,
         p_already_recorded: false,
       })
-    : await supabase.rpc("debt_create", {
+    : person.data
+      ? await supabase.rpc("loan_create_for_person", {
+        p_person_id: person.data,
+        p_direction: "borrowed",
+        p_amount: v.amount,
+        p_date: v.date,
+        p_expected_payment_date: v.expected_payment_date || undefined,
+        p_notes: v.notes,
+      })
+      : await supabase.rpc("debt_create", {
         p_creditor: v.creditor,
         p_amount: v.amount,
         p_date: v.date,

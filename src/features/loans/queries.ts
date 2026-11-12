@@ -6,7 +6,7 @@ import { loanSnapshotSchema } from "./schemas";
 
 export async function getLoans() {
   const { supabase, profile, permissions } = await requireModule("loans");
-  const [snapshot, sourceAccounts, depositAccounts, household] =
+  const [snapshot, sourceAccounts, depositAccounts, household, people] =
     await Promise.all([
       supabase.rpc("loan_snapshot", { p_module: "loans" }),
       supabase
@@ -28,16 +28,19 @@ export async function getLoans() {
         .select("timezone")
         .eq("id", profile.household_id)
         .single(),
+      supabase.from("loan_people").select("id,name").eq("household_id", profile.household_id).order("name"),
     ]);
   if (
     snapshot.error ||
     sourceAccounts.error ||
     depositAccounts.error ||
-    household.error
+    household.error ||
+    people.error
   )
     throw new Error("No se pudieron cargar los préstamos.");
   return {
     loans: loanSnapshotSchema.parse(snapshot.data),
+    people: people.data,
     sourceAccounts: sourceAccounts.data ?? [],
     depositAccounts: depositAccounts.data ?? [],
     today: todayInTimeZone(new Date(), household.data!.timezone),

@@ -17,6 +17,31 @@ export { Constants } from "./database.generated";
 // PostgreSQL functions accept NULL for these optional business references;
 // the generator does not infer argument nullability from function bodies.
 type Functions = GeneratedDatabase["public"]["Functions"];
+type LoanPeopleTable = {
+  Row: { id: string; household_id: string; name: string };
+  Insert: { id?: string; household_id: string; name: string };
+  Update: { name?: string };
+  Relationships: [];
+};
+type LoanPeopleFunctions = {
+  loan_set_person: {
+    Args: { p_loan_id: string; p_person_id: string | null };
+    Returns: undefined;
+  };
+  loan_create_for_person: {
+    Args: {
+      p_person_id: string;
+      p_direction: "lent" | "borrowed";
+      p_amount: number;
+      p_date: string;
+      p_expected_payment_date?: string;
+      p_notes?: string;
+      p_account_id?: string;
+      p_already_recorded?: boolean;
+    };
+    Returns: string;
+  };
+};
 type NullableArgs<F extends { Args: object }, K extends keyof F["Args"]> = Omit<
   F,
   "Args"
@@ -44,7 +69,7 @@ type Overrides = {
 };
 export type Database = Omit<GeneratedDatabase, "public"> & {
   public: Omit<GeneratedDatabase["public"], "Functions" | "Tables"> & {
-    Tables: GeneratedDatabase["public"]["Tables"] & ReminderTables & InventoryTables;
-    Functions: Omit<Functions, keyof Overrides> & Overrides & ReminderFunctions & InventoryFunctions;
+    Tables: GeneratedDatabase["public"]["Tables"] & ReminderTables & InventoryTables & { loan_people: LoanPeopleTable };
+    Functions: Omit<Functions, keyof Overrides> & Overrides & ReminderFunctions & InventoryFunctions & LoanPeopleFunctions;
   };
 };
