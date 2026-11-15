@@ -74,8 +74,6 @@ export default async function DashboardPage() {
     savings.loans
       .filter((loan) => loan.direction === "borrowed")
       .reduce((sum, loan) => sum + Math.round(loan.pending * 100), 0) / 100;
-  const worthWithDebts =
-    Math.round((accountNetWorth(data.accounts) + pendingLoans) * 100) / 100;
   const accountsForAvailableWorth = data.accounts.map((account) => ({
     ...account,
     futureInstallments: data.futureInstallmentsByCard.get(account.id),
@@ -90,6 +88,8 @@ export default async function DashboardPage() {
     .filter((item) => item.date >= data.today && item.date <= end)
     .sort((a, b) => a.date.localeCompare(b.date));
   const funds = spendableBalance(data.accounts, savings.goals);
+  const availableWorth = availableNetWorth(worth, funds.reserved);
+  const availableWorthAfterDebts = availableNetWorth(availableWorth, owedDebts);
   const cashFlow = cashFlowPoints(data.today, data.accounts, upcoming);
   const projected = cashFlow.at(-1)?.balance ?? 0;
   const lowest = Math.min(...cashFlow.map((point) => point.balance));
@@ -169,7 +169,7 @@ export default async function DashboardPage() {
             <Wallet className="size-4 shrink-0 opacity-75" aria-hidden />
           </h2>
           <p className={summaryAmount}>
-            <CountUp value={availableNetWorth(worth, funds.reserved)} />
+            <CountUp value={availableWorth} />
           </p>
           <p className="text-xs">
             Patrimonio incluyendo metas: <strong>{money.format(worth)}</strong>
@@ -181,7 +181,7 @@ export default async function DashboardPage() {
             <HandCoins className="size-4 shrink-0" aria-hidden />
           </h2>
           <p className={summaryAmount}>
-            <CountUp value={availableNetWorth(worthWithDebts, funds.reserved)} />
+            <CountUp value={availableWorthAfterDebts} />
           </p>
           <p className="text-muted-foreground text-xs">
             {owedDebts > 0

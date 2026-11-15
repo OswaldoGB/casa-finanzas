@@ -10,7 +10,7 @@ export default {
       text: "Las tarjetas superiores resumen tu situación actual.",
       tips: [
         "**Patrimonio neto disponible**: suma tus cuentas y préstamos por cobrar y descuenta las reservas y la deuda de tarjeta. Cada cuota entra en el cálculo al llegar su corte.",
-        "**Patrimonio después de deudas**: incluye el saldo total de las tarjetas y descuenta lo que debes en **Debo**.",
+        "**Patrimonio después de deudas**: toma el patrimonio neto disponible y descuenta lo que debes en **Debo**.",
         "**Ingresos del mes** y **Gastos del mes**: solo cuentan movimientos publicados; los pendientes no suman hasta confirmarse.",
         "Debajo de los gastos verás el **Balance del mes**: en verde si ingresó más de lo que gastaste, en rojo si no.",
       ],
