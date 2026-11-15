@@ -9,6 +9,7 @@ import {
   CheckCircle2,
   ChevronRight,
   CreditCard,
+  GitCommitHorizontal,
   HandCoins,
   Landmark,
   ReceiptText,
@@ -27,8 +28,11 @@ import { budgetProgress } from "@/features/budgets/schemas";
 import { getDashboardSavings } from "@/features/dashboard/queries";
 import { CardArtwork } from "@/features/accounts/components/card-artwork";
 import { UpcomingReminders } from "@/features/dashboard/components/upcoming-reminders";
+import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 export const metadata = { title: "Inicio" };
+const buildCommit = process.env.NEXT_PUBLIC_BUILD_COMMIT_SHA;
 const money = new Intl.NumberFormat("en-US", {
   style: "currency",
   currency: "USD",
@@ -127,9 +131,26 @@ export default async function DashboardPage() {
   return (
     <div className="mx-auto w-full max-w-6xl min-w-0 space-y-6">
       <header>
-        <p className="text-muted-foreground text-sm capitalize">
-          {month.format(new Date(`${data.today}T00:00:00Z`))}
-        </p>
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+          <p className="text-muted-foreground text-sm capitalize">
+            {month.format(new Date(`${data.today}T00:00:00Z`))}
+          </p>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button type="button" size="sm" variant="outline">
+                <GitCommitHorizontal aria-hidden /> Commit
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="start" aria-label="Commit de esta versión">
+              <p className="font-medium">Commit de esta versión</p>
+              {buildCommit ? (
+                <code className="wrap-anywhere text-xs select-all">{buildCommit}</code>
+              ) : (
+                <p className="text-muted-foreground">Commit no disponible.</p>
+              )}
+            </PopoverContent>
+          </Popover>
+        </div>
         <h1 className="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">
           Tu hogar, de un vistazo
         </h1>

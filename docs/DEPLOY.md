@@ -104,6 +104,13 @@ Reemplaza `TU_DOMINIO` por el dominio real. Usa las direcciones exactas de produ
 
 Publica desde Vercel y espera el estado **Ready**. Si modificaste las variables después de construir, utiliza **Redeploy**: las variables públicas se incorporan durante la construcción.
 
+El botón **Commit** de Inicio usa el SHA de Vercel. Para una publicación manual desde un checkout limpio ya enlazado, puedes pasar el SHA al compilar:
+
+```powershell
+$buildCommit = git rev-parse --verify HEAD
+npx vercel deploy --prod --build-env "NEXT_PUBLIC_BUILD_COMMIT_SHA=$buildCommit"
+```
+
 En una instalación nueva que aún no tenga administrador, abre de inmediato `https://TU_DOMINIO/setup` para crear tu hogar y la cuenta administradora, antes de compartir la dirección. Una vez creado el perfil, la aplicación deja de permitir otra configuración inicial. En la instalación actual este paso ya se completó antes de publicar: entra por `/login`.
 
 Desde Ajustes puedes crear la cuenta de tu pareja. Sus módulos empiezan sin acceso: asigna tú los permisos y comparte la contraseña inicial por un medio privado. Las cuentas de desarrollo no existen automáticamente en producción.
