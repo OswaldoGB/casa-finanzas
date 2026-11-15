@@ -18,15 +18,17 @@ export function spendableBalance(
   return { liquid: liquid / 100, reserved: reserved / 100, available: (liquid - reserved) / 100 };
 }
 
-export function accountNetWorth(accounts: readonly AccountBalance[]) {
+export function accountNetWorth(
+  accounts: readonly (AccountBalance & { futureInstallments?: number })[],
+) {
   return (
-    accounts.reduce(
-      (total, account) =>
-        total +
-        decimalToCents(account.balance) *
-          (account.type === "credit_card" ? -1 : 1),
-      0,
-    ) / 100
+    accounts.reduce((total, account) => {
+      const balance = decimalToCents(account.balance);
+      if (account.type !== "credit_card") return total + balance;
+      const future = decimalToCents(account.futureInstallments ?? 0);
+      // Un abono anticipado no convierte las cuotas futuras en saldo a favor.
+      return total - balance + Math.min(Math.max(0, balance), future);
+    }, 0) / 100
   );
 }
 

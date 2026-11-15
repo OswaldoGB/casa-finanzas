@@ -66,15 +66,18 @@ export default async function DashboardPage() {
         sum + (loan.direction === "borrowed" ? -1 : 1) * Math.round(loan.pending * 100),
       0,
     ) / 100;
-  // Principal: cuentas − tarjetas + lo que me deben (sin restar lo que debo en "Debo").
-  // Secundario: el mismo número menos lo que debo.
   const owedDebts =
     savings.loans
       .filter((loan) => loan.direction === "borrowed")
       .reduce((sum, loan) => sum + Math.round(loan.pending * 100), 0) / 100;
   const worthWithDebts =
     Math.round((accountNetWorth(data.accounts) + pendingLoans) * 100) / 100;
-  const worth = Math.round((worthWithDebts + owedDebts) * 100) / 100;
+  const accountsForAvailableWorth = data.accounts.map((account) => ({
+    ...account,
+    futureInstallments: data.futureInstallmentsByCard.get(account.id),
+  }));
+  const worth =
+    Math.round((accountNetWorth(accountsForAvailableWorth) + pendingLoans + owedDebts) * 100) / 100;
   const monthlyNet = data.totals.income - data.totals.expense;
   const until = new Date(`${data.today}T00:00:00Z`);
   until.setUTCDate(until.getUTCDate() + 14);

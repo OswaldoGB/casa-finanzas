@@ -7,9 +7,10 @@ export default {
   sections: [
     {
       title: "Las cifras de arriba",
-      text: "Las tres tarjetas superiores resumen tu situación actual.",
+      text: "Las tarjetas superiores resumen tu situación actual.",
       tips: [
-        "**Patrimonio neto**: tus cuentas menos lo que debes en tarjetas, más los préstamos por cobrar (lo que tú debes resta).",
+        "**Patrimonio neto disponible**: suma tus cuentas y préstamos por cobrar y descuenta las reservas y la deuda de tarjeta. Cada cuota entra en el cálculo al llegar su corte.",
+        "**Patrimonio después de deudas**: incluye el saldo total de las tarjetas y descuenta lo que debes en **Debo**.",
         "**Ingresos del mes** y **Gastos del mes**: solo cuentan movimientos publicados; los pendientes no suman hasta confirmarse.",
         "Debajo de los gastos verás el **Balance del mes**: en verde si ingresó más de lo que gastaste, en rojo si no.",
       ],
@@ -46,7 +47,6 @@ export default {
       title: "Ten en cuenta",
       tips: [
         "El saldo previsto solo incluye lo que ya programaste; no considera gastos o ingresos que aún no registras como recurrentes.",
-        "El saldo de una tarjeta es deuda: por eso resta en el patrimonio neto.",
         "Toca el ícono del ojo en la barra superior para ocultar todos los montos antes de tomar una captura. Vuelve a tocarlo para mostrarlos.",
       ],
     },

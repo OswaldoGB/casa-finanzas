@@ -25,6 +25,20 @@ describe("dashboard summary", () => {
     ).toBe(250);
   });
 
+  it.each([
+    { cash: 1000, balance: 650, futureInstallments: 600, worth: 950 },
+    { cash: 1000, balance: 650, futureInstallments: 500, worth: 850 },
+    { cash: 1000, balance: 650, futureInstallments: 400, worth: 750 },
+    { cash: 925, balance: 575, futureInstallments: 400, worth: 750 },
+    { cash: 700, balance: 350, futureInstallments: 400, worth: 700 },
+    { cash: 300, balance: -50, futureInstallments: 400, worth: 350 },
+  ])("counts posted card debt with $futureInstallments in future installments and $balance in card balance", ({ cash, balance, futureInstallments, worth }) => {
+    expect(accountNetWorth([
+      { type: "checking", balance: cash },
+      { type: "credit_card", balance, futureInstallments },
+    ])).toBe(worth);
+  });
+
   it("projects signed payments by day from cash and bank balances", () => {
     expect(
       cashFlowPoints(

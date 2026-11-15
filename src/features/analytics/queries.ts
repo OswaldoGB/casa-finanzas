@@ -57,11 +57,9 @@ export async function getAnalytics(
     throw new Error("No se pudo cargar el resumen financiero.");
   const today = todayInTimeZone(new Date(), household.data.timezone);
   const range = reportDateRange(today, from, to);
-  const activeCards = catalog.data.filter(
-    (account) => account.type === "credit_card" && !account.is_archived,
-  );
-  // Saldos, snapshot y pendientes de tarjeta no dependen entre sí: una sola etapa.
-  const [datedBalances, { data, error }, unpaidByCard] = await Promise.all([
+  const cards = catalog.data.filter((account) => account.type === "credit_card");
+  const activeCards = cards.filter((card) => !card.is_archived);
+  const [datedBalances, { data, error }, unpaidByCard, futureInstallments] = await Promise.all([
     Promise.all(
       catalog.data.map(async (account) => {
         const result = await supabase.rpc("account_balance_on", {
@@ -92,6 +90,16 @@ export async function getAnalytics(
         if (unpaidError)
           throw new Error("No se pudo calcular el pago de tarjeta.");
         return { card, cycle, unpaid: Number(unpaid ?? 0) };
+      }),
+    ),
+    Promise.all(
+      (module === "dashboard" ? cards : []).map(async (card) => {
+        const { data, error } = await supabase.rpc("card_unbilled_installments", {
+          p_card_id: card.id,
+          p_date: today,
+        });
+        if (error) throw new Error("No se pudieron calcular las cuotas futuras.");
+        return [card.id, Number(data ?? 0)] as const;
       }),
     ),
   ]);
@@ -171,6 +179,7 @@ export async function getAnalytics(
     ...range,
     today,
     accounts,
+    futureInstallmentsByCard: new Map(futureInstallments),
     upcoming,
     categories: snapshot.categories.map((category) => ({
       ...category,
