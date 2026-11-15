@@ -22,6 +22,7 @@ import type { Manual } from "@/features/help/types";
 import { recentNotices } from "@/features/notifications/actions";
 import { NotificationList } from "@/features/notifications/components/notification-list";
 import { useInboxSync } from "@/features/notifications/components/notification-bell";
+import { CalculatorWidget } from "./calculator-widget";
 
 // Botonera oculta/visible: se recuerda en este navegador.
 const KEY = "casa.botonera";
@@ -47,7 +48,7 @@ type Notices = Awaited<ReturnType<typeof recentNotices>>;
 const railButton =
   "text-primary hover:bg-accent focus-visible:ring-ring relative grid size-10 place-items-center border-t outline-none focus-visible:ring-2 focus-visible:ring-inset";
 
-/** Botonera derecha: menú lateral, notificaciones y manual de la pantalla actual. */
+/** Botonera derecha: menú, notificaciones, calculadora y ayuda. */
 export function ToolsRail({
   unread,
   userId,
@@ -158,6 +159,7 @@ export function ToolsRail({
             )}
           </PopoverContent>
         </Popover>
+        <CalculatorWidget triggerClassName={railButton} />
         <button
           type="button"
           onClick={openHelp}
