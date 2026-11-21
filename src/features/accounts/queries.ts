@@ -145,12 +145,8 @@ export async function getAccount(id: string) {
       account.statement_closing_day!,
       account.payment_due_day!,
     );
-    const { data: balance, error } = await supabase.rpc("account_balance_on", {
-      p_account_id: id,
-      p_date: cycle.closesOn,
-    });
-    if (error) throw new Error("No se pudo calcular el estado de cuenta.");
     const [
+      balanceResult,
       unpaid,
       unbilled,
       loadedPlans,
@@ -158,6 +154,7 @@ export async function getAccount(id: string) {
       categoryResult,
       statementResult,
     ] = await Promise.all([
+      supabase.rpc("account_balance_on", { p_account_id: id, p_date: cycle.closesOn }),
       supabase.rpc("card_statement_unpaid", {
         p_account_id: id,
         p_close: cycle.closesOn,
@@ -207,6 +204,9 @@ export async function getAccount(id: string) {
         .eq("card_id", id)
         .order("closes_on"),
     ]);
+    if (balanceResult.error) throw new Error("No se pudo calcular el estado de cuenta.");
+    const balance = balanceResult.data;
+
     if (
       unpaid.error ||
       unbilled.error ||

@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { after } from "next/server";
 import { AppSidebar } from "@/components/app-shell/app-sidebar";
 import { BottomNav } from "@/components/app-shell/bottom-nav";
@@ -25,7 +26,6 @@ export default async function AppLayout({
     "reminders",
     "view",
   );
-  const unread = hasReminders ? await getNotificationUnreadCount() : 0;
   // Respaldo del cron diario: corre después de enviar la respuesta para no
   // bloquear el render. Lo generado aparece en la siguiente navegación.
   after(async () => {
@@ -64,13 +64,22 @@ export default async function AppLayout({
           <PageTransition>{children}</PageTransition>
         </div>
       </SidebarInset>
-      <ToolsRail
-        unread={unread}
-        userId={profile.id}
-        hasReminders={hasReminders}
-        manuals={visibleManuals(profile.role, permissions)}
-      />
+      <Suspense>
+        <AppToolsRail
+          userId={profile.id}
+          hasReminders={hasReminders}
+          manuals={visibleManuals(profile.role, permissions)}
+        />
+      </Suspense>
       <BottomNav role={profile.role} permissions={permissions} />
     </SidebarProvider>
   );
+}
+
+async function AppToolsRail(props: Omit<React.ComponentProps<typeof ToolsRail>, "unread">) {
+  const unread = props.hasReminders ? await getNotificationUnreadCount().catch((error) => {
+    console.error("No se pudieron contar los avisos.", error);
+    return 0;
+  }) : 0;
+  return <ToolsRail {...props} unread={unread} />;
 }

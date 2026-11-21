@@ -40,13 +40,13 @@ export async function getAnalytics(
         .from("categories")
         .select("id,icon")
         .eq("household_id", profile.household_id),
-      supabase
+      module === "dashboard" ? supabase
         .from("card_statements")
         .select(
           "card_id,closes_on,due_on,bank_cash_due,card_statement_allocations(amount)",
         )
         .eq("household_id", profile.household_id)
-        .order("due_on"),
+        .order("due_on") : { data: [], error: null },
     ]);
   if (
     household.error ||
@@ -57,52 +57,27 @@ export async function getAnalytics(
     throw new Error("No se pudo cargar el resumen financiero.");
   const today = todayInTimeZone(new Date(), household.data.timezone);
   const range = reportDateRange(today, from, to);
-  const cards = catalog.data.filter((account) => account.type === "credit_card");
-  const activeCards = cards.filter((card) => !card.is_archived);
-  const [datedBalances, { data, error }, unpaidByCard, futureInstallments] = await Promise.all([
-    Promise.all(
-      catalog.data.map(async (account) => {
-        const result = await supabase.rpc("account_balance_on", {
-          p_account_id: account.id,
-          p_date: today,
-        });
-        if (result.error)
-          throw new Error("No se pudieron calcular los saldos de hoy.");
-        return [account.id, Number(result.data ?? 0)] as const;
-      }),
-    ),
+  const activeCards = module === "dashboard"
+    ? catalog.data.filter((account) => account.type === "credit_card" && !account.is_archived)
+    : [];
+  const cardCycles = activeCards.map((card) => ({
+    card,
+    cycle: cardStatementCycle(today, card.statement_closing_day!, card.payment_due_day!),
+  }));
+  const [totals, { data, error }] = await Promise.all([
+    supabase.rpc("analytics_account_totals", {
+      p_date: today,
+      p_card_closes: module === "dashboard"
+        ? Object.fromEntries(cardCycles.map(({ card, cycle }) => [card.id, cycle.closesOn]))
+        : null,
+    }),
     supabase.rpc("analytics_snapshot", {
       p_from: range.from,
       p_to: range.to,
       p_module: module,
     }),
-    Promise.all(
-      activeCards.map(async (card) => {
-        const cycle = cardStatementCycle(
-          today,
-          card.statement_closing_day!,
-          card.payment_due_day!,
-        );
-        const { data: unpaid, error: unpaidError } = await supabase.rpc(
-          "card_statement_unpaid",
-          { p_account_id: card.id, p_close: cycle.closesOn, p_today: today },
-        );
-        if (unpaidError)
-          throw new Error("No se pudo calcular el pago de tarjeta.");
-        return { card, cycle, unpaid: Number(unpaid ?? 0) };
-      }),
-    ),
-    Promise.all(
-      (module === "dashboard" ? cards : []).map(async (card) => {
-        const { data, error } = await supabase.rpc("card_unbilled_installments", {
-          p_card_id: card.id,
-          p_date: today,
-        });
-        if (error) throw new Error("No se pudieron calcular las cuotas futuras.");
-        return [card.id, Number(data ?? 0)] as const;
-      }),
-    ),
   ]);
+  if (totals.error) throw new Error("No se pudieron calcular los saldos de hoy.");
   if (error) throw new Error("No se pudieron cargar los reportes.");
   const snapshot = analyticsSnapshotSchema.parse(data);
   const categoryIcons = new Map(
@@ -111,7 +86,7 @@ export async function getAnalytics(
       category.icon,
     ]),
   );
-  const balances = new Map(datedBalances);
+  const balances = totals.data ?? {};
   const accounts = catalog.data.map((account) => ({
     id: account.id,
     name: account.name,
@@ -121,13 +96,14 @@ export async function getAnalytics(
     card_network: account.card_network,
     card_product: account.card_product,
     card_last_four: account.card_last_four,
-    balance: balances.get(account.id) ?? 0,
+    balance: Number(balances[account.id]?.balance ?? 0),
   }));
   const horizon = new Date(`${today}T00:00:00Z`);
   horizon.setUTCDate(horizon.getUTCDate() + 14);
   const lastDate = horizon.toISOString().slice(0, 10);
   const upcoming: UpcomingPayment[] = [...snapshot.upcoming];
-  for (const { card, cycle, unpaid } of unpaidByCard) {
+  for (const { card, cycle } of cardCycles) {
+    const unpaid = Number(balances[card.id]?.unpaid ?? 0);
     const bank = (statementCatalog.data ?? [])
       .filter((item) => item.card_id === card.id)
       .map((item) => ({
@@ -179,7 +155,11 @@ export async function getAnalytics(
     ...range,
     today,
     accounts,
-    futureInstallmentsByCard: new Map(futureInstallments),
+    futureInstallmentsByCard: new Map(
+      (module === "dashboard" ? catalog.data : [])
+        .filter((account) => account.type === "credit_card")
+        .map((account) => [account.id, Number(balances[account.id]?.future_installments ?? 0)] as const),
+    ),
     upcoming,
     categories: snapshot.categories.map((category) => ({
       ...category,

@@ -49,6 +49,10 @@ type NullableArgs<F extends { Args: object }, K extends keyof F["Args"]> = Omit<
   Args: Omit<F["Args"], K> & { [P in K]: F["Args"][P] | null };
 };
 type Overrides = {
+  analytics_account_totals: {
+    Args: { p_date: string; p_card_closes: Record<string, string> | null };
+    Returns: Record<string, { balance: number | null; unpaid: number | null; future_installments: number | null }>;
+  };
   assign_shopping_list_project: NullableArgs<
     Functions["assign_shopping_list_project"],
     "p_project_id"

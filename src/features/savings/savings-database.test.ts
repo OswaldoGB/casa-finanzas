@@ -40,6 +40,28 @@ const move = (type: string, amount: number) =>
     [home, user, type, amount, goal],
   );
 
+it("agrupa los saldos al corte y los pendientes de tarjeta sin cambiar sus valores", async () => {
+  await db.exec("begin");
+  try {
+    await db.query(
+      "insert into accounts(household_id,created_by,name,type,opening_balance,credit_limit,statement_closing_day,payment_due_day) values ($1,$2,'Tarjeta','credit_card',50,500,7,25)",
+      [home, user],
+    );
+    const result = await db.query<{ matches: boolean }>(`
+      with cuts as (select jsonb_object_agg(id, '2026-10-07'::text) as dates from accounts),
+      batch as (select analytics_account_totals('2026-10-10', dates) as data from cuts)
+      select bool_and(
+        (batch.data -> a.id::text ->> 'balance')::numeric = account_balance_on(a.id, '2026-10-10')
+        and (batch.data -> a.id::text ->> 'future_installments')::numeric = card_unbilled_installments(a.id, '2026-10-10')
+        and (batch.data -> a.id::text ->> 'unpaid')::numeric = card_statement_unpaid(a.id, '2026-10-07', '2026-10-10')
+      ) as matches from accounts a cross join batch where a.type = 'credit_card'
+    `);
+    expect(result.rows[0].matches).toBe(true);
+  } finally {
+    await db.exec("rollback");
+  }
+});
+
 describe("metas de ahorro", () => {
   it("aparta y libera dinero que ya está en la cuenta vinculada sin mover su saldo", async () => {
     await db.exec("begin");

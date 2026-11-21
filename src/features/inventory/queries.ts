@@ -3,20 +3,27 @@ import { requireModule } from "@/features/permissions/queries";
 import { canAccess } from "@/features/permissions/modules";
 import { todayInTimeZone } from "@/features/recurring/processing";
 
-export async function getInventory() {
+export async function getInventory(itemId?: string) {
   const { supabase, profile, permissions } = await requireModule("inventory");
-  const [result, household, packages] = await Promise.all([
-    supabase
-      .from("inventory_items")
-      .select("*")
-      .eq("household_id", profile.household_id)
-      .order("name"),
+  const itemQuery = supabase.from("inventory_items").select("*").eq("household_id", profile.household_id);
+  const [result, household, packages, transactionResult] = await Promise.all([
+    itemId ? itemQuery.eq("id", itemId) : itemQuery.order("name"),
     supabase
       .from("households")
       .select("timezone")
       .eq("id", profile.household_id)
       .single(),
-    supabase.from("inventory_packages").select("item_id,remaining,is_open"),
+    itemId ? { data: null, error: null } : supabase.from("inventory_packages").select("item_id,remaining,is_open"),
+    canAccess(profile.role, permissions, "transactions", "view")
+      ? supabase
+          .from("transactions")
+          .select("id,date,description,amount")
+          .eq("household_id", profile.household_id)
+          .eq("type", "expense")
+          .eq("status", "posted")
+          .order("date", { ascending: false })
+          .limit(200)
+      : null,
   ]);
   if (result.error || household.error || packages.error)
     throw new Error("No se pudo cargar el inventario.");
@@ -29,29 +36,20 @@ export async function getInventory() {
   const urls = new Map(
     photos?.data?.map((photo) => [photo.path, photo.signedUrl]) ?? [],
   );
-  const transactionResult = canAccess(
-    profile.role,
-    permissions,
-    "transactions",
-    "view",
-  )
-    ? await supabase
-        .from("transactions")
-        .select("id,date,description,amount")
-        .eq("household_id", profile.household_id)
-        .eq("type", "expense")
-        .eq("status", "posted")
-        .order("date", { ascending: false })
-        .limit(200)
-    : null;
   if (transactionResult?.error)
     throw new Error("No se pudieron cargar los gastos para vincular.");
+  const packagesByItem = new Map<string, NonNullable<typeof packages.data>>();
+  for (const entry of packages.data ?? []) {
+    const group = packagesByItem.get(entry.item_id);
+    if (group) group.push(entry);
+    else packagesByItem.set(entry.item_id, [entry]);
+  }
   return {
     transactions: transactionResult?.data ?? [],
     items: result.data.map((item) => ({
       ...item,
       lowStockThreshold: (item as typeof item & { low_stock_threshold: number | null }).low_stock_threshold,
-      packages: (packages.data ?? []).filter((entry) => entry.item_id === item.id),
+      packages: packagesByItem.get(item.id) ?? [],
       photoUrl: item.photo_path ? urls.get(item.photo_path) : undefined,
     })),
     today: todayInTimeZone(new Date(), household.data.timezone),
