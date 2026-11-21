@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   ArrowLeftRight,
   LayoutDashboard,
-  ListChecks,
+  HandCoins,
   LockKeyhole,
   Menu,
   Plus,
@@ -52,7 +52,7 @@ export function BottomNav({
   const pathname = usePathname();
   const hasDashboard = canAccess(role, permissions, "dashboard", "view");
   const hasTransactions = canAccess(role, permissions, "transactions", "view");
-  const hasLists = canAccess(role, permissions, "shopping_lists", "view");
+  const hasLoans = canAccess(role, permissions, "loans", "view");
   const create = getMobileCreateAction(pathname);
   const canCreate =
     canAccess(role, permissions, create.module, "edit") &&
@@ -85,8 +85,8 @@ export function BottomNav({
           </Link>
         )}
       </div>
-      {hasLists ? (
-        <Tab href="/lists" label="Listas" icon={ListChecks} />
+      {hasLoans ? (
+        <Tab href="/loans" label="Préstamos" icon={HandCoins} />
       ) : (
         <span />
       )}
