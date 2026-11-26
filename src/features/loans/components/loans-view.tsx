@@ -7,6 +7,7 @@ import type { getLoans } from "@/features/loans/queries";
 import {
   CreateLoanForm,
   DebtForm,
+  DeleteLoanForm,
   EditLoanForm,
   PayDebtForm,
   RepayLoanForm,
@@ -211,6 +212,7 @@ function LoanCard({
           {data.canEdit && !owed && <WriteOffLoanForm loan={loan} />}
         </>
       )}
+      {data.canOperate && <DeleteLoanForm loan={loan} />}
     </article>
   );
 }

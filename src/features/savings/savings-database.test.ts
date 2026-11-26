@@ -416,6 +416,19 @@ describe("préstamos de compras", () => {
           )
         ).rows,
       ).toHaveLength(0);
+      await db.query("select loan_repay_items($1,'2026-11-02',$2,$3)", [
+        loan,
+        account,
+        JSON.stringify([{ loan_item_id: allocations[0].id, amount_cents: 250 }]),
+      ]);
+      await db.query("select loan_delete($1)", [loan]);
+      expect((await state()).rows).toHaveLength(0);
+      expect((await db.query("select id from transactions where loan_id=$1", [loan])).rows).toHaveLength(0);
+      const afterDelete = (await db.query<{ balance: string }>(
+        "select balance::text from account_balances() where account_id=$1", [account],
+      )).rows[0];
+      expect(afterDelete.balance).toBe("77.00");
+      expect((await create(ana, 2, true)).rows[0].id).toBeTruthy();
     } finally {
       await db.exec("rollback");
     }

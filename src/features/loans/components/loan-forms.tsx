@@ -3,6 +3,7 @@
 import { LoanPurchasePicker } from "./loan-purchase-picker";
 import { formatUSD } from "@/lib/format";
 import type { LoanItem } from "../queries";
+import { toast } from "sonner";
 import { MoneyInput } from "@/components/ui/money-input";
 
 import { useActionState, useId, useState } from "react";
@@ -11,6 +12,7 @@ import { FormSelect } from "@/components/ui/form-select";
 import type { FormState } from "@/features/auth/schemas";
 import {
   createLoan,
+  deleteLoan,
   payDebt,
   repayLoan,
   saveDebt,
@@ -496,6 +498,48 @@ export function EditLoanForm({
     </form>
   );
 }
+export function DeleteLoanForm({ loan }: { loan: Loan }) {
+  const formId = `delete-loan-${loan.id}`;
+  const [state, action, pending] = useActionState(
+    async (previous: FormState, form: FormData) => {
+      const result = await deleteLoan(previous, form);
+      if (result?.ok) toast.success(result.ok);
+      return result;
+    },
+    undefined,
+  );
+
+  return (
+    <form id={formId} action={action} className="mt-2">
+      <input type="hidden" name="id" value={loan.id} />
+      <ConfirmDialog
+        title={`¿Eliminar el registro de ${loan.debtor}?`}
+        description="Se borrarán sus movimientos y abonos, se recalcularán los saldos y se liberarán los ítems asignados. Las compras originales se conservan."
+        confirmLabel="Eliminar definitivamente"
+        trigger={
+          <button
+            type="button"
+            disabled={pending}
+            className="text-destructive min-h-11 text-sm underline"
+          >
+            {pending
+              ? "Eliminando…"
+              : loan.direction === "borrowed"
+                ? "Eliminar deuda"
+                : "Eliminar préstamo"}
+          </button>
+        }
+        actionProps={{ type: "submit", form: formId, disabled: pending }}
+      />
+      {state?.error && (
+        <p role="alert" className="text-destructive text-sm">
+          {state.error}
+        </p>
+      )}
+    </form>
+  );
+}
+
 export function WriteOffLoanForm({ loan }: { loan: Loan }) {
   const [state, action, pending] = useActionState(writeOffLoan, undefined);
   return (

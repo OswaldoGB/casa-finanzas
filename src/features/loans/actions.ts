@@ -3,6 +3,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireModule } from "@/features/permissions/queries";
 import { readPurchaseItems } from "@/features/transactions/purchase-items";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { canAccess } from "@/features/permissions/modules";
 import type { FormState } from "@/features/auth/schemas";
 import {
@@ -393,4 +394,44 @@ export async function writeOffLoan(
   if (result.error) return { error: result.error.message };
   refresh();
   return { ok: "Préstamo cerrado sin registrar un gasto." };
+}
+
+export async function deleteLoan(
+  _: FormState,
+  form: FormData,
+): Promise<FormState> {
+  const { supabase, profile, permissions } = await requireModule(
+    "loans",
+    "edit",
+  );
+  if (!canAccess(profile.role, permissions, "transactions", "edit"))
+    return { error: "Necesitas permiso para editar movimientos." };
+  const id = z.string().uuid().safeParse(form.get("id"));
+  if (!id.success) return { error: "Préstamo inválido." };
+  const { data: paths, error } = await supabase.rpc("loan_delete", {
+    p_loan_id: id.data,
+  });
+  if (error) return { error: error.message };
+  if (paths?.length) {
+    try {
+      const { storage } = createAdminClient();
+      for (let offset = 0; offset < paths.length; offset += 100) {
+        const result = await storage
+          .from("receipts")
+          .remove(paths.slice(offset, offset + 100));
+        if (result.error) throw result.error;
+      }
+    } catch (cause) {
+      console.error(
+        "No se pudieron limpiar los archivos de un préstamo eliminado.",
+        cause,
+      );
+      refresh();
+      return {
+        ok: "Préstamo eliminado. Algunos archivos quedaron pendientes de limpieza.",
+      };
+    }
+  }
+  refresh();
+  return { ok: "Préstamo eliminado." };
 }

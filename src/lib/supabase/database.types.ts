@@ -75,7 +75,11 @@ type LoanPurchaseTables = {
   >;
 };
 type LoanPeopleFunctions = {
-  assert_loan_purchases_removable: { Args: { p_ids: string[] }; Returns: undefined };
+  loan_delete: { Args: { p_loan_id: string }; Returns: string[] };
+  assert_loan_purchases_removable: {
+    Args: { p_ids: string[] };
+    Returns: undefined;
+  };
 
   loan_create_from_purchases: {
     Args: {
