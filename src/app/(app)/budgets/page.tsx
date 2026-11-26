@@ -1,3 +1,4 @@
+import Form from "next/form";
 import { FilterPanel } from "@/components/ui/filter-panel";
 import { ExportButtons } from "@/features/exports/components/export-buttons";
 import { Wallet } from "lucide-react";
@@ -46,7 +47,7 @@ export default async function BudgetsPage({
       </header>
       <ExportButtons target="budgets" filters={{ month }} />
       <FilterPanel>
-        <form className="flex flex-wrap items-end gap-3">
+        <Form action="/budgets" className="flex flex-wrap items-end gap-3">
           <div className="space-y-1.5">
             <label htmlFor="budget-month" className="block text-sm font-medium">
               Mes
@@ -66,7 +67,7 @@ export default async function BudgetsPage({
           <p className="text-muted-foreground pb-2 text-sm capitalize">
             {monthLabel}
           </p>
-        </form>
+        </Form>
       </FilterPanel>
       <section
         className="grid gap-3 sm:grid-cols-3"

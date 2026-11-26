@@ -1,3 +1,4 @@
+import Form from "next/form";
 import { FilterPanel } from "@/components/ui/filter-panel";
 import { ExportButtons } from "@/features/exports/components/export-buttons";
 import Link from "next/link";
@@ -53,11 +54,27 @@ export default async function TransactionsPage({
     q: first("q"),
   };
   const openNew = first("new") === "1";
-  const [transactions, options] = await Promise.all([
-    getTransactions(filters),
+  const requestedPage = Number(first("page"));
+  const page =
+    Number.isSafeInteger(requestedPage) && requestedPage > 0
+      ? Math.min(requestedPage, 10_000)
+      : 1;
+  function pageHref(next: number) {
+    const params = new URLSearchParams();
+    for (const [key, value] of Object.entries(filters)) {
+      if (value) params.set(key, value);
+    }
+    if (next > 1) params.set("page", String(next));
+    return params.size ? `/transactions?${params}` : "/transactions";
+  }
+  const [{ transactions, hasNextPage }, options] = await Promise.all([
+    getTransactions(filters, page),
     getTransactionOptions(),
   ]);
   const categories = new Map(options.categories.map((item) => [item.id, item]));
+  const members = new Map(
+    options.members.map((member) => [member.id, member.full_name]),
+  );
   const days = Map.groupBy(transactions, (item) => item.date);
   const selectClass =
     "border-input bg-background h-10 rounded-lg border px-2 text-sm";
@@ -81,7 +98,10 @@ export default async function TransactionsPage({
       </header>
       <ExportButtons target="transactions" />
       <FilterPanel>
-        <form className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <Form
+          action="/transactions"
+          className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4"
+        >
           <label className="grid gap-1 text-xs">
             Desde
             <input
@@ -200,7 +220,7 @@ export default async function TransactionsPage({
           <button className="bg-secondary text-secondary-foreground rounded-lg px-4 py-2 text-sm font-medium sm:col-span-2 lg:col-span-4">
             Aplicar filtros
           </button>
-        </form>
+        </Form>
       </FilterPanel>
       {options.canEdit && transactions.length > 0 && (
         <BulkToolbar categories={options.categories} />
@@ -240,11 +260,10 @@ export default async function TransactionsPage({
                     {dateLabel.format(new Date(`${day}T00:00:00Z`))}
                   </h2>
                   <p className="text-muted-foreground text-xs tabular-nums">
-                    Ingresos {money.format(income)} · Gastos{" "}
+                    En esta página · Ingresos {money.format(income)} · Gastos{" "}
                     {money.format(expense)}
                   </p>
                 </header>
-                <ExportButtons target="transactions" />
                 <ul className="divide-y">
                   {items.map((item) => {
                     const category = item.category_id
@@ -268,6 +287,7 @@ export default async function TransactionsPage({
                         <div className="min-w-0 flex-1">
                           <Link
                             href={`/transactions/${item.id}`}
+                            prefetch={false}
                             className="block truncate text-sm font-medium hover:underline"
                           >
                             {item.description || label[item.type]}
@@ -289,9 +309,7 @@ export default async function TransactionsPage({
                               </span>
                             )}
                             {item.status === "pending" ? "Pendiente ·" : ""}
-                            {options.members.find(
-                              (member) => member.id === item.created_by,
-                            )?.full_name ?? "Usuario"}
+                            {members.get(item.created_by) ?? "Usuario"}
                           </p>
                         </div>
                         <div className="flex shrink-0 items-center gap-3">
@@ -336,11 +354,29 @@ export default async function TransactionsPage({
           })}
         </div>
       )}
-      {transactions.length === 500 && (
-        <p className="text-muted-foreground text-center text-xs">
-          Se muestran los 500 movimientos más recientes. Acota las fechas para
-          ver otros.
-        </p>
+      {(page > 1 || hasNextPage) && (
+        <nav
+          aria-label="Páginas de movimientos"
+          className="flex flex-wrap items-center justify-center gap-3 text-sm"
+        >
+          {page > 1 && (
+            <Link
+              href={pageHref(page - 1)}
+              className="hover:bg-accent rounded-lg border px-3 py-2"
+            >
+              Anterior
+            </Link>
+          )}
+          <span className="text-muted-foreground">Página {page}</span>
+          {hasNextPage && page < 10_000 && (
+            <Link
+              href={pageHref(page + 1)}
+              className="hover:bg-accent rounded-lg border px-3 py-2"
+            >
+              Siguiente
+            </Link>
+          )}
+        </nav>
       )}
     </div>
   );

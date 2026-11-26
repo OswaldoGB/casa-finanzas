@@ -14,6 +14,8 @@ import {
   WriteOffLoanForm,
 } from "@/features/loans/components/loan-forms";
 import Link from "next/link";
+import { LoadedLoanItems } from "./loaded-loan-items";
+import { LoanDisclosure } from "./loan-disclosure";
 import { useSearchParams } from "next/navigation";
 import { formatUSD } from "@/lib/format";
 import { decimalToCents } from "@/features/finance/balances";
@@ -34,7 +36,8 @@ function LoanCard({
   data: Awaited<ReturnType<typeof getLoans>>;
 }) {
   const owed = loan.direction === "borrowed";
-  const items = data.itemsByLoan[loan.id] ?? [];
+  const linked = loan.has_purchase_items;
+  const itemsKey = `${loan.id}:${loan.recovered}`;
   const person = data.people.find((entry) => entry.id === loan.person_id);
   return (
     <article
@@ -61,14 +64,18 @@ function LoanCard({
                   : "Activo"}
           </span>
           {data.canOperate && loan.status !== "written_off" && (
-            <details className="relative">
-              <summary
-                aria-label="Editar préstamo"
-                title="Editar préstamo"
-                className="bg-muted hover:bg-muted/70 cursor-pointer rounded-md px-2 py-1 text-sm"
-              >
-                ✎
-              </summary>
+            <LoanDisclosure
+              className="relative"
+              summary={
+                <summary
+                  aria-label="Editar préstamo"
+                  title="Editar préstamo"
+                  className="bg-muted hover:bg-muted/70 cursor-pointer rounded-md px-2 py-1 text-sm"
+                >
+                  ✎
+                </summary>
+              }
+            >
               <div className="bg-card absolute top-9 right-0 z-10 w-80 rounded-xl border p-3 shadow-lg">
                 {owed ? (
                   <DebtForm debt={loan} today={data.today} />
@@ -76,11 +83,11 @@ function LoanCard({
                   <EditLoanForm
                     loan={loan}
                     accounts={data.sourceAccounts}
-                    linked={items.length > 0}
+                    linked={linked}
                   />
                 )}
               </div>
-            </details>
+            </LoanDisclosure>
           )}
         </div>
       </div>
@@ -101,7 +108,7 @@ function LoanCard({
           ? ` · ${owed ? "Pagar antes de" : "Pago esperado"}: ${loan.expected_payment_date}`
           : ""}
       </p>
-      {!owed && items.length === 0 && loan.source_account_name && (
+      {!owed && !linked && loan.source_account_name && (
         <p className="text-muted-foreground mt-2 text-xs">
           Origen: {loan.source_account_name}
           {loan.source_account_type === "credit_card"
@@ -115,46 +122,58 @@ function LoanCard({
       {loan.notes && (
         <p className="mt-3 text-sm whitespace-pre-wrap">{loan.notes}</p>
       )}
-      {items.length > 0 && (
-        <details className="mt-4 rounded-xl border p-3">
-          <summary className="cursor-pointer text-sm font-medium">
-            Compras, ítems y abonos
-          </summary>
-          <ul className="mt-2 divide-y">
-            {items.map((item) => (
-              <li key={item.id} className="grid gap-1 py-2 text-sm">
-                <Link
-                  href={`/transactions/${item.purchaseId}`}
-                  className="text-primary hover:underline"
-                >
-                  {item.name}
-                </Link>
-                <span className="text-muted-foreground">
-                  {item.quantity} × {formatUSD(item.unitCents / 100)} ·
-                  Pendiente {formatUSD(item.pendingCents / 100)}
-                </span>
-                {item.payments.map((payment) => (
-                  <Link
-                    key={payment.transactionId}
-                    href={`/transactions/${payment.transactionId}`}
-                    className="text-primary text-xs hover:underline"
-                  >
-                    Abono {formatUSD(payment.cents / 100)}
-                    {payment.date && ` · Fecha del abono ${payment.date}`}
-                    {payment.createdAt &&
-                      ` · Registrado ${new Intl.DateTimeFormat("es-SV", { dateStyle: "short", timeStyle: "short", timeZone: data.timezone }).format(new Date(payment.createdAt))}`}
-                  </Link>
+      {linked && (
+        <LoanDisclosure
+          className="mt-4 rounded-xl border p-3"
+          summary={
+            <summary className="cursor-pointer text-sm font-medium">
+              Compras, ítems y abonos
+            </summary>
+          }
+        >
+          <LoadedLoanItems key={itemsKey} loanId={loan.id}>
+            {(items) => (
+              <ul className="mt-2 divide-y">
+                {items.map((item) => (
+                  <li key={item.id} className="grid gap-1 py-2 text-sm">
+                    <Link
+                      href={`/transactions/${item.purchaseId}`}
+                      className="text-primary hover:underline"
+                    >
+                      {item.name}
+                    </Link>
+                    <span className="text-muted-foreground">
+                      {item.quantity} × {formatUSD(item.unitCents / 100)} ·
+                      Pendiente {formatUSD(item.pendingCents / 100)}
+                    </span>
+                    {item.payments.map((payment) => (
+                      <Link
+                        key={payment.transactionId}
+                        href={`/transactions/${payment.transactionId}`}
+                        className="text-primary text-xs hover:underline"
+                      >
+                        Abono {formatUSD(payment.cents / 100)}
+                        {payment.date && ` · Fecha del abono ${payment.date}`}
+                        {payment.createdAt &&
+                          ` · Registrado ${new Intl.DateTimeFormat("es-SV", { dateStyle: "short", timeStyle: "short", timeZone: data.timezone }).format(new Date(payment.createdAt))}`}
+                      </Link>
+                    ))}
+                  </li>
                 ))}
-              </li>
-            ))}
-          </ul>
-        </details>
+              </ul>
+            )}
+          </LoadedLoanItems>
+        </LoanDisclosure>
       )}
       {data.canEdit && data.people.length > 0 && (
-        <details className="mt-4">
-          <summary className="cursor-pointer text-sm">
-            {person ? "Cambiar persona vinculada" : "Vincular a una persona"}
-          </summary>
+        <LoanDisclosure
+          className="mt-4"
+          summary={
+            <summary className="cursor-pointer text-sm">
+              {person ? "Cambiar persona vinculada" : "Vincular a una persona"}
+            </summary>
+          }
+        >
           <ActionForm
             action={setLoanPerson}
             label="Guardar vínculo"
@@ -171,7 +190,7 @@ function LoanCard({
               defaultValue={loan.person_id ?? "manual"}
               placeholder="Elige una persona"
               options={[
-                ...(items.length === 0
+                ...(!linked
                   ? [{ value: "manual", label: "Sin vincular" }]
                   : []),
                 ...data.people.map(({ id, name, emoji, color }) => ({
@@ -182,15 +201,19 @@ function LoanCard({
               ]}
             />
           </ActionForm>
-        </details>
+        </LoanDisclosure>
       )}
       {loan.status === "active" && (
         <>
           {data.canOperate && loan.pending > 0 && (
-            <details className="mt-4">
-              <summary className="cursor-pointer text-sm">
-                Registrar abono
-              </summary>
+            <LoanDisclosure
+              className="mt-4"
+              summary={
+                <summary className="cursor-pointer text-sm">
+                  Registrar abono
+                </summary>
+              }
+            >
               <div className="mt-3">
                 {owed ? (
                   <PayDebtForm
@@ -198,16 +221,27 @@ function LoanCard({
                     today={data.today}
                     accounts={data.sourceAccounts}
                   />
+                ) : linked ? (
+                  <LoadedLoanItems key={itemsKey} loanId={loan.id}>
+                    {(items) => (
+                      <RepayLoanForm
+                        loan={loan}
+                        items={items}
+                        today={data.today}
+                        accounts={data.depositAccounts}
+                      />
+                    )}
+                  </LoadedLoanItems>
                 ) : (
                   <RepayLoanForm
                     loan={loan}
-                    items={items}
+                    items={[]}
                     today={data.today}
                     accounts={data.depositAccounts}
                   />
                 )}
               </div>
-            </details>
+            </LoanDisclosure>
           )}
           {data.canEdit && !owed && <WriteOffLoanForm loan={loan} />}
         </>
@@ -222,16 +256,27 @@ function LoansByPerson({
 }: {
   data: Awaited<ReturnType<typeof getLoans>>;
 }) {
-  const unlinked = data.loans.filter((loan) => !loan.person_id);
+  const loansByPerson = new Map<string | null, Loan[]>();
+  for (const loan of data.loans) {
+    const personId = loan.person_id ?? null;
+    const group = loansByPerson.get(personId);
+    if (group) group.push(loan);
+    else loansByPerson.set(personId, [loan]);
+  }
+  const unlinked = loansByPerson.get(null) ?? [];
   return (
     <section aria-label="Préstamos por persona" className="space-y-4">
       {data.canEdit && (
-        <details className="bg-card rounded-2xl border p-4">
-          <summary className="cursor-pointer font-semibold">
-            Agregar persona
-          </summary>
+        <LoanDisclosure
+          className="bg-card rounded-2xl border p-4"
+          summary={
+            <summary className="cursor-pointer font-semibold">
+              Agregar persona
+            </summary>
+          }
+        >
           <LoanPersonForm />
-        </details>
+        </LoanDisclosure>
       )}
       {data.people.length === 0 && (
         <p className="text-muted-foreground text-sm">
@@ -239,7 +284,7 @@ function LoansByPerson({
         </p>
       )}
       {data.people.map((person) => {
-        const loans = data.loans.filter((loan) => loan.person_id === person.id);
+        const loans = loansByPerson.get(person.id) ?? [];
         const pending = (direction: Loan["direction"]) =>
           loans.reduce(
             (total, loan) =>
@@ -248,35 +293,44 @@ function LoansByPerson({
             0,
           ) / 100;
         return (
-          <details key={person.id} className="bg-card rounded-2xl border p-4">
-            <summary className="cursor-pointer">
-              <span className="inline-flex items-center gap-2 align-middle font-semibold">
-                <PersonAvatar emoji={person.emoji} color={person.color} />
-                {person.name}
-              </span>
-              <span className="text-muted-foreground mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm">
-                <span>
-                  Me debe{" "}
-                  <strong className="text-foreground tabular-nums">
-                    {formatUSD(pending("lent"))}
-                  </strong>
+          <LoanDisclosure
+            key={person.id}
+            className="bg-card rounded-2xl border p-4"
+            summary={
+              <summary className="cursor-pointer">
+                <span className="inline-flex items-center gap-2 align-middle font-semibold">
+                  <PersonAvatar emoji={person.emoji} color={person.color} />
+                  {person.name}
                 </span>
-                <span>
-                  Le debo{" "}
-                  <strong className="text-foreground tabular-nums">
-                    {formatUSD(pending("borrowed"))}
-                  </strong>
+                <span className="text-muted-foreground mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm">
+                  <span>
+                    Me debe{" "}
+                    <strong className="text-foreground tabular-nums">
+                      {formatUSD(pending("lent"))}
+                    </strong>
+                  </span>
+                  <span>
+                    Le debo{" "}
+                    <strong className="text-foreground tabular-nums">
+                      {formatUSD(pending("borrowed"))}
+                    </strong>
+                  </span>
                 </span>
-              </span>
-            </summary>
+              </summary>
+            }
+          >
             <div className="mt-4 space-y-3">
               {data.canEdit && (
-                <details className="rounded-xl border p-3">
-                  <summary className="cursor-pointer text-sm">
-                    Cambiar emoji y color
-                  </summary>
+                <LoanDisclosure
+                  className="rounded-xl border p-3"
+                  summary={
+                    <summary className="cursor-pointer text-sm">
+                      Cambiar emoji y color
+                    </summary>
+                  }
+                >
                   <LoanPersonForm person={person} />
-                </details>
+                </LoanDisclosure>
               )}
               {loans.length ? (
                 loans.map((loan) => (
@@ -288,20 +342,24 @@ function LoansByPerson({
                 </p>
               )}
             </div>
-          </details>
+          </LoanDisclosure>
         );
       })}
       {unlinked.length > 0 && (
-        <details className="bg-card rounded-2xl border p-4">
-          <summary className="cursor-pointer font-semibold">
-            Sin persona vinculada ({unlinked.length})
-          </summary>
+        <LoanDisclosure
+          className="bg-card rounded-2xl border p-4"
+          summary={
+            <summary className="cursor-pointer font-semibold">
+              Sin persona vinculada ({unlinked.length})
+            </summary>
+          }
+        >
           <div className="mt-4 space-y-3">
             {unlinked.map((loan) => (
               <LoanCard key={loan.id} loan={loan} data={data} />
             ))}
           </div>
-        </details>
+        </LoanDisclosure>
       )}
     </section>
   );
@@ -322,7 +380,7 @@ export function LoansView({
   const loans = data.loans.filter(
     (l) => l.direction === (owed ? "borrowed" : "lent"),
   );
-  const organized = organizeLoans(loans, filter, sort);
+  const organized = organizeLoans(byPerson ? [] : loans, filter, sort);
   const tab = (value: string, label: string, active: boolean) => (
     <Link
       href={value ? `/loans?tab=${value}` : "/loans"}
@@ -487,17 +545,21 @@ export function LoansView({
                 </p>
               )}
               {(filter === "all" || filter === "paid") && (
-                <details className="bg-card rounded-2xl border p-5">
-                  <summary className="flex cursor-pointer items-center justify-between gap-3 font-semibold">
-                    <span>
-                      {owed
-                        ? "Deudas pagadas e incobrables"
-                        : "Préstamos pagados e incobrables"}
-                    </span>
-                    <span className="text-muted-foreground text-sm">
-                      {organized.paid.length}
-                    </span>
-                  </summary>
+                <LoanDisclosure
+                  className="bg-card rounded-2xl border p-5"
+                  summary={
+                    <summary className="flex cursor-pointer items-center justify-between gap-3 font-semibold">
+                      <span>
+                        {owed
+                          ? "Deudas pagadas e incobrables"
+                          : "Préstamos pagados e incobrables"}
+                      </span>
+                      <span className="text-muted-foreground text-sm">
+                        {organized.paid.length}
+                      </span>
+                    </summary>
+                  }
+                >
                   <div className="mt-4 space-y-4">
                     {organized.paid.length ? (
                       organized.paid.map((loan) => (
@@ -511,7 +573,7 @@ export function LoansView({
                       </p>
                     )}
                   </div>
-                </details>
+                </LoanDisclosure>
               )}
             </section>
           </div>

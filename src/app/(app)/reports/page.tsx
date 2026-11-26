@@ -1,3 +1,4 @@
+import Form from "next/form";
 import { FilterPanel } from "@/components/ui/filter-panel";
 import { ExportButtons } from "@/features/exports/components/export-buttons";
 import { getAnalytics } from "@/features/analytics/queries";
@@ -84,7 +85,7 @@ export default async function ReportsPage({
           </p>
         </div>
         <FilterPanel>
-          <form className="flex flex-wrap items-end gap-2">
+          <Form action="/reports" className="flex flex-wrap items-end gap-2">
             <label className="grid gap-1 text-xs" htmlFor="report-from">
               Desde
               <input
@@ -110,7 +111,7 @@ export default async function ReportsPage({
             <button className="bg-primary text-primary-foreground h-10 rounded-lg px-4 text-sm font-medium">
               Aplicar
             </button>
-          </form>
+          </Form>
         </FilterPanel>
       </header>
       <ExportButtons target="reports" />

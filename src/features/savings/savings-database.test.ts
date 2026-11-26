@@ -355,6 +355,11 @@ describe("préstamos de compras", () => {
           ],
         );
       const loan = (await create(ana, 2, true)).rows[0].id;
+      const { rows } = await db.query<{ itemized: boolean }>(
+        "select (row->>'has_purchase_items')::boolean itemized from jsonb_array_elements(loan_snapshot('loans')) row where row->>'id'=$1",
+        [loan],
+      );
+      expect(rows).toEqual([{ itemized: true }]);
       await create(leo, 2);
       await db.exec("savepoint overassign");
       await expect(create(leo, 1)).rejects.toThrow(

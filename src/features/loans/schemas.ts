@@ -15,14 +15,27 @@ export const optionalId = z
 export const optionalDate = z
   .union([z.literal(""), z.string().date("Fecha inválida")])
   .transform((v) => v || null);
-export const loanPersonName = z.string().trim().min(1, "Escribe un nombre").max(100);
-export const loanPersonSelection = z.union([z.literal("manual"), optionalId])
-  .transform((value) => value === "manual" ? null : value);
+export const loanPersonName = z
+  .string()
+  .trim()
+  .min(1, "Escribe un nombre")
+  .max(100);
+export const loanPersonSelection = z
+  .union([z.literal("manual"), optionalId])
+  .transform((value) => (value === "manual" ? null : value));
 export const loanPersonAppearance = z.object({
-  emoji: z.string().max(32).regex(new RegExp("^\\p{RGI_Emoji}$", "v"), "Elige un emoji del selector"),
+  emoji: z
+    .string()
+    .max(32)
+    .regex(new RegExp("^\\p{RGI_Emoji}$", "v"), "Elige un emoji del selector"),
   color: z.string().regex(/^#[0-9a-fA-F]{6}$/, "Elige un color válido"),
 });
-export type LoanPerson = { id: string; name: string; emoji: string; color: string };
+export type LoanPerson = {
+  id: string;
+  name: string;
+  emoji: string;
+  color: string;
+};
 export const loanSchema = z
   .object({
     debtor: z.string().trim().min(1, "Escribe el deudor").max(100),
@@ -57,7 +70,10 @@ export const loanEditSchema = z
 // Deudas que debo: no mueven dinero al crearse.
 export const debtSchema = z
   .object({
-    id: z.union([z.literal(""), z.string().uuid()]).optional().transform((v) => v || null),
+    id: z
+      .union([z.literal(""), z.string().uuid()])
+      .optional()
+      .transform((v) => v || null),
     creditor: z.string().trim().min(1, "Escribe a quién le debes").max(100),
     amount: moneyInput,
     date: z.string().date(),
@@ -66,7 +82,10 @@ export const debtSchema = z
   })
   .refine(
     (v) => !v.expected_payment_date || v.expected_payment_date >= v.date,
-    { path: ["expected_payment_date"], message: "La fecha de pago no puede ser anterior a la deuda" },
+    {
+      path: ["expected_payment_date"],
+      message: "La fecha de pago no puede ser anterior a la deuda",
+    },
   );
 export const loanSnapshotSchema = z.array(
   z.object({
@@ -86,6 +105,7 @@ export const loanSnapshotSchema = z.array(
     source_account_id: z.string().uuid().nullable(),
     source_account_name: z.string().nullable(),
     source_account_type: z.string().nullable(),
+    has_purchase_items: z.boolean().optional(),
     already_recorded: z.boolean(),
   }),
 );

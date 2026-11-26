@@ -16,7 +16,7 @@ import {
   Wallet,
 } from "lucide-react";
 import Link from "next/link";
-import { getAnalytics } from "@/features/analytics/queries";
+import { getAnalytics, getAnalyticsToday } from "@/features/analytics/queries";
 import {
   CashFlowChart,
   MonthlyTrendChart,
@@ -52,14 +52,10 @@ const summaryHeading = "flex items-start justify-between gap-2 text-sm font-medi
 const summaryAmount = "text-xl font-semibold leading-tight tracking-tight tabular-nums wrap-anywhere sm:text-2xl xl:text-3xl";
 
 export default async function DashboardPage() {
-  // Ahorros no depende de nada; presupuestos solo necesita el "hoy" del hogar.
-  const [[data, budgets], savings] = await Promise.all([
-    getAnalytics("dashboard").then(
-      async (data) =>
-        [
-          data,
-          await getDashboardBudgets(`${data.today.slice(0, 7)}-01`),
-        ] as const,
+  const [data, budgets, savings] = await Promise.all([
+    getAnalytics("dashboard"),
+    getAnalyticsToday().then((today) =>
+      getDashboardBudgets(`${today.slice(0, 7)}-01`),
     ),
     getDashboardSavings(),
   ]);

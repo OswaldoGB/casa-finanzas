@@ -435,3 +435,44 @@ export async function deleteLoan(
   refresh();
   return { ok: "Préstamo eliminado." };
 }
+
+export async function getLoanItems(
+  loanId: string,
+): Promise<import("./queries").LoanItem[]> {
+  const { supabase, profile } = await requireModule("loans");
+  const id = z.string().uuid().parse(loanId);
+  const loan = await supabase
+    .from("loans")
+    .select("id")
+    .eq("id", id)
+    .eq("household_id", profile.household_id)
+    .maybeSingle();
+  if (loan.error || !loan.data) throw new Error("Préstamo no disponible.");
+  const { data, error } = await supabase
+    .from("loan_purchase_items")
+    .select(
+      "id,purchase_id,name,quantity,unit_cents,loan_item_repayments(amount_cents,transaction_id,transactions(date,created_at))",
+    )
+    .eq("loan_id", id)
+    .order("id");
+  if (error) throw new Error("No se pudieron cargar los ítems.");
+  return data.map((item) => {
+    const payments = item.loan_item_repayments.map((payment) => ({
+      transactionId: payment.transaction_id,
+      cents: payment.amount_cents,
+      date: payment.transactions?.date ?? null,
+      createdAt: payment.transactions?.created_at ?? null,
+    }));
+    return {
+      id: item.id,
+      purchaseId: item.purchase_id,
+      name: item.name,
+      quantity: item.quantity,
+      unitCents: item.unit_cents,
+      pendingCents:
+        item.quantity * item.unit_cents -
+        payments.reduce((sum, payment) => sum + payment.cents, 0),
+      payments,
+    };
+  });
+}

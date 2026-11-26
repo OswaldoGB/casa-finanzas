@@ -1,3 +1,4 @@
+import Form from "next/form";
 import { FilterPanel } from "@/components/ui/filter-panel";
 import { ExportButtons } from "@/features/exports/components/export-buttons";
 import Link from "next/link";
@@ -60,7 +61,7 @@ export default async function InventoryPage({
         ))}
       </div>
       <FilterPanel>
-        <form className="flex flex-wrap items-end gap-3">
+        <Form action="/inventory" className="flex flex-wrap items-end gap-3">
           <label className="text-sm">
             Ubicación
             <select
@@ -88,7 +89,7 @@ export default async function InventoryPage({
           <button className="rounded-lg border px-4 py-2.5 text-sm">
             Aplicar
           </button>
-        </form>
+        </Form>
       </FilterPanel>
       <div>
         <section>

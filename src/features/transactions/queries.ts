@@ -78,7 +78,10 @@ export async function getTransactionOptions() {
   };
 }
 
-export async function getTransactions(filters: Filters = {}) {
+export const transactionsPageSize = 50;
+
+export async function getTransactions(filters: Filters = {}, page = 1) {
+  const offset = (page - 1) * transactionsPageSize;
   const { supabase, profile } = await requireModule("transactions");
   let query = supabase
     .from("transactions")
@@ -86,7 +89,8 @@ export async function getTransactions(filters: Filters = {}) {
     .eq("household_id", profile.household_id)
     .order("date", { ascending: false })
     .order("created_at", { ascending: false })
-    .limit(500);
+    .order("id", { ascending: false })
+    .range(offset, offset + transactionsPageSize);
   if (filters.from && /^\d{4}-\d{2}-\d{2}$/.test(filters.from))
     query = query.gte("date", filters.from);
   if (filters.to && /^\d{4}-\d{2}-\d{2}$/.test(filters.to))
@@ -118,7 +122,10 @@ export async function getTransactions(filters: Filters = {}) {
     );
   const { data, error } = await query;
   if (error) throw new Error("No se pudieron cargar los movimientos.");
-  return data ?? [];
+  return {
+    transactions: data.slice(0, transactionsPageSize),
+    hasNextPage: data.length > transactionsPageSize,
+  };
 }
 
 export async function getTransaction(id: string) {

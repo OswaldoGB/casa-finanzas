@@ -66,10 +66,31 @@ export async function getAccounts() {
 
 export async function getAccount(id: string) {
   if (!accountIdSchema.safeParse(id).success) return null;
-  const { accounts, canEdit } = await getAccounts();
-  const account = accounts.find((item) => item.id === id) ?? null;
-  if (!account) return { account: null, canEdit, statement: null, history: [] };
   const { supabase, profile, permissions } = await requireModule("accounts");
+  const canEdit = canAccess(profile.role, permissions, "accounts", "edit");
+  const record = await supabase
+    .from("accounts")
+    .select("*")
+    .eq("id", id)
+    .eq("household_id", profile.household_id)
+    .maybeSingle();
+  if (record.error) throw new Error("No se pudo cargar la cuenta.");
+  if (!record.data)
+    return { account: null, canEdit, statement: null, history: [] };
+  const isCard = record.data.type === "credit_card";
+  const accountData = isCard
+    ? getAccounts().then(({ accounts }) => ({
+        accounts,
+        balance: accounts.find((row) => row.id === id)?.balance,
+      }))
+    : supabase
+        .rpc("account_balances")
+        .eq("account_id", id)
+        .maybeSingle()
+        .then(({ data, error }) => {
+          if (error) throw new Error("No se pudo cargar el saldo.");
+          return { accounts: [], balance: data?.balance };
+        });
   const canViewTransactions = canAccess(
     profile.role,
     permissions,
@@ -87,32 +108,40 @@ export async function getAccount(id: string) {
         .order("date", { ascending: false })
         .limit(50)
     : null;
-  const timezonePromise =
-    account.type === "credit_card"
-      ? supabase
-          .from("households")
-          .select("timezone")
-          .eq("id", profile.household_id)
-          .single()
-      : null;
+  const timezonePromise = isCard
+    ? supabase
+        .from("households")
+        .select("timezone")
+        .eq("id", profile.household_id)
+        .single()
+    : null;
   const historyCategoriesPromise = canViewTransactions
     ? supabase
         .from("categories")
         .select("id,name,color,icon")
         .eq("household_id", profile.household_id)
     : null;
-  const [historyResult, timezoneResult, historyCategoriesResult] =
-    await Promise.all([
-      historyPromise,
-      timezonePromise,
-      historyCategoriesPromise,
-    ]);
+  const [
+    { accounts, balance },
+    historyResult,
+    timezoneResult,
+    historyCategoriesResult,
+  ] = await Promise.all([
+    accountData,
+    historyPromise,
+    timezonePromise,
+    historyCategoriesPromise,
+  ]);
   if (
     historyResult?.error ||
     timezoneResult?.error ||
     historyCategoriesResult?.error
   )
     throw new Error("No se pudo cargar el detalle de la cuenta.");
+  const account = {
+    ...record.data,
+    balance: Number(balance ?? record.data.opening_balance),
+  };
   let statement: {
     startsOn: string;
     closesOn: string;

@@ -1,4 +1,6 @@
 import "server-only";
+import { cache } from "react";
+import { getAccess } from "@/features/permissions/queries";
 import { requireModule } from "@/features/permissions/queries";
 import { todayInTimeZone } from "@/features/recurring/processing";
 import { cardStatementCycle } from "@/features/finance/card-cycle";
@@ -15,19 +17,26 @@ export type UpcomingPayment = {
   kind: "recurring" | "card";
 };
 
+export const getAnalyticsToday = cache(async () => {
+  const { supabase, profile } = await getAccess();
+  const { data, error } = await supabase
+    .from("households")
+    .select("timezone")
+    .eq("id", profile.household_id)
+    .single();
+  if (error || !data) throw new Error("No se pudo cargar la fecha del hogar.");
+  return todayInTimeZone(new Date(), data.timezone);
+});
+
 export async function getAnalytics(
   module: "dashboard" | "reports",
   from?: string,
   to?: string,
 ) {
   const { supabase, profile } = await requireModule(module);
-  const [household, catalog, categoryCatalog, statementCatalog] =
-    await Promise.all([
-      supabase
-        .from("households")
-        .select("timezone")
-        .eq("id", profile.household_id)
-        .single(),
+  const [today, catalog, categoryCatalog, statementCatalog] = await Promise.all(
+    [
+      getAnalyticsToday(),
       supabase
         .from("accounts")
         .select(
@@ -40,44 +49,51 @@ export async function getAnalytics(
         .from("categories")
         .select("id,icon")
         .eq("household_id", profile.household_id),
-      module === "dashboard" ? supabase
-        .from("card_statements")
-        .select(
-          "card_id,closes_on,due_on,bank_cash_due,card_statement_allocations(amount)",
-        )
-        .eq("household_id", profile.household_id)
-        .order("due_on") : { data: [], error: null },
-    ]);
-  if (
-    household.error ||
-    catalog.error ||
-    categoryCatalog.error ||
-    statementCatalog.error
-  )
+      module === "dashboard"
+        ? supabase
+            .from("card_statements")
+            .select(
+              "card_id,closes_on,due_on,bank_cash_due,card_statement_allocations(amount)",
+            )
+            .eq("household_id", profile.household_id)
+            .order("due_on")
+        : { data: [], error: null },
+    ],
+  );
+  if (catalog.error || categoryCatalog.error || statementCatalog.error)
     throw new Error("No se pudo cargar el resumen financiero.");
-  const today = todayInTimeZone(new Date(), household.data.timezone);
   const range = reportDateRange(today, from, to);
-  const activeCards = module === "dashboard"
-    ? catalog.data.filter((account) => account.type === "credit_card" && !account.is_archived)
-    : [];
+  const activeCards =
+    module === "dashboard"
+      ? catalog.data.filter(
+          (account) => account.type === "credit_card" && !account.is_archived,
+        )
+      : [];
   const cardCycles = activeCards.map((card) => ({
     card,
-    cycle: cardStatementCycle(today, card.statement_closing_day!, card.payment_due_day!),
+    cycle: cardStatementCycle(
+      today,
+      card.statement_closing_day!,
+      card.payment_due_day!,
+    ),
   }));
   const [totals, { data, error }] = await Promise.all([
-    supabase.rpc("analytics_account_totals", {
-      p_date: today,
-      p_card_closes: module === "dashboard"
-        ? Object.fromEntries(cardCycles.map(({ card, cycle }) => [card.id, cycle.closesOn]))
-        : null,
-    }),
+    module === "dashboard"
+      ? supabase.rpc("analytics_account_totals", {
+          p_date: today,
+          p_card_closes: Object.fromEntries(
+            cardCycles.map(({ card, cycle }) => [card.id, cycle.closesOn]),
+          ),
+        })
+      : Promise.resolve({ data: null, error: null }),
     supabase.rpc("analytics_snapshot", {
       p_from: range.from,
       p_to: range.to,
       p_module: module,
     }),
   ]);
-  if (totals.error) throw new Error("No se pudieron calcular los saldos de hoy.");
+  if (totals.error)
+    throw new Error("No se pudieron calcular los saldos de hoy.");
   if (error) throw new Error("No se pudieron cargar los reportes.");
   const snapshot = analyticsSnapshotSchema.parse(data);
   const categoryIcons = new Map(
@@ -120,11 +136,9 @@ export async function getAnalytics(
       }));
     let cumulative = 0,
       emitted = 0;
-    for (const cut of cardObligations(
-      { ...cycle, unpaid },
-      bank,
-      today,
-    ).sort((a, b) => a.dueOn.localeCompare(b.dueOn))) {
+    for (const cut of cardObligations({ ...cycle, unpaid }, bank, today).sort(
+      (a, b) => a.dueOn.localeCompare(b.dueOn),
+    )) {
       if (cut.dueOn > lastDate) continue;
       cumulative += cut.unpaid;
       const debt = Math.max(
@@ -158,7 +172,13 @@ export async function getAnalytics(
     futureInstallmentsByCard: new Map(
       (module === "dashboard" ? catalog.data : [])
         .filter((account) => account.type === "credit_card")
-        .map((account) => [account.id, Number(balances[account.id]?.future_installments ?? 0)] as const),
+        .map(
+          (account) =>
+            [
+              account.id,
+              Number(balances[account.id]?.future_installments ?? 0),
+            ] as const,
+        ),
     ),
     upcoming,
     categories: snapshot.categories.map((category) => ({

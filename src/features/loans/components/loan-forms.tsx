@@ -264,7 +264,10 @@ export function RepayLoanForm({
   const [state, action, pending] = useActionState(
     async (previous: FormState, form: FormData) => {
       const result = await repayLoan(previous, form);
-      if (result?.ok) setPayments({});
+      if (result?.ok) {
+        setPayments({});
+        if (items.length) toast.success(result.ok);
+      }
       return result;
     },
     undefined,
