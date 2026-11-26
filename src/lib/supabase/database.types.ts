@@ -1,4 +1,7 @@
-import type { InventoryTables, InventoryFunctions } from "./inventory-local.types";
+import type {
+  InventoryTables,
+  InventoryFunctions,
+} from "./inventory-local.types";
 import type { Database as GeneratedDatabase } from "./database.generated";
 import type {
   ReminderTables,
@@ -18,12 +21,81 @@ export { Constants } from "./database.generated";
 // the generator does not infer argument nullability from function bodies.
 type Functions = GeneratedDatabase["public"]["Functions"];
 type LoanPeopleTable = {
-  Row: { id: string; household_id: string; name: string; emoji: string; color: string };
-  Insert: { id?: string; household_id: string; name: string; emoji?: string; color?: string };
+  Row: {
+    id: string;
+    household_id: string;
+    name: string;
+    emoji: string;
+    color: string;
+  };
+  Insert: {
+    id?: string;
+    household_id: string;
+    name: string;
+    emoji?: string;
+    color?: string;
+  };
   Update: { emoji?: string; color?: string };
   Relationships: [];
 };
+type ReadOnlyTable<T, R extends object[] = []> = {
+  Row: T;
+  Insert: never;
+  Update: never;
+  Relationships: R;
+};
+type LoanPurchaseTables = {
+  loan_purchase_items: ReadOnlyTable<{
+    id: string;
+    loan_id: string;
+    purchase_id: string;
+    item_id: string;
+    name: string;
+    quantity: number;
+    unit_cents: number;
+  }>;
+  loan_item_repayments: ReadOnlyTable<
+    { loan_item_id: string; transaction_id: string; amount_cents: number },
+    [
+      {
+        foreignKeyName: "loan_item_repayments_transaction_id_fkey";
+        columns: ["transaction_id"];
+        isOneToOne: false;
+        referencedRelation: "transactions";
+        referencedColumns: ["id"];
+      },
+      {
+        foreignKeyName: "loan_item_repayments_loan_item_id_fkey";
+        columns: ["loan_item_id"];
+        isOneToOne: false;
+        referencedRelation: "loan_purchase_items";
+        referencedColumns: ["id"];
+      },
+    ]
+  >;
+};
 type LoanPeopleFunctions = {
+  assert_loan_purchases_removable: { Args: { p_ids: string[] }; Returns: undefined };
+
+  loan_create_from_purchases: {
+    Args: {
+      p_person_id: string;
+      p_date: string;
+      p_expected_payment_date: string | null;
+      p_notes: string | null;
+      p_items: import("./database.generated").Json;
+    };
+    Returns: string;
+  };
+  loan_repay_items: {
+    Args: {
+      p_loan_id: string;
+      p_date: string;
+      p_account_id: string;
+      p_items: import("./database.generated").Json;
+    };
+    Returns: string;
+  };
   loan_set_person: {
     Args: { p_loan_id: string; p_person_id: string | null };
     Returns: undefined;
@@ -51,7 +123,14 @@ type NullableArgs<F extends { Args: object }, K extends keyof F["Args"]> = Omit<
 type Overrides = {
   analytics_account_totals: {
     Args: { p_date: string; p_card_closes: Record<string, string> | null };
-    Returns: Record<string, { balance: number | null; unpaid: number | null; future_installments: number | null }>;
+    Returns: Record<
+      string,
+      {
+        balance: number | null;
+        unpaid: number | null;
+        future_installments: number | null;
+      }
+    >;
   };
   assign_shopping_list_project: NullableArgs<
     Functions["assign_shopping_list_project"],
@@ -73,7 +152,14 @@ type Overrides = {
 };
 export type Database = Omit<GeneratedDatabase, "public"> & {
   public: Omit<GeneratedDatabase["public"], "Functions" | "Tables"> & {
-    Tables: GeneratedDatabase["public"]["Tables"] & ReminderTables & InventoryTables & { loan_people: LoanPeopleTable };
-    Functions: Omit<Functions, keyof Overrides> & Overrides & ReminderFunctions & InventoryFunctions & LoanPeopleFunctions;
+    Tables: GeneratedDatabase["public"]["Tables"] &
+      ReminderTables &
+      InventoryTables &
+      LoanPurchaseTables & { loan_people: LoanPeopleTable };
+    Functions: Omit<Functions, keyof Overrides> &
+      Overrides &
+      ReminderFunctions &
+      InventoryFunctions &
+      LoanPeopleFunctions;
   };
 };

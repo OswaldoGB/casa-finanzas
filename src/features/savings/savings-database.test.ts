@@ -293,3 +293,161 @@ describe("abonos a una compra de la tarjeta", () => {
     await expect(db.query("select track_card_purchase($1)", [tx])).rejects.toThrow("Elige un gasto hecho con esta tarjeta");
   });
 });
+
+describe("préstamos de compras", () => {
+  it("comparte unidades entre personas y concilia abonos parciales sin duplicar la compra", async () => {
+    await db.exec("begin");
+    try {
+      const [ana, leo] = (
+        await db.query<{ id: string }>(
+          "insert into loan_people(household_id,name) values ($1,'Ana compras'),($1,'Leo compras') returning id",
+          [home],
+        )
+      ).rows.map((row) => row.id);
+      const account = (
+        await db.query<{ id: string }>(
+          "insert into accounts(household_id,created_by,name,type,opening_balance) values ($1,$2,'Caja compras','cash',100) returning id",
+          [home, user],
+        )
+      ).rows[0].id;
+      const item = "00000000-0000-4000-8000-000000000031";
+      const second = "00000000-0000-4000-8000-000000000032";
+      const category = (
+        await db.query<{ id: string }>(
+          "select id from categories where household_id=$1 and type='expense' limit 1",
+          [home],
+        )
+      ).rows[0].id;
+      const purchases = (
+        await db.query<{ id: string }>(
+          "insert into transactions(household_id,created_by,type,amount,date,account_id,purchase_items,category_id) values ($1,$2,'expense',20,'2026-11-01',$3,$4,$6),($1,$2,'expense',3,'2026-11-01',$3,$5,$6) returning id",
+          [
+            home,
+            user,
+            account,
+            JSON.stringify([
+              { id: item, name: "Pasta", quantity: 4, unitCents: 500 },
+            ]),
+            JSON.stringify([
+              { id: second, name: "Salsa", quantity: 1, unitCents: 300 },
+            ]),
+            category,
+          ],
+        )
+      ).rows;
+      const create = (person: string, quantity: number, both = false) =>
+        db.query<{ id: string }>(
+          "select loan_create_from_purchases($1,'2026-11-01',null,null,$2) id",
+          [
+            person,
+            JSON.stringify([
+              { purchase_id: purchases[0].id, item_id: item, quantity },
+              ...(both
+                ? [
+                    {
+                      purchase_id: purchases[1].id,
+                      item_id: second,
+                      quantity: 1,
+                    },
+                  ]
+                : []),
+            ]),
+          ],
+        );
+      const loan = (await create(ana, 2, true)).rows[0].id;
+      await create(leo, 2);
+      await db.exec("savepoint overassign");
+      await expect(create(leo, 1)).rejects.toThrow(
+        "supera las unidades disponibles",
+      );
+      await db.exec("rollback to overassign");
+
+      const allocations = (
+        await db.query<{ id: string; name: string }>(
+          "select id,name from loan_purchase_items where loan_id=$1 order by name",
+          [loan],
+        )
+      ).rows;
+      const partial = (
+        await db.query<{ id: string }>(
+          "select loan_repay_items($1,'2026-11-02',$2,$3) id",
+          [
+            loan,
+            account,
+            JSON.stringify([
+              { loan_item_id: allocations[0].id, amount_cents: 250 },
+              { loan_item_id: allocations[1].id, amount_cents: 300 },
+            ]),
+          ],
+        )
+      ).rows[0].id;
+      const state = () =>
+        db.query<{ amount: string; recovered: string; balance: string }>(
+          "select amount::text, recovered_amount::text recovered, (select balance::text from account_balances() where account_id=$2) balance from loans where id=$1",
+          [loan, account],
+        );
+      expect((await state()).rows[0]).toEqual({
+        amount: "13.00",
+        recovered: "5.50",
+        balance: "82.50",
+      });
+      await db.exec("savepoint overpay");
+      await expect(
+        db.query("select loan_repay_items($1,'2026-11-02',$2,$3)", [
+          loan,
+          account,
+          JSON.stringify([
+            { loan_item_id: allocations[0].id, amount_cents: 751 },
+          ]),
+        ]),
+      ).rejects.toThrow("supera lo pendiente");
+      await db.exec("rollback to overpay");
+      await db.query("delete from transactions where id=$1", [partial]);
+      expect((await state()).rows[0]).toEqual({
+        amount: "13.00",
+        recovered: "0.00",
+        balance: "77.00",
+      });
+      expect(
+        (
+          await db.query(
+            "select 1 from loan_item_repayments where transaction_id=$1",
+            [partial],
+          )
+        ).rows,
+      ).toHaveLength(0);
+    } finally {
+      await db.exec("rollback");
+    }
+  });
+});
+it("copia los renglones comprados de una lista al movimiento del ticket", async () => {
+  await db.exec("begin");
+  try {
+    const category = (await db.query<{ id: string }>(
+      "select id from categories where household_id=$1 and type='expense' limit 1", [home],
+    )).rows[0].id;
+    const account = (await db.query<{ id: string }>(
+      "insert into accounts(household_id,created_by,name,type) values ($1,$2,'Caja lista','cash') returning id",
+      [home, user],
+    )).rows[0].id;
+    const list = (await db.query<{ id: string }>(
+      "insert into shopping_lists(household_id,created_by,name) values ($1,$2,'Compra compartida') returning id",
+      [home, user],
+    )).rows[0].id;
+    const item = (await db.query<{ id: string }>(
+      "insert into shopping_list_items(household_id,created_by,list_id,name,quantity,real_price,checked) values ($1,$2,$3,'Café',2,3.25,true) returning id",
+      [home, user, list],
+    )).rows[0].id;
+    const receipt = (await db.query<{ result: { transaction_id: string } }>(
+      "select record_shopping_purchase($1,null,array[$2::uuid],$3,$4,'2026-11-01',null,gen_random_uuid()) result",
+      [list, item, account, category],
+    )).rows[0].result;
+    const stored = await db.query<{ purchase_items: unknown }>(
+      "select purchase_items from transactions where id=$1", [receipt.transaction_id],
+    );
+    expect(stored.rows[0].purchase_items).toEqual([{ id: item, name: "Café", quantity: 2, unitCents: 325 }]);
+  } finally {
+    await db.exec("rollback");
+  }
+});

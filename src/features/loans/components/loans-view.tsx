@@ -1,5 +1,6 @@
 "use client";
 
+import { FilterPanel } from "@/components/ui/filter-panel";
 import { NewLoanDialog } from "@/features/loans/components/new-loan-dialog";
 import { ExportButtons } from "@/features/exports/components/export-buttons";
 import type { getLoans } from "@/features/loans/queries";
@@ -18,7 +19,10 @@ import { decimalToCents } from "@/features/finance/balances";
 import { FormSelect } from "@/components/ui/form-select";
 import { ActionForm } from "@/features/projects/components/action-form";
 import { setLoanPerson } from "@/features/loans/actions";
-import { LoanPersonForm, PersonAvatar } from "@/features/loans/components/person-form";
+import {
+  LoanPersonForm,
+  PersonAvatar,
+} from "@/features/loans/components/person-form";
 import { organizeLoans, readLoanFilters } from "@/features/loans/filters";
 import type { Loan } from "@/features/loans/schemas";
 function LoanCard({
@@ -29,6 +33,7 @@ function LoanCard({
   data: Awaited<ReturnType<typeof getLoans>>;
 }) {
   const owed = loan.direction === "borrowed";
+  const items = data.itemsByLoan[loan.id] ?? [];
   const person = data.people.find((entry) => entry.id === loan.person_id);
   return (
     <article
@@ -38,7 +43,9 @@ function LoanCard({
       <div className="flex items-start justify-between gap-3">
         <h3 className="flex min-w-0 items-center gap-2 font-semibold">
           {person && <PersonAvatar emoji={person.emoji} color={person.color} />}
-          <span className="min-w-0 wrap-anywhere">{person?.name ?? loan.debtor}</span>
+          <span className="min-w-0 wrap-anywhere">
+            {person?.name ?? loan.debtor}
+          </span>
         </h3>
         <div className="flex shrink-0 items-center gap-2">
           <span className="text-sm">
@@ -65,7 +72,11 @@ function LoanCard({
                 {owed ? (
                   <DebtForm debt={loan} today={data.today} />
                 ) : (
-                  <EditLoanForm loan={loan} accounts={data.sourceAccounts} />
+                  <EditLoanForm
+                    loan={loan}
+                    accounts={data.sourceAccounts}
+                    linked={items.length > 0}
+                  />
                 )}
               </div>
             </details>
@@ -73,7 +84,9 @@ function LoanCard({
         </div>
       </div>
       {person && person.name !== loan.debtor && (
-        <p className="text-muted-foreground mt-1 text-xs">Nombre registrado: {loan.debtor}</p>
+        <p className="text-muted-foreground mt-1 text-xs">
+          Nombre registrado: {loan.debtor}
+        </p>
       )}
       <p className="mt-3 text-2xl font-semibold">{formatUSD(loan.pending)}</p>
       <p className="text-muted-foreground mt-1 text-sm">
@@ -87,7 +100,7 @@ function LoanCard({
           ? ` · ${owed ? "Pagar antes de" : "Pago esperado"}: ${loan.expected_payment_date}`
           : ""}
       </p>
-      {!owed && loan.source_account_name && (
+      {!owed && items.length === 0 && loan.source_account_name && (
         <p className="text-muted-foreground mt-2 text-xs">
           Origen: {loan.source_account_name}
           {loan.source_account_type === "credit_card"
@@ -101,12 +114,55 @@ function LoanCard({
       {loan.notes && (
         <p className="mt-3 text-sm whitespace-pre-wrap">{loan.notes}</p>
       )}
+      {items.length > 0 && (
+        <details className="mt-4 rounded-xl border p-3">
+          <summary className="cursor-pointer text-sm font-medium">
+            Compras, ítems y abonos
+          </summary>
+          <ul className="mt-2 divide-y">
+            {items.map((item) => (
+              <li key={item.id} className="grid gap-1 py-2 text-sm">
+                <Link
+                  href={`/transactions/${item.purchaseId}`}
+                  className="text-primary hover:underline"
+                >
+                  {item.name}
+                </Link>
+                <span className="text-muted-foreground">
+                  {item.quantity} × {formatUSD(item.unitCents / 100)} ·
+                  Pendiente {formatUSD(item.pendingCents / 100)}
+                </span>
+                {item.payments.map((payment) => (
+                  <Link
+                    key={payment.transactionId}
+                    href={`/transactions/${payment.transactionId}`}
+                    className="text-primary text-xs hover:underline"
+                  >
+                    Abono {formatUSD(payment.cents / 100)}
+                    {payment.date && ` · Fecha del abono ${payment.date}`}
+                    {payment.createdAt &&
+                      ` · Registrado ${new Intl.DateTimeFormat("es-SV", { dateStyle: "short", timeStyle: "short", timeZone: data.timezone }).format(new Date(payment.createdAt))}`}
+                  </Link>
+                ))}
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
       {data.canEdit && data.people.length > 0 && (
         <details className="mt-4">
-          <summary className="cursor-pointer text-sm">{person ? "Cambiar persona vinculada" : "Vincular a una persona"}</summary>
-          <ActionForm action={setLoanPerson} label="Guardar vínculo" className="mt-3 max-w-sm space-y-2">
+          <summary className="cursor-pointer text-sm">
+            {person ? "Cambiar persona vinculada" : "Vincular a una persona"}
+          </summary>
+          <ActionForm
+            action={setLoanPerson}
+            label="Guardar vínculo"
+            className="mt-3 max-w-sm space-y-2"
+          >
             <input type="hidden" name="id" value={loan.id} />
-            <label htmlFor={`person-${loan.id}`} className="text-sm">Persona del catálogo</label>
+            <label htmlFor={`person-${loan.id}`} className="text-sm">
+              Persona del catálogo
+            </label>
             <FormSelect
               key={loan.person_id ?? "manual"}
               id={`person-${loan.id}`}
@@ -114,9 +170,13 @@ function LoanCard({
               defaultValue={loan.person_id ?? "manual"}
               placeholder="Elige una persona"
               options={[
-                { value: "manual", label: "Sin vincular" },
+                ...(items.length === 0
+                  ? [{ value: "manual", label: "Sin vincular" }]
+                  : []),
                 ...data.people.map(({ id, name, emoji, color }) => ({
-                  value: id, label: name, leading: <PersonAvatar emoji={emoji} color={color} />,
+                  value: id,
+                  label: name,
+                  leading: <PersonAvatar emoji={emoji} color={color} />,
                 })),
               ]}
             />
@@ -132,10 +192,15 @@ function LoanCard({
               </summary>
               <div className="mt-3">
                 {owed ? (
-                  <PayDebtForm debt={loan} today={data.today} accounts={data.sourceAccounts} />
+                  <PayDebtForm
+                    debt={loan}
+                    today={data.today}
+                    accounts={data.sourceAccounts}
+                  />
                 ) : (
                   <RepayLoanForm
                     loan={loan}
+                    items={items}
                     today={data.today}
                     accounts={data.depositAccounts}
                   />
@@ -150,21 +215,36 @@ function LoanCard({
   );
 }
 
-function LoansByPerson({ data }: { data: Awaited<ReturnType<typeof getLoans>> }) {
+function LoansByPerson({
+  data,
+}: {
+  data: Awaited<ReturnType<typeof getLoans>>;
+}) {
   const unlinked = data.loans.filter((loan) => !loan.person_id);
   return (
     <section aria-label="Préstamos por persona" className="space-y-4">
       {data.canEdit && (
         <details className="bg-card rounded-2xl border p-4">
-          <summary className="cursor-pointer font-semibold">Agregar persona</summary>
+          <summary className="cursor-pointer font-semibold">
+            Agregar persona
+          </summary>
           <LoanPersonForm />
         </details>
       )}
-      {data.people.length === 0 && <p className="text-muted-foreground text-sm">Todavía no hay personas en el catálogo.</p>}
+      {data.people.length === 0 && (
+        <p className="text-muted-foreground text-sm">
+          Todavía no hay personas en el catálogo.
+        </p>
+      )}
       {data.people.map((person) => {
         const loans = data.loans.filter((loan) => loan.person_id === person.id);
         const pending = (direction: Loan["direction"]) =>
-          loans.reduce((total, loan) => total + (loan.direction === direction ? decimalToCents(loan.pending) : 0), 0) / 100;
+          loans.reduce(
+            (total, loan) =>
+              total +
+              (loan.direction === direction ? decimalToCents(loan.pending) : 0),
+            0,
+          ) / 100;
         return (
           <details key={person.id} className="bg-card rounded-2xl border p-4">
             <summary className="cursor-pointer">
@@ -173,19 +253,37 @@ function LoansByPerson({ data }: { data: Awaited<ReturnType<typeof getLoans>> })
                 {person.name}
               </span>
               <span className="text-muted-foreground mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm">
-                <span>Me debe <strong className="text-foreground tabular-nums">{formatUSD(pending("lent"))}</strong></span>
-                <span>Le debo <strong className="text-foreground tabular-nums">{formatUSD(pending("borrowed"))}</strong></span>
+                <span>
+                  Me debe{" "}
+                  <strong className="text-foreground tabular-nums">
+                    {formatUSD(pending("lent"))}
+                  </strong>
+                </span>
+                <span>
+                  Le debo{" "}
+                  <strong className="text-foreground tabular-nums">
+                    {formatUSD(pending("borrowed"))}
+                  </strong>
+                </span>
               </span>
             </summary>
             <div className="mt-4 space-y-3">
               {data.canEdit && (
                 <details className="rounded-xl border p-3">
-                  <summary className="cursor-pointer text-sm">Cambiar emoji y color</summary>
+                  <summary className="cursor-pointer text-sm">
+                    Cambiar emoji y color
+                  </summary>
                   <LoanPersonForm person={person} />
                 </details>
               )}
-              {loans.length ? loans.map((loan) => <LoanCard key={loan.id} loan={loan} data={data} />) : (
-                <p className="text-muted-foreground text-sm">Todavía no hay préstamos vinculados.</p>
+              {loans.length ? (
+                loans.map((loan) => (
+                  <LoanCard key={loan.id} loan={loan} data={data} />
+                ))
+              ) : (
+                <p className="text-muted-foreground text-sm">
+                  Todavía no hay préstamos vinculados.
+                </p>
               )}
             </div>
           </details>
@@ -193,9 +291,13 @@ function LoansByPerson({ data }: { data: Awaited<ReturnType<typeof getLoans>> })
       })}
       {unlinked.length > 0 && (
         <details className="bg-card rounded-2xl border p-4">
-          <summary className="cursor-pointer font-semibold">Sin persona vinculada ({unlinked.length})</summary>
+          <summary className="cursor-pointer font-semibold">
+            Sin persona vinculada ({unlinked.length})
+          </summary>
           <div className="mt-4 space-y-3">
-            {unlinked.map((loan) => <LoanCard key={loan.id} loan={loan} data={data} />)}
+            {unlinked.map((loan) => (
+              <LoanCard key={loan.id} loan={loan} data={data} />
+            ))}
           </div>
         </details>
       )}
@@ -203,7 +305,11 @@ function LoansByPerson({ data }: { data: Awaited<ReturnType<typeof getLoans>> })
   );
 }
 
-export function LoansView({ data }: { data: Awaited<ReturnType<typeof getLoans>> }) {
+export function LoansView({
+  data,
+}: {
+  data: Awaited<ReturnType<typeof getLoans>>;
+}) {
   const params = useSearchParams();
   const { filter, sort } = readLoanFilters({
     filter: params.get("filter") ?? undefined,
@@ -211,7 +317,9 @@ export function LoansView({ data }: { data: Awaited<ReturnType<typeof getLoans>>
   });
   const owed = params.get("tab") === "debo";
   const byPerson = params.get("tab") === "personas";
-  const loans = data.loans.filter((l) => l.direction === (owed ? "borrowed" : "lent"));
+  const loans = data.loans.filter(
+    (l) => l.direction === (owed ? "borrowed" : "lent"),
+  );
   const organized = organizeLoans(loans, filter, sort);
   const tab = (value: string, label: string, active: boolean) => (
     <Link
@@ -235,23 +343,30 @@ export function LoansView({ data }: { data: Awaited<ReturnType<typeof getLoans>>
       <header>
         <h1 className="text-2xl font-semibold">Préstamos y deudas</h1>
         <p className="text-muted-foreground mt-2 text-sm">
-          {byPerson ? "Consulta los saldos y préstamos de cada persona." : owed
-            ? "Lo que te prestaron o pagaron por ti, y lo que vas abonando."
-            : "El dinero que prestas y lo que has recuperado."}
+          {byPerson
+            ? "Consulta los saldos y préstamos de cada persona."
+            : owed
+              ? "Lo que te prestaron o pagaron por ti, y lo que vas abonando."
+              : "El dinero que prestas y lo que has recuperado."}
         </p>
       </header>
-      <nav aria-label="Préstamos y deudas" className="bg-muted inline-flex flex-wrap rounded-xl p-1">
+      <nav
+        aria-label="Préstamos y deudas"
+        className="bg-muted inline-flex flex-wrap rounded-xl p-1"
+      >
         {tab("", "Me deben", !owed && !byPerson)}
         {tab("debo", "Debo", owed)}
         {tab("personas", "Por persona", byPerson)}
       </nav>
-        <div className="mt-4">
+      <div className="mt-4">
         <NewLoanDialog title={owed ? "Nueva deuda" : "Nuevo préstamo"}>
           {owed ? (
             data.canEdit ? (
               <DebtForm today={data.today} people={data.people} />
             ) : (
-              <p className="text-muted-foreground text-sm">Necesitas permiso de edición en préstamos.</p>
+              <p className="text-muted-foreground text-sm">
+                Necesitas permiso de edición en préstamos.
+              </p>
             )
           ) : data.canOperate ? (
             <CreateLoanForm
@@ -266,117 +381,140 @@ export function LoansView({ data }: { data: Awaited<ReturnType<typeof getLoans>>
             </p>
           )}
         </NewLoanDialog>
-        </div>
-      {byPerson ? <LoansByPerson data={data} /> : <>
-      <ExportButtons target="loans" />
-      <div className="stagger grid gap-3 sm:grid-cols-3">
-        {[
-          {
-            name: owed ? "Me prestaron" : "Prestado",
-            value: loans.reduce((n, l) => n + (owed ? l.amount : l.lent), 0),
-          },
-          {
-            name: owed ? "Abonado" : "Recuperado",
-            value: loans.reduce((n, l) => n + l.recovered, 0),
-          },
-          {
-            name: owed ? "Pendiente por pagar" : "Pendiente por cobrar",
-            value: loans.reduce((n, l) => n + l.pending, 0),
-          },
-        ].map((item) => (
-          <section key={item.name} className="bg-card rounded-2xl border p-5">
-            <h2 className="text-muted-foreground text-sm">{item.name}</h2>
-            <p className="mt-3 text-2xl font-semibold tabular-nums">
-              {formatUSD(item.value)}
-            </p>
-          </section>
-        ))}
       </div>
-      <div>
-        <section className="space-y-4" aria-label="Préstamos">
-          <form
-            key={`${owed}-${filter}-${sort}`}
-            className="bg-card flex flex-wrap items-end gap-3 rounded-2xl border p-4"
-            onSubmit={(event) => {
-              event.preventDefault();
-              const query = new URLSearchParams();
-              new FormData(event.currentTarget).forEach((value, name) => query.set(name, String(value)));
-              window.history.pushState(null, "", `/loans?${query}`);
-            }}
-          >
-            {owed && <input type="hidden" name="tab" value="debo" />}
-            <label className="grid gap-1 text-sm" htmlFor="loan-filter">
-              Ver
-              <select
-                id="loan-filter"
-                name="filter"
-                defaultValue={filter}
-                className="border-input bg-background h-10 rounded-lg border px-3 text-sm"
+      {byPerson ? (
+        <LoansByPerson data={data} />
+      ) : (
+        <>
+          <ExportButtons target="loans" />
+          <div className="stagger grid gap-3 sm:grid-cols-3">
+            {[
+              {
+                name: owed ? "Me prestaron" : "Prestado",
+                value: loans.reduce(
+                  (n, l) => n + (owed ? l.amount : l.lent),
+                  0,
+                ),
+              },
+              {
+                name: owed ? "Abonado" : "Recuperado",
+                value: loans.reduce((n, l) => n + l.recovered, 0),
+              },
+              {
+                name: owed ? "Pendiente por pagar" : "Pendiente por cobrar",
+                value: loans.reduce((n, l) => n + l.pending, 0),
+              },
+            ].map((item) => (
+              <section
+                key={item.name}
+                className="bg-card rounded-2xl border p-5"
               >
-                <option value="all">Pendientes</option>
-                <option value="active">Activos sin abonos</option>
-                <option value="partial">Parciales</option>
-                <option value="paid">Pagados</option>
-              </select>
-            </label>
-            <label className="grid gap-1 text-sm" htmlFor="loan-sort">
-              Ordenar por
-              <select
-                id="loan-sort"
-                name="sort"
-                defaultValue={sort}
-                className="border-input bg-background h-10 rounded-lg border px-3 text-sm"
-              >
-                <option value="date_desc">Más recientes</option>
-                <option value="date_asc">Más antiguos</option>
-                <option value="amount_desc">Mayor monto</option>
-                <option value="amount_asc">Menor monto</option>
-              </select>
-            </label>
-            <button className="bg-primary text-primary-foreground h-10 rounded-lg px-4 text-sm font-medium">
-              Aplicar
-            </button>
-          </form>
-          <div className="flex items-center justify-between gap-3 pt-2">
-            <h2 className="font-semibold">{owed ? "Por pagar" : "Por cobrar"}</h2>
-            <span className="text-muted-foreground text-sm">
-              {organized.current.length}
-            </span>
+                <h2 className="text-muted-foreground text-sm">{item.name}</h2>
+                <p className="mt-3 text-2xl font-semibold tabular-nums">
+                  {formatUSD(item.value)}
+                </p>
+              </section>
+            ))}
           </div>
-          {organized.current.length ? (
-            organized.current.map((loan) => (
-              <LoanCard key={loan.id} loan={loan} data={data} />
-            ))
-          ) : (
-            <p className="bg-card text-muted-foreground rounded-2xl border p-6 text-sm">
-              {owed ? "No debes nada en este filtro." : "No hay préstamos en este filtro."}
-            </p>
-          )}
-          {(filter === "all" || filter === "paid") && (
-            <details className="bg-card rounded-2xl border p-5">
-              <summary className="flex cursor-pointer items-center justify-between gap-3 font-semibold">
-                <span>{owed ? "Deudas pagadas e incobrables" : "Préstamos pagados e incobrables"}</span>
+          <div>
+            <section className="space-y-4" aria-label="Préstamos">
+              <FilterPanel>
+                <form
+                  key={`${owed}-${filter}-${sort}`}
+                  className="flex flex-wrap items-end gap-3"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    const query = new URLSearchParams();
+                    new FormData(event.currentTarget).forEach((value, name) =>
+                      query.set(name, String(value)),
+                    );
+                    window.history.pushState(null, "", `/loans?${query}`);
+                  }}
+                >
+                  {owed && <input type="hidden" name="tab" value="debo" />}
+                  <label className="grid gap-1 text-sm" htmlFor="loan-filter">
+                    Ver
+                    <select
+                      id="loan-filter"
+                      name="filter"
+                      defaultValue={filter}
+                      className="border-input bg-background h-10 rounded-lg border px-3 text-sm"
+                    >
+                      <option value="all">Pendientes</option>
+                      <option value="active">Activos sin abonos</option>
+                      <option value="partial">Parciales</option>
+                      <option value="paid">Pagados</option>
+                    </select>
+                  </label>
+                  <label className="grid gap-1 text-sm" htmlFor="loan-sort">
+                    Ordenar por
+                    <select
+                      id="loan-sort"
+                      name="sort"
+                      defaultValue={sort}
+                      className="border-input bg-background h-10 rounded-lg border px-3 text-sm"
+                    >
+                      <option value="date_desc">Más recientes</option>
+                      <option value="date_asc">Más antiguos</option>
+                      <option value="amount_desc">Mayor monto</option>
+                      <option value="amount_asc">Menor monto</option>
+                    </select>
+                  </label>
+                  <button className="bg-primary text-primary-foreground h-10 rounded-lg px-4 text-sm font-medium">
+                    Aplicar
+                  </button>
+                </form>
+              </FilterPanel>
+              <div className="flex items-center justify-between gap-3 pt-2">
+                <h2 className="font-semibold">
+                  {owed ? "Por pagar" : "Por cobrar"}
+                </h2>
                 <span className="text-muted-foreground text-sm">
-                  {organized.paid.length}
+                  {organized.current.length}
                 </span>
-              </summary>
-              <div className="mt-4 space-y-4">
-              {organized.paid.length ? (
-                organized.paid.map((loan) => (
+              </div>
+              {organized.current.length ? (
+                organized.current.map((loan) => (
                   <LoanCard key={loan.id} loan={loan} data={data} />
                 ))
               ) : (
                 <p className="bg-card text-muted-foreground rounded-2xl border p-6 text-sm">
-                  {owed ? "Aún no hay deudas pagadas." : "Aún no hay préstamos pagados."}
+                  {owed
+                    ? "No debes nada en este filtro."
+                    : "No hay préstamos en este filtro."}
                 </p>
               )}
-              </div>
-            </details>
-          )}
-        </section>
-
-      </div>
-      </>}
+              {(filter === "all" || filter === "paid") && (
+                <details className="bg-card rounded-2xl border p-5">
+                  <summary className="flex cursor-pointer items-center justify-between gap-3 font-semibold">
+                    <span>
+                      {owed
+                        ? "Deudas pagadas e incobrables"
+                        : "Préstamos pagados e incobrables"}
+                    </span>
+                    <span className="text-muted-foreground text-sm">
+                      {organized.paid.length}
+                    </span>
+                  </summary>
+                  <div className="mt-4 space-y-4">
+                    {organized.paid.length ? (
+                      organized.paid.map((loan) => (
+                        <LoanCard key={loan.id} loan={loan} data={data} />
+                      ))
+                    ) : (
+                      <p className="bg-card text-muted-foreground rounded-2xl border p-6 text-sm">
+                        {owed
+                          ? "Aún no hay deudas pagadas."
+                          : "Aún no hay préstamos pagados."}
+                      </p>
+                    )}
+                  </div>
+                </details>
+              )}
+            </section>
+          </div>
+        </>
+      )}
     </div>
   );
 }

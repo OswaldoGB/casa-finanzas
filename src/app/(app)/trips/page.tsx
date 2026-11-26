@@ -1,3 +1,4 @@
+import { FilterPanel } from "@/components/ui/filter-panel";
 import Link from "next/link";
 import { Plane, MapPin, CalendarDays } from "lucide-react";
 import { getTrips } from "@/features/trips/queries";
@@ -28,20 +29,22 @@ export default async function TripsPage({
         {canEdit && <TripDialog listenToNew />}
       </header>
       <ExportButtons target="trips" />
-      <div className="flex gap-2">
-        <Link
-          href="/trips"
-          className={`rounded-lg border px-3 py-2 text-sm ${status !== "archived" ? "bg-primary/10 text-primary" : ""}`}
-        >
-          Tus viajes
-        </Link>
-        <Link
-          href="/trips?status=archived"
-          className={`rounded-lg border px-3 py-2 text-sm ${status === "archived" ? "bg-primary/10 text-primary" : ""}`}
-        >
-          Archivados
-        </Link>
-      </div>
+      <FilterPanel>
+        <div className="flex gap-2">
+          <Link
+            href="/trips"
+            className={`rounded-lg border px-3 py-2 text-sm ${status !== "archived" ? "bg-primary/10 text-primary" : ""}`}
+          >
+            Tus viajes
+          </Link>
+          <Link
+            href="/trips?status=archived"
+            className={`rounded-lg border px-3 py-2 text-sm ${status === "archived" ? "bg-primary/10 text-primary" : ""}`}
+          >
+            Archivados
+          </Link>
+        </div>
+      </FilterPanel>
       {!visible.length && (
         <div className="bg-card rounded-2xl border border-dashed p-10 text-center">
           <Plane className="text-primary mx-auto mb-3 size-10" />

@@ -4,17 +4,9 @@ import { useRef, useState } from "react";
 import { FileImage, FileText, Loader2, Paperclip, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { createClient } from "@/lib/supabase/client";
-import {
-  deleteAttachment,
-  getAttachmentUrl,
-  prepareAttachmentUpload,
-  saveAttachment,
-} from "../actions";
+import { deleteAttachment, getAttachmentUrl } from "../actions";
+import { uploadReceipt } from "../upload";
 import type { AttachmentSummary } from "../queries";
-import { MAX_FILE_BYTES } from "../schemas";
-
-import { compressImage } from "../image";
 
 export function AttachmentsPanel({
   transactionId,
@@ -33,47 +25,11 @@ export function AttachmentsPanel({
 
   async function upload(file: File) {
     setError("");
-    if (
-      !["image/jpeg", "image/png", "image/webp", "application/pdf"].includes(
-        file.type,
-      )
-    ) {
-      setError("Selecciona una imagen JPG, PNG, WebP o un PDF.");
-      return;
-    }
-    if (file.size > 20 * 1024 * 1024) {
-      setError("El archivo original supera 20 MB.");
-      return;
-    }
     setBusy(true);
     try {
-      const prepared =
-        file.type === "application/pdf" ? file : await compressImage(file);
-      if (prepared.size < 1 || prepared.size > MAX_FILE_BYTES)
-        throw new Error("El comprobante debe pesar 10 MB o menos.");
-      const { path } = await prepareAttachmentUpload({
-        transactionId,
-        mimeType: prepared.type,
-        sizeBytes: prepared.size,
-      });
-      const supabase = createClient();
-      const { error: uploadError } = await supabase.storage
-        .from("receipts")
-        .upload(path, prepared, { contentType: prepared.type, upsert: false });
-      if (uploadError) throw new Error("No se pudo subir el comprobante.");
-      try {
-        const saved = await saveAttachment({
-          transactionId,
-          path,
-          mimeType: prepared.type,
-          sizeBytes: prepared.size,
-        });
-        setItems((current) => [saved, ...current]);
-        router.refresh();
-      } catch (saveError) {
-        await supabase.storage.from("receipts").remove([path]);
-        throw saveError;
-      }
+      const saved = await uploadReceipt(transactionId, file);
+      setItems((current) => [saved, ...current]);
+      router.refresh();
     } catch (cause) {
       setError(
         cause instanceof Error

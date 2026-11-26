@@ -1702,6 +1702,8 @@ export type Database = {
       };
       transactions: {
         Row: {
+          purchase_place: string | null
+          purchase_items: Json
           account_id: string | null;
           amount: number;
           card_payment_id: string | null;
@@ -1724,6 +1726,8 @@ export type Database = {
           updated_at: string;
         };
         Insert: {
+          purchase_place?: string | null
+          purchase_items?: Json
           account_id?: string | null;
           amount: number;
           card_payment_id?: string | null;
@@ -1746,6 +1750,8 @@ export type Database = {
           updated_at?: string;
         };
         Update: {
+          purchase_place?: string | null
+          purchase_items?: Json
           account_id?: string | null;
           amount?: number;
           card_payment_id?: string | null;

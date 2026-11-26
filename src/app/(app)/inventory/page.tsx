@@ -1,3 +1,4 @@
+import { FilterPanel } from "@/components/ui/filter-panel";
 import { ExportButtons } from "@/features/exports/components/export-buttons";
 import Link from "next/link";
 import Image from "next/image";
@@ -35,7 +36,20 @@ export default async function InventoryPage({
       <ExportButtons target="inventory" />
       <div className="stagger grid gap-3 sm:grid-cols-3">
         {[
-          ["Necesitan reposición", String(items.filter((item) => item.packages.length > 0 && item.lowStockThreshold !== null && item.packages.reduce((sum, pack) => sum + Number(pack.remaining), 0) <= item.lowStockThreshold).length)],
+          [
+            "Necesitan reposición",
+            String(
+              items.filter(
+                (item) =>
+                  item.packages.length > 0 &&
+                  item.lowStockThreshold !== null &&
+                  item.packages.reduce(
+                    (sum, pack) => sum + Number(pack.remaining),
+                    0,
+                  ) <= item.lowStockThreshold,
+              ).length,
+            ),
+          ],
           ["Artículos", String(items.length)],
           ["Garantías por vencer (30 días)", String(expiring.length)],
         ].map(([label, value]) => (
@@ -45,35 +59,37 @@ export default async function InventoryPage({
           </div>
         ))}
       </div>
-      <form className="flex flex-wrap items-end gap-3">
-        <label className="text-sm">
-          Ubicación
-          <select
-            name="location"
-            defaultValue={filters.location ?? ""}
-            className={inputClass}
-          >
-            <option value="">Todas</option>
-            {locations.map((location) => (
-              <option key={location}>{location}</option>
-            ))}
-          </select>
-        </label>
-        <label className="text-sm">
-          Vista
-          <select
-            name="view"
-            defaultValue={filters.view ?? "cards"}
-            className={inputClass}
-          >
-            <option value="cards">Tarjetas</option>
-            <option value="table">Tabla</option>
-          </select>
-        </label>
-        <button className="rounded-lg border px-4 py-2.5 text-sm">
-          Aplicar
-        </button>
-      </form>
+      <FilterPanel>
+        <form className="flex flex-wrap items-end gap-3">
+          <label className="text-sm">
+            Ubicación
+            <select
+              name="location"
+              defaultValue={filters.location ?? ""}
+              className={inputClass}
+            >
+              <option value="">Todas</option>
+              {locations.map((location) => (
+                <option key={location}>{location}</option>
+              ))}
+            </select>
+          </label>
+          <label className="text-sm">
+            Vista
+            <select
+              name="view"
+              defaultValue={filters.view ?? "cards"}
+              className={inputClass}
+            >
+              <option value="cards">Tarjetas</option>
+              <option value="table">Tabla</option>
+            </select>
+          </label>
+          <button className="rounded-lg border px-4 py-2.5 text-sm">
+            Aplicar
+          </button>
+        </form>
+      </FilterPanel>
       <div>
         <section>
           {visible.length === 0 && (
@@ -86,16 +102,13 @@ export default async function InventoryPage({
               <table className="w-full text-left text-sm">
                 <thead className="bg-muted">
                   <tr>
-                    {[
-                      "Artículo",
-                      "Ubicación",
-                      "Cantidad",
-                      "Garantía",
-                    ].map((label) => (
-                      <th key={label} className="p-3">
-                        {label}
-                      </th>
-                    ))}
+                    {["Artículo", "Ubicación", "Cantidad", "Garantía"].map(
+                      (label) => (
+                        <th key={label} className="p-3">
+                          {label}
+                        </th>
+                      ),
+                    )}
                   </tr>
                 </thead>
                 <tbody>
@@ -110,7 +123,12 @@ export default async function InventoryPage({
                         </Link>
                       </td>
                       <td className="p-3">{item.location || "—"}</td>
-                      <td className="p-3">{item.packages.reduce((sum, pack) => sum + Number(pack.remaining), 0)}</td>
+                      <td className="p-3">
+                        {item.packages.reduce(
+                          (sum, pack) => sum + Number(pack.remaining),
+                          0,
+                        )}
+                      </td>
                       <td className="p-3">{item.warranty_until ?? "—"}</td>
                     </tr>
                   ))}
@@ -141,8 +159,17 @@ export default async function InventoryPage({
                     {item.category || "Sin categoría"}
                   </p>
                   <p className="text-sm">
-                    {item.packages.length ? `${item.packages.reduce((sum, pack) => sum + Number(pack.remaining), 0)} unidades en envases` : `${item.quantity} unidades registradas`}
-                    {item.packages.length > 0 && item.lowStockThreshold !== null && item.packages.reduce((sum, pack) => sum + Number(pack.remaining), 0) <= item.lowStockThreshold && <span className="text-amber-500"> · Reponer</span>}
+                    {item.packages.length
+                      ? `${item.packages.reduce((sum, pack) => sum + Number(pack.remaining), 0)} unidades en envases`
+                      : `${item.quantity} unidades registradas`}
+                    {item.packages.length > 0 &&
+                      item.lowStockThreshold !== null &&
+                      item.packages.reduce(
+                        (sum, pack) => sum + Number(pack.remaining),
+                        0,
+                      ) <= item.lowStockThreshold && (
+                        <span className="text-amber-500"> · Reponer</span>
+                      )}
                   </p>
                   {item.warranty_until && (
                     <p

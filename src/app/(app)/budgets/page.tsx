@@ -1,3 +1,4 @@
+import { FilterPanel } from "@/components/ui/filter-panel";
 import { ExportButtons } from "@/features/exports/components/export-buttons";
 import { Wallet } from "lucide-react";
 import { getBudgets } from "@/features/budgets/queries";
@@ -44,27 +45,29 @@ export default async function BudgetsPage({
         {canEdit && <CopyBudgetForm month={month} />}
       </header>
       <ExportButtons target="budgets" filters={{ month }} />
-      <form className="flex flex-wrap items-end gap-3">
-        <div className="space-y-1.5">
-          <label htmlFor="budget-month" className="block text-sm font-medium">
-            Mes
-          </label>
-          <input
-            id="budget-month"
-            name="month"
-            type="month"
-            defaultValue={month.slice(0, 7)}
-            required
-            className="border-input bg-background h-10 rounded-lg border px-3 text-sm"
-          />
-        </div>
-        <button className="bg-background focus-visible:ring-ring h-10 rounded-lg border px-4 text-sm font-medium focus-visible:ring-2 focus-visible:outline-none">
-          Ver mes
-        </button>
-        <p className="text-muted-foreground pb-2 text-sm capitalize">
-          {monthLabel}
-        </p>
-      </form>
+      <FilterPanel>
+        <form className="flex flex-wrap items-end gap-3">
+          <div className="space-y-1.5">
+            <label htmlFor="budget-month" className="block text-sm font-medium">
+              Mes
+            </label>
+            <input
+              id="budget-month"
+              name="month"
+              type="month"
+              defaultValue={month.slice(0, 7)}
+              required
+              className="border-input bg-background h-10 rounded-lg border px-3 text-sm"
+            />
+          </div>
+          <button className="bg-background focus-visible:ring-ring h-10 rounded-lg border px-4 text-sm font-medium focus-visible:ring-2 focus-visible:outline-none">
+            Ver mes
+          </button>
+          <p className="text-muted-foreground pb-2 text-sm capitalize">
+            {monthLabel}
+          </p>
+        </form>
+      </FilterPanel>
       <section
         className="grid gap-3 sm:grid-cols-3"
         aria-label="Resumen del mes"
@@ -142,7 +145,7 @@ export default async function BudgetsPage({
                     aria-valuetext={`${formatUSD(budget.spent)} de ${formatUSD(budget.available)}`}
                   >
                     <div
-                      className={`${barColor} h-full rounded-full grow-x`}
+                      className={`${barColor} grow-x h-full rounded-full`}
                       style={{ width: `${Math.min(100, progress.percent)}%` }}
                     />
                   </div>

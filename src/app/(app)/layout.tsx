@@ -16,8 +16,10 @@ import { getNotificationUnreadCount } from "@/features/notifications/queries";
 
 export default async function AppLayout({
   children,
+  detail,
 }: {
   children: React.ReactNode;
+  detail: React.ReactNode;
 }) {
   const { profile, permissions, accent } = await getAccess();
   const hasReminders = canAccess(
@@ -71,15 +73,20 @@ export default async function AppLayout({
           manuals={visibleManuals(profile.role, permissions)}
         />
       </Suspense>
+      {detail}
       <BottomNav role={profile.role} permissions={permissions} />
     </SidebarProvider>
   );
 }
 
-async function AppToolsRail(props: Omit<React.ComponentProps<typeof ToolsRail>, "unread">) {
-  const unread = props.hasReminders ? await getNotificationUnreadCount().catch((error) => {
-    console.error("No se pudieron contar los avisos.", error);
-    return 0;
-  }) : 0;
+async function AppToolsRail(
+  props: Omit<React.ComponentProps<typeof ToolsRail>, "unread">,
+) {
+  const unread = props.hasReminders
+    ? await getNotificationUnreadCount().catch((error) => {
+        console.error("No se pudieron contar los avisos.", error);
+        return 0;
+      })
+    : 0;
   return <ToolsRail {...props} unread={unread} />;
 }

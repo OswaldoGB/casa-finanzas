@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { requireModule } from "@/features/permissions/queries";
 import type { FormState } from "@/features/auth/schemas";
 import { transactionIdSchema, transactionSchema } from "./schemas";
+import { purchaseItemsSchema, purchaseTotalCents } from "./purchase-items";
 import { bulkSelectionSchema, canRecategorize } from "./bulk";
 
 export async function saveTransaction(
@@ -21,7 +22,46 @@ export async function saveTransaction(
     (typeof id !== "string" || !transactionIdSchema.safeParse(id).success)
   )
     return { error: "Movimiento inválido." };
-  const values = parsed.data;
+  const place = formData.get("purchase_place");
+  const rawItems = formData.get("purchase_items");
+  let items: unknown;
+  try {
+    items = rawItems === null ? [] : JSON.parse(String(rawItems));
+  } catch {
+    return { error: "La lista de ítems no es válida." };
+  }
+  const validatedItems = purchaseItemsSchema.safeParse(items);
+  if (!validatedItems.success)
+    return { error: "Revisa el nombre, la cantidad y el precio de cada ítem." };
+  if (
+    place !== null &&
+    (typeof place !== "string" || place.trim().length > 120)
+  )
+    return { error: "El lugar de compra admite hasta 120 caracteres." };
+  if (
+    validatedItems.data.reduce(
+      (sum, item) => sum + purchaseTotalCents(item),
+      0,
+    ) > Math.round(parsed.data.amount * 100)
+  )
+    return { error: "El total de los ítems supera el monto del movimiento." };
+  const values = {
+    ...parsed.data,
+    ...(place !== null || parsed.data.type !== "expense"
+      ? {
+          purchase_place:
+            parsed.data.type === "expense"
+              ? String(place).trim() || null
+              : null,
+        }
+      : {}),
+    ...(rawItems !== null || parsed.data.type !== "expense"
+      ? {
+          purchase_items:
+            parsed.data.type === "expense" ? validatedItems.data : [],
+        }
+      : {}),
+  };
   const existing = id
     ? await supabase
         .from("transactions")
@@ -145,7 +185,10 @@ export async function saveTransaction(
   revalidatePath("/transactions");
   revalidatePath("/accounts");
   revalidatePath("/projects");
-  return { ok: id ? "Movimiento actualizado." : "Movimiento creado." };
+  return {
+    ok: id ? "Movimiento actualizado." : "Movimiento creado.",
+    transactionId: result.data.id,
+  };
 }
 
 export async function deleteTransaction(formData: FormData) {
@@ -163,6 +206,8 @@ export async function deleteTransaction(formData: FormData) {
     throw new Error(
       "Corrige el pago completo desde el historial de la tarjeta.",
     );
+  const linked = await supabase.rpc("assert_loan_purchases_removable", { p_ids: [parsed.data] });
+  if (linked.error) throw new Error(linked.error.message);
   const { data: attachments, error: attachmentsError } = await supabase
     .from("attachments")
     .select("storage_path")
@@ -183,6 +228,7 @@ export async function deleteTransaction(formData: FormData) {
   if (deleted.error) throw new Error(deleted.error.message);
   revalidatePath("/transactions");
   revalidatePath("/accounts");
+  revalidatePath("/loans");
   redirect("/transactions");
 }
 
@@ -265,6 +311,8 @@ export async function bulkTransactions(
     p_ids: ids.data,
   });
   if (financed.error) return { error: financed.error.message };
+  const linked = await supabase.rpc("assert_loan_purchases_removable", { p_ids: ids.data });
+  if (linked.error) return { error: linked.error.message };
   const attachments = await supabase
     .from("attachments")
     .select("storage_path")
@@ -289,5 +337,6 @@ export async function bulkTransactions(
     return { error: "No se pudieron borrar todos los movimientos." };
   revalidatePath("/transactions");
   revalidatePath("/accounts");
+  revalidatePath("/loans");
   return { ok: `${ids.data.length} movimientos borrados.` };
 }

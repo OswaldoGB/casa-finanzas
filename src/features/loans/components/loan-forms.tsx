@@ -1,12 +1,22 @@
 "use client";
 
+import { LoanPurchasePicker } from "./loan-purchase-picker";
+import { formatUSD } from "@/lib/format";
+import type { LoanItem } from "../queries";
 import { MoneyInput } from "@/components/ui/money-input";
 
 import { useActionState, useId, useState } from "react";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { FormSelect } from "@/components/ui/form-select";
 import type { FormState } from "@/features/auth/schemas";
-import { createLoan, payDebt, repayLoan, saveDebt, updateLoan, writeOffLoan } from "../actions";
+import {
+  createLoan,
+  payDebt,
+  repayLoan,
+  saveDebt,
+  updateLoan,
+  writeOffLoan,
+} from "../actions";
 import type { Loan, LoanPerson } from "../schemas";
 import { PersonAvatar } from "./person-form";
 const field =
@@ -34,30 +44,34 @@ function MoneyDateAccount({
   today,
   accounts,
   max,
+  showAmount = true,
   accountLabel = "Cuenta",
 }: {
   prefix: string;
   today: string;
   accounts: { id: string; name: string; type?: string }[];
   max?: number;
+  showAmount?: boolean;
   accountLabel?: string;
 }) {
   return (
     <>
-      <label className="grid gap-1.5 text-sm" htmlFor={`${prefix}-amount`}>
-        Monto (USD)
-        <MoneyInput
-          id={`${prefix}-amount`}
-          name="amount"
-          type="number"
-          min="0.01"
-          max={max ?? 999999999999.99}
-          step="0.01"
-          inputMode="decimal"
-          required
-          className={field}
-        />
-      </label>
+      {showAmount && (
+        <label className="grid gap-1.5 text-sm" htmlFor={`${prefix}-amount`}>
+          Monto (USD)
+          <MoneyInput
+            id={`${prefix}-amount`}
+            name="amount"
+            type="number"
+            min="0.01"
+            max={max ?? 999999999999.99}
+            step="0.01"
+            inputMode="decimal"
+            required
+            className={field}
+          />
+        </label>
+      )}
       <label className="grid gap-1.5 text-sm" htmlFor={`${prefix}-date`}>
         Fecha
         <input
@@ -92,16 +106,25 @@ function MoneyDateAccount({
     </>
   );
 }
-function LoanPersonField({ people, name }: { people: LoanPerson[]; name: "debtor" | "creditor" }) {
+function LoanPersonField({
+  people,
+  name,
+}: {
+  people: LoanPerson[];
+  name: "debtor" | "creditor";
+}) {
   const id = useId();
   const [selected, setSelected] = useState("");
   const person = people.find((entry) => entry.id === selected);
-  const label = name === "debtor" ? "Persona a quien prestas" : "¿A quién le debes?";
+  const label =
+    name === "debtor" ? "Persona a quien prestas" : "¿A quién le debes?";
   return (
     <div className="grid gap-2">
       {people.length > 0 && (
         <>
-          <label htmlFor={id} className="text-sm">{label}</label>
+          <label htmlFor={id} className="text-sm">
+            {label}
+          </label>
           <FormSelect
             id={id}
             name="person_id"
@@ -110,7 +133,9 @@ function LoanPersonField({ people, name }: { people: LoanPerson[]; name: "debtor
             placeholder="Elige una persona"
             options={[
               ...people.map(({ id, name, emoji, color }) => ({
-                value: id, label: name, leading: <PersonAvatar emoji={emoji} color={color} />,
+                value: id,
+                label: name,
+                leading: <PersonAvatar emoji={emoji} color={color} />,
               })),
               { value: "manual", label: "Escribir nombre sin vincular" },
             ]}
@@ -139,29 +164,56 @@ export function CreateLoanForm({
   people: LoanPerson[];
 }) {
   const [state, action, pending] = useActionState(createLoan, undefined);
+  const [linked, setLinked] = useState(false);
   return (
     <form action={action} className="grid gap-4">
       <LoanPersonField people={people} name="debtor" />
-      <MoneyDateAccount
-        prefix="new-loan"
-        today={today}
-        accounts={sourceAccounts}
-        accountLabel="Cuenta o tarjeta desde la que prestaste"
-      />
-      <label className="grid gap-1.5 text-sm" htmlFor="loan-effect">
-        ¿Cómo debe afectar el saldo?
-        <select
-          id="loan-effect"
-          name="balance_effect"
-          defaultValue="record_now"
-          className={field}
-        >
-          <option value="record_now">Registrar la salida ahora</option>
-          <option value="already_recorded">
-            Ya estaba incluido en el saldo actual
-          </option>
-        </select>
+      <label className="flex items-center gap-2 text-sm">
+        <input
+          type="checkbox"
+          checked={linked}
+          onChange={(event) => setLinked(event.target.checked)}
+        />
+        Vincular ítems de compras registradas
       </label>
+      {linked ? (
+        <>
+          <LoanPurchasePicker />
+          <label className="grid gap-1.5 text-sm">
+            Fecha del préstamo
+            <input
+              type="date"
+              name="date"
+              required
+              defaultValue={today}
+              className={field}
+            />
+          </label>
+        </>
+      ) : (
+        <>
+          <MoneyDateAccount
+            prefix="new-loan"
+            today={today}
+            accounts={sourceAccounts}
+            accountLabel="Cuenta o tarjeta desde la que prestaste"
+          />
+          <label className="grid gap-1.5 text-sm" htmlFor="loan-effect">
+            ¿Cómo debe afectar el saldo?
+            <select
+              id="loan-effect"
+              name="balance_effect"
+              defaultValue="record_now"
+              className={field}
+            >
+              <option value="record_now">Registrar la salida ahora</option>
+              <option value="already_recorded">
+                Ya estaba incluido en el saldo actual
+              </option>
+            </select>
+          </label>
+        </>
+      )}
       <label className="grid gap-1.5 text-sm" htmlFor="loan-expected">
         Fecha esperada de pago (opcional)
         <input
@@ -181,12 +233,15 @@ export function CreateLoanForm({
         />
       </label>
       <p className="text-muted-foreground text-xs">
-        Si ya estaba incluido, se conserva como préstamo por cobrar sin volver a
-        cambiar el saldo. Una tarjeta puede ser el origen y aumenta su deuda
-        cuando registras la salida ahora.
+        {linked
+          ? "El gasto ya está registrado. El préstamo solo agrega el saldo por cobrar."
+          : "Si ya estaba incluido, se conserva como préstamo por cobrar sin volver a cambiar el saldo."}
       </p>
       <Feedback state={state} />
-      <button className={button} disabled={pending || !sourceAccounts.length}>
+      <button
+        className={button}
+        disabled={pending || (!linked && !sourceAccounts.length)}
+      >
         {pending ? "Registrando…" : "Registrar préstamo"}
       </button>
     </form>
@@ -196,16 +251,86 @@ export function RepayLoanForm({
   loan,
   today,
   accounts,
+  items,
 }: {
   loan: Loan;
+  items: LoanItem[];
   today: string;
   accounts: { id: string; name: string }[];
 }) {
-  const [state, action, pending] = useActionState(repayLoan, undefined);
+  const [payments, setPayments] = useState<Record<string, string>>({});
+  const [state, action, pending] = useActionState(
+    async (previous: FormState, form: FormData) => {
+      const result = await repayLoan(previous, form);
+      if (result?.ok) setPayments({});
+      return result;
+    },
+    undefined,
+  );
+  const entries = items
+    .map((item) => ({
+      loan_item_id: item.id,
+      amount_cents: Math.round(Number(payments[item.id] || 0) * 100),
+    }))
+    .filter((item) => item.amount_cents > 0);
   return (
     <form action={action} className="grid gap-3">
       <input type="hidden" name="id" value={loan.id} />
+      {items.length > 0 && (
+        <fieldset className="space-y-2 rounded-xl border p-3">
+          <legend className="px-1 text-sm">Ítems a abonar</legend>
+          <input
+            type="hidden"
+            name="selected_repayments"
+            value={JSON.stringify(entries)}
+          />
+          {items
+            .filter((item) => item.pendingCents > 0)
+            .map((item) => (
+              <div
+                key={item.id}
+                className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-2 rounded-lg border p-2"
+              >
+                <label className="grid min-w-0 gap-1 text-sm">
+                  {item.name} · Pendiente {formatUSD(item.pendingCents / 100)}
+                  <MoneyInput
+                    value={payments[item.id] ?? ""}
+                    min={0}
+                    max={item.pendingCents / 100}
+                    step="0.01"
+                    className={field}
+                    onChange={(event) =>
+                      setPayments((current) => ({
+                        ...current,
+                        [item.id]: event.target.value,
+                      }))
+                    }
+                  />
+                </label>
+                <button
+                  type="button"
+                  className="hover:bg-accent rounded-lg border px-2 py-2 text-xs"
+                  onClick={() =>
+                    setPayments((current) => ({
+                      ...current,
+                      [item.id]: (item.pendingCents / 100).toFixed(2),
+                    }))
+                  }
+                >
+                  Saldar ítem
+                </button>
+              </div>
+            ))}
+          <p className="text-sm font-medium">
+            Total ·{" "}
+            {formatUSD(
+              entries.reduce((sum, item) => sum + item.amount_cents, 0) / 100,
+            )}
+          </p>
+        </fieldset>
+      )}
       <MoneyDateAccount
+        showAmount={items.length === 0}
         prefix={loan.id}
         today={today}
         accounts={accounts}
@@ -216,7 +341,12 @@ export function RepayLoanForm({
         El abono entra en la cuenta elegida. No cuenta como ingreso.
       </p>
       <Feedback state={state} />
-      <button className={button} disabled={pending || !accounts.length}>
+      <button
+        className={button}
+        disabled={
+          pending || !accounts.length || (items.length > 0 && !entries.length)
+        }
+      >
         {pending ? "Registrando…" : "Registrar abono"}
       </button>
     </form>
@@ -225,8 +355,10 @@ export function RepayLoanForm({
 export function EditLoanForm({
   loan,
   accounts,
+  linked = false,
 }: {
   loan: Loan;
+  linked?: boolean;
   accounts: { id: string; name: string; type: string }[];
 }) {
   const [state, action, pending] = useActionState(updateLoan, undefined);
@@ -260,6 +392,7 @@ export function EditLoanForm({
           step="0.01"
           inputMode="decimal"
           defaultValue={loan.amount}
+          readOnly={linked}
           required
           className={field}
         />
@@ -288,40 +421,60 @@ export function EditLoanForm({
           className={field}
         />
       </label>
-      <label className="grid gap-1.5 text-sm">
-        Cuenta o tarjeta de origen
-        <select
-          name="account_id"
-          required
-          defaultValue={loan.source_account_id ?? ""}
-          className={field}
-        >
-          <option value="" disabled>
-            Selecciona una cuenta
-          </option>
-          {accounts.map((account) => (
-            <option key={account.id} value={account.id}>
-              {account.name}
-              {account.type === "credit_card" ? " · Tarjeta de crédito" : ""}
-            </option>
-          ))}
-        </select>
-      </label>
-      <label className="grid gap-1.5 text-sm">
-        Estado del saldo al prestar
-        <select
-          name="balance_effect"
-          defaultValue={
-            loan.already_recorded ? "already_recorded" : "record_now"
-          }
-          className={field}
-        >
-          <option value="record_now">La salida debe afectar el saldo</option>
-          <option value="already_recorded">
-            La salida ya estaba incluida en el saldo
-          </option>
-        </select>
-      </label>
+      {linked ? (
+        <>
+          <input
+            type="hidden"
+            name="account_id"
+            value={loan.source_account_id ?? ""}
+          />
+          <input type="hidden" name="balance_effect" value="already_recorded" />
+          <p className="text-muted-foreground text-xs">
+            El origen y el monto vienen de las compras vinculadas.
+          </p>
+        </>
+      ) : (
+        <>
+          <label className="grid gap-1.5 text-sm">
+            Cuenta o tarjeta de origen
+            <select
+              name="account_id"
+              required
+              defaultValue={loan.source_account_id ?? ""}
+              className={field}
+            >
+              <option value="" disabled>
+                Selecciona una cuenta
+              </option>
+              {accounts.map((account) => (
+                <option key={account.id} value={account.id}>
+                  {account.name}
+                  {account.type === "credit_card"
+                    ? " · Tarjeta de crédito"
+                    : ""}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="grid gap-1.5 text-sm">
+            Estado del saldo al prestar
+            <select
+              name="balance_effect"
+              defaultValue={
+                loan.already_recorded ? "already_recorded" : "record_now"
+              }
+              className={field}
+            >
+              <option value="record_now">
+                La salida debe afectar el saldo
+              </option>
+              <option value="already_recorded">
+                La salida ya estaba incluida en el saldo
+              </option>
+            </select>
+          </label>
+        </>
+      )}
       <label className="grid gap-1.5 text-sm" htmlFor={`edit-${loan.id}-notes`}>
         Notas
         <textarea
@@ -377,24 +530,36 @@ export function WriteOffLoanForm({ loan }: { loan: Loan }) {
 }
 
 /** Deuda que debo: a quién, cuánto y para cuándo. No mueve dinero al guardarla. */
-export function DebtForm({ today, debt, people = [] }: { today: string; debt?: Loan; people?: LoanPerson[] }) {
+export function DebtForm({
+  today,
+  debt,
+  people = [],
+}: {
+  today: string;
+  debt?: Loan;
+  people?: LoanPerson[];
+}) {
   const [state, action, pending] = useActionState(saveDebt, undefined);
   const prefix = debt?.id ?? "new-debt";
   return (
     <form action={action} className="grid gap-3">
       {debt && <input type="hidden" name="id" value={debt.id} />}
-      {debt ? <label className="grid gap-1.5 text-sm" htmlFor={`${prefix}-creditor`}>
-        ¿A quién le debes?
-        <input
-          id={`${prefix}-creditor`}
-          name="creditor"
-          required
-          maxLength={100}
-          defaultValue={debt.debtor}
-          placeholder="Mi hermano"
-          className={field}
-        />
-      </label> : <LoanPersonField people={people} name="creditor" />}
+      {debt ? (
+        <label className="grid gap-1.5 text-sm" htmlFor={`${prefix}-creditor`}>
+          ¿A quién le debes?
+          <input
+            id={`${prefix}-creditor`}
+            name="creditor"
+            required
+            maxLength={100}
+            defaultValue={debt.debtor}
+            placeholder="Mi hermano"
+            className={field}
+          />
+        </label>
+      ) : (
+        <LoanPersonField people={people} name="creditor" />
+      )}
       <label className="grid gap-1.5 text-sm" htmlFor={`${prefix}-amount`}>
         ¿Cuánto? (USD)
         <MoneyInput
@@ -411,7 +576,14 @@ export function DebtForm({ today, debt, people = [] }: { today: string; debt?: L
       </label>
       <label className="grid gap-1.5 text-sm" htmlFor={`${prefix}-date`}>
         Fecha
-        <input id={`${prefix}-date`} name="date" type="date" required defaultValue={debt?.date ?? today} className={field} />
+        <input
+          id={`${prefix}-date`}
+          name="date"
+          type="date"
+          required
+          defaultValue={debt?.date ?? today}
+          className={field}
+        />
       </label>
       <label className="grid gap-1.5 text-sm" htmlFor={`${prefix}-expected`}>
         ¿Para cuándo quieres terminar de pagar? (opcional)
@@ -435,8 +607,8 @@ export function DebtForm({ today, debt, people = [] }: { today: string; debt?: L
         />
       </label>
       <p className="text-muted-foreground text-xs">
-        Solo lleva la cuenta de lo que debes; no cuenta como gasto ni mueve tus saldos. Cada abono
-        sí sale de la cuenta que elijas.
+        Solo lleva la cuenta de lo que debes; no cuenta como gasto ni mueve tus
+        saldos. Cada abono sí sale de la cuenta que elijas.
       </p>
       <Feedback state={state} />
       <button className={button} disabled={pending}>

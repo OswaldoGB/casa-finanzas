@@ -1,3 +1,4 @@
+import { FilterPanel } from "@/components/ui/filter-panel";
 import { ExportButtons } from "@/features/exports/components/export-buttons";
 import { getAnalytics } from "@/features/analytics/queries";
 import {
@@ -82,33 +83,35 @@ export default async function ReportsPage({
             Entiende cómo entra y sale el dinero del hogar.
           </p>
         </div>
-        <form className="flex flex-wrap items-end gap-2">
-          <label className="grid gap-1 text-xs" htmlFor="report-from">
-            Desde
-            <input
-              id="report-from"
-              name="from"
-              type="date"
-              defaultValue={data.from}
-              className={inputClass}
-              required
-            />
-          </label>
-          <label className="grid gap-1 text-xs" htmlFor="report-to">
-            Hasta
-            <input
-              id="report-to"
-              name="to"
-              type="date"
-              defaultValue={data.to}
-              className={inputClass}
-              required
-            />
-          </label>
-          <button className="bg-primary text-primary-foreground h-10 rounded-lg px-4 text-sm font-medium">
-            Aplicar
-          </button>
-        </form>
+        <FilterPanel>
+          <form className="flex flex-wrap items-end gap-2">
+            <label className="grid gap-1 text-xs" htmlFor="report-from">
+              Desde
+              <input
+                id="report-from"
+                name="from"
+                type="date"
+                defaultValue={data.from}
+                className={inputClass}
+                required
+              />
+            </label>
+            <label className="grid gap-1 text-xs" htmlFor="report-to">
+              Hasta
+              <input
+                id="report-to"
+                name="to"
+                type="date"
+                defaultValue={data.to}
+                className={inputClass}
+                required
+              />
+            </label>
+            <button className="bg-primary text-primary-foreground h-10 rounded-lg px-4 text-sm font-medium">
+              Aplicar
+            </button>
+          </form>
+        </FilterPanel>
       </header>
       <ExportButtons target="reports" />
       <p className="text-muted-foreground text-xs">

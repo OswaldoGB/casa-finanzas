@@ -1,3 +1,4 @@
+import { FilterPanel } from "@/components/ui/filter-panel";
 import { ExportButtons } from "@/features/exports/components/export-buttons";
 import Link from "next/link";
 import { QuickEntry } from "@/features/transactions/components/quick-entry";
@@ -79,126 +80,128 @@ export default async function TransactionsPage({
         )}
       </header>
       <ExportButtons target="transactions" />
-      <form className="bg-card grid gap-3 rounded-xl border p-4 sm:grid-cols-2 lg:grid-cols-4">
-        <label className="grid gap-1 text-xs">
-          Desde
-          <input
-            className={selectClass}
-            type="date"
-            name="from"
-            defaultValue={filters.from}
-          />
-        </label>
-        <label className="grid gap-1 text-xs">
-          Hasta
-          <input
-            className={selectClass}
-            type="date"
-            name="to"
-            defaultValue={filters.to}
-          />
-        </label>
-        <label className="grid gap-1 text-xs">
-          Tipo
-          <select
-            className={selectClass}
-            name="type"
-            defaultValue={filters.type}
-          >
-            <option value="">Todos</option>
-            <option value="income">Ingresos</option>
-            <option value="expense">Gastos</option>
-            <option value="transfer">Transferencias</option>
-          </select>
-        </label>
-        <label className="grid gap-1 text-xs">
-          Cuenta
-          <select
-            className={selectClass}
-            name="account"
-            defaultValue={filters.account}
-          >
-            <option value="">Todas</option>
-            {options.accounts.map((item) => (
-              <option key={item.id} value={item.id}>
-                {item.name}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="grid gap-1 text-xs">
-          Categoría
-          <select
-            className={selectClass}
-            name="category"
-            defaultValue={filters.category}
-          >
-            <option value="">Todas</option>
-            {options.categories.map((item) => (
-              <option key={item.id} value={item.id}>
-                {item.name}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="grid gap-1 text-xs">
-          Método
-          <select
-            className={selectClass}
-            name="method"
-            defaultValue={filters.method}
-          >
-            <option value="">Todos</option>
-            {options.methods.map((item) => (
-              <option key={item.id} value={item.id}>
-                {item.name}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="grid gap-1 text-xs">
-          Usuario
-          <select
-            className={selectClass}
-            name="user"
-            defaultValue={filters.user}
-          >
-            <option value="">Todos</option>
-            {options.members.map((item) => (
-              <option key={item.id} value={item.id}>
-                {item.full_name}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="grid gap-1 text-xs">
-          Proyecto
-          <select
-            name="project"
-            defaultValue={filters.project}
-            className={selectClass}
-          >
-            <option value="">Todos</option>
-            {options.projects.map((item) => (
-              <option key={item.id} value={item.id}>
-                {item.name}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="grid gap-1 text-xs">
-          Buscar
-          <input
-            className={selectClass}
-            name="q"
-            defaultValue={filters.q}
-            placeholder="Descripción"
-          />
-        </label>
-        <button className="bg-secondary text-secondary-foreground rounded-lg px-4 py-2 text-sm font-medium sm:col-span-2 lg:col-span-4">
-          Aplicar filtros
-        </button>
-      </form>
+      <FilterPanel>
+        <form className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <label className="grid gap-1 text-xs">
+            Desde
+            <input
+              className={selectClass}
+              type="date"
+              name="from"
+              defaultValue={filters.from}
+            />
+          </label>
+          <label className="grid gap-1 text-xs">
+            Hasta
+            <input
+              className={selectClass}
+              type="date"
+              name="to"
+              defaultValue={filters.to}
+            />
+          </label>
+          <label className="grid gap-1 text-xs">
+            Tipo
+            <select
+              className={selectClass}
+              name="type"
+              defaultValue={filters.type}
+            >
+              <option value="">Todos</option>
+              <option value="income">Ingresos</option>
+              <option value="expense">Gastos</option>
+              <option value="transfer">Transferencias</option>
+            </select>
+          </label>
+          <label className="grid gap-1 text-xs">
+            Cuenta
+            <select
+              className={selectClass}
+              name="account"
+              defaultValue={filters.account}
+            >
+              <option value="">Todas</option>
+              {options.accounts.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="grid gap-1 text-xs">
+            Categoría
+            <select
+              className={selectClass}
+              name="category"
+              defaultValue={filters.category}
+            >
+              <option value="">Todas</option>
+              {options.categories.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="grid gap-1 text-xs">
+            Método
+            <select
+              className={selectClass}
+              name="method"
+              defaultValue={filters.method}
+            >
+              <option value="">Todos</option>
+              {options.methods.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="grid gap-1 text-xs">
+            Usuario
+            <select
+              className={selectClass}
+              name="user"
+              defaultValue={filters.user}
+            >
+              <option value="">Todos</option>
+              {options.members.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.full_name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="grid gap-1 text-xs">
+            Proyecto
+            <select
+              name="project"
+              defaultValue={filters.project}
+              className={selectClass}
+            >
+              <option value="">Todos</option>
+              {options.projects.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="grid gap-1 text-xs">
+            Buscar
+            <input
+              className={selectClass}
+              name="q"
+              defaultValue={filters.q}
+              placeholder="Descripción"
+            />
+          </label>
+          <button className="bg-secondary text-secondary-foreground rounded-lg px-4 py-2 text-sm font-medium sm:col-span-2 lg:col-span-4">
+            Aplicar filtros
+          </button>
+        </form>
+      </FilterPanel>
       {options.canEdit && transactions.length > 0 && (
         <BulkToolbar categories={options.categories} />
       )}

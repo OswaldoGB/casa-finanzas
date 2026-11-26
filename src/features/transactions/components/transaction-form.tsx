@@ -1,5 +1,7 @@
 "use client";
 
+import { toast } from "sonner";
+import { uploadReceipt, validateReceipt } from "@/features/attachments/upload";
 import { MoneyInput } from "@/components/ui/money-input";
 
 import { useActionState, useEffect, useRef, useState } from "react";
@@ -7,6 +9,8 @@ import type { Transaction } from "../queries";
 import { saveTransaction } from "../actions";
 import { FormSelect } from "@/components/ui/form-select";
 import { CategoryIcon } from "@/features/catalogs/components/category-icon";
+import { PurchaseItemsFields } from "./purchase-items-fields";
+import { readPurchaseItems } from "../purchase-items";
 import { methodForAccount } from "@/features/catalogs/payment-defaults";
 
 type Options = {
@@ -43,7 +47,37 @@ export function TransactionForm({
   rememberDefaults?: boolean;
   onSuccess?: (message: string) => void;
 }) {
-  const [state, action, pending] = useActionState(saveTransaction, undefined);
+  const attachment = useRef<HTMLInputElement>(null);
+  const [state, action, pending] = useActionState(
+    async (
+      previous: Awaited<ReturnType<typeof saveTransaction>>,
+      form: FormData,
+    ) => {
+      const file = attachment.current?.files?.[0];
+      if (file) {
+        try {
+          validateReceipt(file);
+        } catch (cause) {
+          return {
+            error:
+              cause instanceof Error ? cause.message : "Comprobante inválido.",
+          };
+        }
+      }
+      const result = await saveTransaction(previous, form);
+      if (result?.transactionId && file) {
+        try {
+          await uploadReceipt(result.transactionId, file);
+        } catch {
+          toast.warning(
+            "El movimiento se guardó. Puedes volver a adjuntar el comprobante desde el detalle.",
+          );
+        }
+      }
+      return result;
+    },
+    undefined,
+  );
   const formRef = useRef<HTMLFormElement>(null);
   const [type, setType] = useState<"income" | "expense" | "transfer">(
     transaction?.type === "income" || transaction?.type === "transfer"
@@ -356,6 +390,33 @@ export function TransactionForm({
         </div>
       )}
       {quick && <input type="hidden" name="notes" value="" />}
+      {!quick && type === "expense" && (
+        <>
+          <label className="grid gap-1 text-sm font-medium">
+            Lugar de compra
+            <input
+              name="purchase_place"
+              maxLength={120}
+              defaultValue={transaction?.purchase_place ?? ""}
+              className={field}
+            />
+          </label>
+          <PurchaseItemsFields
+            initial={readPurchaseItems(transaction?.purchase_items)}
+          />
+        </>
+      )}
+      {!quick && (
+        <label className="grid gap-1 text-sm font-medium">
+          Adjuntar comprobante
+          <input
+            ref={attachment}
+            type="file"
+            accept="image/jpeg,image/png,image/webp,application/pdf"
+            className="border-input bg-background w-full rounded-lg border p-2 text-sm"
+          />
+        </label>
+      )}
       {state?.error && (
         <p role="alert" className="text-destructive text-sm">
           {state.error}

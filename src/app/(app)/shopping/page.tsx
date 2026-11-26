@@ -1,3 +1,4 @@
+import { FilterPanel } from "@/components/ui/filter-panel";
 import { ExportButtons } from "@/features/exports/components/export-buttons";
 import Link from "next/link";
 import { getShopping } from "@/features/shopping/queries";
@@ -52,17 +53,19 @@ export default async function ShoppingPage({
           precio. Los estimados todavía no afectan tus saldos.
         </p>
       </div>
-      <nav aria-label="Estado de compras" className="flex gap-3 text-sm">
-        {Object.entries(shoppingStatus).map(([status, label]) => (
-          <Link
-            className={`rounded-lg border px-3 py-2 ${status === (filters.status ?? "pending") ? "bg-muted font-medium" : ""}`}
-            key={status}
-            href={`/shopping?status=${status}`}
-          >
-            {label}
-          </Link>
-        ))}
-      </nav>
+      <FilterPanel>
+        <nav aria-label="Estado de compras" className="flex gap-3 text-sm">
+          {Object.entries(shoppingStatus).map(([status, label]) => (
+            <Link
+              className={`rounded-lg border px-3 py-2 ${status === (filters.status ?? "pending") ? "bg-muted font-medium" : ""}`}
+              key={status}
+              href={`/shopping?status=${status}`}
+            >
+              {label}
+            </Link>
+          ))}
+        </nav>
+      </FilterPanel>
       <div className="grid items-start gap-6 lg:grid-cols-[1fr_360px]">
         <section className="space-y-3">
           {visible.length === 0 && (

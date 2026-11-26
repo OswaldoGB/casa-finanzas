@@ -1,4 +1,6 @@
 "use client";
+
+import { FilterPanel } from "@/components/ui/filter-panel";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -62,7 +64,10 @@ export function RemindersMenu({
           <DropdownMenuSeparator />
           <DropdownMenuLabel>Descargar</DropdownMenuLabel>
           {download.map(([target, format, label]) => (
-            <DropdownMenuItem key={label} onSelect={() => downloadExport(target, format)}>
+            <DropdownMenuItem
+              key={label}
+              onSelect={() => downloadExport(target, format)}
+            >
               {label}
             </DropdownMenuItem>
           ))}
@@ -117,7 +122,10 @@ export function RemindersFilters({
   };
   useEffect(() => {
     if (term.trim() === q) return;
-    const t = setTimeout(() => router.replace(hrefWith("q", term.trim()), { scroll: false }), 300);
+    const t = setTimeout(
+      () => router.replace(hrefWith("q", term.trim()), { scroll: false }),
+      300,
+    );
     return () => clearTimeout(t);
     // hrefWith depende de params, que cambia con cada replace.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -125,38 +133,47 @@ export function RemindersFilters({
   const chip = (active: boolean) =>
     `shrink-0 rounded-full border px-3 py-1.5 text-sm ${active ? "border-primary/40 bg-primary/10 text-primary" : "text-muted-foreground"}`;
   return (
-    <div className="space-y-3">
-      <label className="relative block">
-        <span className="sr-only">Buscar recordatorios</span>
-        <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
-        <input
-          type="search"
-          value={term}
-          onChange={(e) => setTerm(e.target.value)}
-          maxLength={120}
-          placeholder="Buscar por título o referencia…"
-          className="border-input bg-background h-11 w-full rounded-xl border pr-3 pl-9 text-sm"
-        />
-      </label>
-      {categories.length > 0 && (
-        <nav aria-label="Filtrar por categoría" className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
-          <Link href={hrefWith("category", "")} className={chip(!category)} aria-current={!category ? "true" : undefined}>
-            Todas
-          </Link>
-          {categories
-            .filter((c) => !c.is_archived)
-            .map((c) => (
-              <Link
-                key={c.id}
-                href={hrefWith("category", c.id)}
-                className={chip(category === c.id)}
-                aria-current={category === c.id ? "true" : undefined}
-              >
-                {c.name}
-              </Link>
-            ))}
-        </nav>
-      )}
-    </div>
+    <FilterPanel>
+      <div className="space-y-3">
+        <label className="relative block">
+          <span className="sr-only">Buscar recordatorios</span>
+          <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
+          <input
+            type="search"
+            value={term}
+            onChange={(e) => setTerm(e.target.value)}
+            maxLength={120}
+            placeholder="Buscar por título o referencia…"
+            className="border-input bg-background h-11 w-full rounded-xl border pr-3 pl-9 text-sm"
+          />
+        </label>
+        {categories.length > 0 && (
+          <nav
+            aria-label="Filtrar por categoría"
+            className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1"
+          >
+            <Link
+              href={hrefWith("category", "")}
+              className={chip(!category)}
+              aria-current={!category ? "true" : undefined}
+            >
+              Todas
+            </Link>
+            {categories
+              .filter((c) => !c.is_archived)
+              .map((c) => (
+                <Link
+                  key={c.id}
+                  href={hrefWith("category", c.id)}
+                  className={chip(category === c.id)}
+                  aria-current={category === c.id ? "true" : undefined}
+                >
+                  {c.name}
+                </Link>
+              ))}
+          </nav>
+        )}
+      </div>
+    </FilterPanel>
   );
 }
