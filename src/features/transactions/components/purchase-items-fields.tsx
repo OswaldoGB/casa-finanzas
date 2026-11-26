@@ -6,8 +6,18 @@ import { MoneyInput } from "@/components/ui/money-input";
 import { formatUSD } from "@/lib/format";
 import { purchaseTotalCents, type PurchaseItem } from "../purchase-items";
 
-export function PurchaseItemsFields({ initial }: { initial: PurchaseItem[] }) {
+export function PurchaseItemsFields({
+  initial,
+  onUseTotal,
+}: {
+  initial: PurchaseItem[];
+  onUseTotal: (totalCents: number) => void;
+}) {
   const [items, setItems] = useState(initial);
+  const totalCents = items.reduce(
+    (sum, item) => sum + purchaseTotalCents(item),
+    0,
+  );
 
   function change(id: string, fields: Partial<PurchaseItem>) {
     setItems((current) =>
@@ -97,6 +107,28 @@ export function PurchaseItemsFields({ initial }: { initial: PurchaseItem[] }) {
       >
         <Plus className="size-4" /> Agregar ítems
       </button>
+      {items.length > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-2 border-t pt-3">
+          <p className="text-sm">
+            Total de ítems{" "}
+            <strong className="tabular-nums">
+              {formatUSD(totalCents / 100)}
+            </strong>
+          </p>
+          <button
+            type="button"
+            className="hover:bg-accent rounded-lg border px-3 py-2 text-sm font-medium disabled:opacity-50"
+            disabled={
+              !Number.isSafeInteger(totalCents) ||
+              totalCents <= 0 ||
+              totalCents > 99_999_999_999_999
+            }
+            onClick={() => onUseTotal(totalCents)}
+          >
+            Usar total de ítems
+          </button>
+        </div>
+      )}
     </fieldset>
   );
 }

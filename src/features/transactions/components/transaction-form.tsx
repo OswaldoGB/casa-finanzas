@@ -79,6 +79,7 @@ export function TransactionForm({
     undefined,
   );
   const formRef = useRef<HTMLFormElement>(null);
+  const amountRef = useRef<HTMLInputElement>(null);
   const [type, setType] = useState<"income" | "expense" | "transfer">(
     transaction?.type === "income" || transaction?.type === "transfer"
       ? transaction.type
@@ -177,6 +178,7 @@ export function TransactionForm({
           Monto (USD)
         </label>
         <MoneyInput
+          ref={amountRef}
           id="transaction-amount"
           name="amount"
           type="number"
@@ -403,6 +405,11 @@ export function TransactionForm({
           </label>
           <PurchaseItemsFields
             initial={readPurchaseItems(transaction?.purchase_items)}
+            onUseTotal={(totalCents) => {
+              if (!amountRef.current) return;
+              amountRef.current.value = (totalCents / 100).toFixed(2);
+              toast.success("El monto del movimiento se actualizó.");
+            }}
           />
         </>
       )}
